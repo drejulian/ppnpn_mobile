@@ -1,4 +1,4 @@
-// lib/widgets/sihaki_submenu_modal.dart (You can create this file)
+// lib/widgets/sihaki_submenu_modal.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,17 +39,27 @@ class SihakiSubMenuModal extends ConsumerWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                title,
-                style: theme.typographyRegular.headingSmall.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Text(
+                    title, // Gunakan prop title yang diterima
+                    style: theme.typographyRegular.headingSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
                 ),
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.grey),
                 onPressed: () => Navigator.of(context).pop(),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
@@ -81,7 +91,6 @@ class SihakiSubMenuModal extends ConsumerWidget {
   }
 }
 
-// Define a new data class for sub-menu items if needed, or reuse MenuItemData
 class SubMenuItemData {
   final String title;
   final IconData icon;

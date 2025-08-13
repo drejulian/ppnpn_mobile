@@ -1391,7 +1391,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               onTap: () {
                 // Navigate to Agenda List page
                 debugPrint('Navigating to Daftar Agenda'); //
-                // context.pushNamed(Routes.daftarAgenda.name);
+                 context.pushNamed(Routes.daftarAgenda.name);
               },
             ),
             SubMenuItemData(
@@ -1400,8 +1400,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               Colors.teal,
               onTap: () {
                 // Navigate to Member's Social Media page
-                debugPrint('Navigating to Media Sosial Anggota'); //
-                // context.pushNamed(Routes.mediaSosialAnggota.name);
+                debugPrint('Navigating to Media Sosial Anggota'); 
+                 context.pushNamed(Routes.mediaSosialAnggota.name);
               },
             ),
           ]);
