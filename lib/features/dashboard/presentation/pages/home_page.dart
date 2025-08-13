@@ -40,7 +40,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   String _getGreeting() {
     final hour = _currentTime.hour;
 
-    if (hour < 12) return 'Selamat Pagi';
+    if (hour < 12) return 'Selamat Pagii';
     if (hour < 15) return 'Selamat Siang';
     if (hour < 18) return 'Selamat Sore';
     return 'Selamat Malam';
@@ -1244,9 +1244,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   List<MenuItemData> _getMainMenuItems() {
     return [
       MenuItemData('Cuti', Icons.event_busy, Colors.orange),
-      MenuItemData('Izin', Icons.assignment, Colors.blue),
+      MenuItemData('izin', Icons.assignment, Colors.blue,
+          onTap: () {context.pushNamed(Routes.izin.name);},),
       MenuItemData('Lembur', Icons.access_time, Colors.purple),
-      MenuItemData('Reimburse', Icons.receipt, Colors.green),
+      MenuItemData('Reimburse', Icons.assignment, Colors.blue,
+          onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
       MenuItemData('Training', Icons.school, Colors.indigo),
       MenuItemData('Meeting', Icons.groups, Colors.teal),
       MenuItemData('Task', Icons.task_alt, Colors.red),
@@ -1489,7 +1491,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         Colors.tealAccent,
         onTap: () {
           debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi'); //
-          // context.pushNamed(Routes.kegiatanRumahAspirasi.name);
+          context.pushNamed(Routes.daftarPengajuanRumahAspirasi.name);
         },
       ),
       MenuItemData(
@@ -1498,7 +1500,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         Colors.lightGreen,
         onTap: () {
           debugPrint('🏥 Navigating to BPJS'); //
-          // context.pushNamed(Routes.bpjs.name);
+          context.pushNamed(Routes.dataBPJS.name);
         },
       ),
     ];

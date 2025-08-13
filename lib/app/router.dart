@@ -16,8 +16,14 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pendidi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuReimburse/reimburse.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Menuizin/izin/izinpage.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/daftar_pengajuan_BPJS.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/data_bpjs_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/skp_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/TambahRumahAspirasi/tambah_rumah_aspirasi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/daftar_pengajuan_rumah_aspirasi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -178,6 +184,36 @@ GoRouter router(RouterRef ref) {
         path: '/ppf',
         name: Routes.ppf.name,
         builder: (context, state) => const BuktiPotongPajakFinalPage(),
+      ),
+      GoRoute(
+        path: '/kegiatan-rumah-aspirasi',
+        name: Routes.daftarPengajuanRumahAspirasi.name,
+        builder: (context, state) => const DaftarPengajuanRumahAspirasiPage(),
+      ),
+      GoRoute(
+        path: '/TambahRumahAspirasi',
+        name: Routes.tambahRumahAspirasi.name,
+        builder: (context, state) => const TambahRumahAspirasiPage()
+      ),
+      GoRoute(
+        path: '/data-bpjs',
+        name: Routes.dataBPJS.name,
+        builder: (context, state) => const DaftarBPJSPage()
+      ),
+      GoRoute(
+        path: '/daftar-pengajuan-bpjs',
+        name: Routes.daftarPengajuanBPJS.name,
+        builder: (context, state) => const DaftarPengajuanBPJS()
+      ),
+      GoRoute(
+        path: '/izin',
+        name: Routes.izin.name,
+        builder: (context, state) => const IzinPage()
+      ),
+      GoRoute(
+        path: '/reimburse',
+        name: Routes.reimbursePage.name,
+        builder: (context, state) => const ReimbursePage()
       ),
     ],
   );

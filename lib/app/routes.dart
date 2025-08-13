@@ -25,4 +25,10 @@ enum Routes {
   ppf,
   editDataKeluarga,
   editDataKeluargaWithId,
+  daftarPengajuanRumahAspirasi,
+  tambahRumahAspirasi, 
+  dataBPJS,
+  daftarPengajuanBPJS,
+  izin,
+  reimbursePage
 }
