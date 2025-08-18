@@ -29,12 +29,11 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
     setState(() {
       _nopolDinasController.text = prefs.getString('nopolDinas') ?? '';
       _nopolPribadiController.text = prefs.getString('nopolPribadi') ?? '';
-      if (_nopolDinasController.text.isNotEmpty && _nopolPribadiController.text.isNotEmpty) {
-        ref.read(dataKendaraanFilledProvider.notifier).state = true;
-      } else {
-        ref.read(dataKendaraanFilledProvider.notifier).state = false;
-      }
     });
+    
+    // Update provider setelah setState
+    final hasData = _nopolDinasController.text.isNotEmpty && _nopolPribadiController.text.isNotEmpty;
+    ref.read(dataKendaraanFilledProvider.notifier).state = hasData;
   }
 
   @override
@@ -98,7 +97,6 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
   }
 
   Widget _buildFormDataKendaraan(dynamic theme) {
-    final dataKendaraanFilled = ref.watch(dataKendaraanFilledProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -141,26 +139,17 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: dataKendaraanFilled
-                      ? () {
-                          setState(() {
-                            _isEditing = true;
-                          });
-                        }
-                      : null,
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = true;
+                    });
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: dataKendaraanFilled ? theme.primarySwatch : theme.primarySwatch.withOpacity(0.5),
+                    backgroundColor: theme.primarySwatch,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                  ).copyWith(
-                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                        if (states.contains(MaterialState.disabled)) return theme.primarySwatch.withOpacity(0.5);
-                        return theme.primarySwatch;
-                      },
                     ),
                   ),
                   child: Text(
