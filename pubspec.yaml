@@ -52,4 +52,8 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lotties/
+<<<<<<< HEAD
     - assets/illustrations/
+=======
+    - assets/illustrations/
+>>>>>>> 592c3fcb28a173a68975f4cec618eecee72eabb6
