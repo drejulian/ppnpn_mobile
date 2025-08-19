@@ -380,7 +380,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
                     style: theme.typographyRegular.bodySmall.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor:

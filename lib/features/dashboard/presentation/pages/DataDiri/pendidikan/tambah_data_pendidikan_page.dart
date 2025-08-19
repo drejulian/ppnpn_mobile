@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pendidikan_page.dart';
+import 'package:flutter/services.dart';
+// No shared education state; this page returns result via Navigator.pop.
 
 class TambahDataPendidikanPage extends ConsumerStatefulWidget {
   const TambahDataPendidikanPage({super.key});
@@ -17,7 +18,9 @@ class _TambahDataPendidikanPageState
   final _formKey = GlobalKey<FormState>();
   final _programStudiController = TextEditingController();
   final _universitasController = TextEditingController();
-  final _tahunLulusController = TextEditingController();
+  // Replace single year controller with start and end year controllers
+  final _tahunMulaiController = TextEditingController();
+  final _tahunSelesaiController = TextEditingController();
 
   String? _selectedJenisPendidikan;
   bool _isLoading = false;
@@ -40,7 +43,8 @@ class _TambahDataPendidikanPageState
   void dispose() {
     _programStudiController.dispose();
     _universitasController.dispose();
-    _tahunLulusController.dispose();
+    _tahunMulaiController.dispose();
+    _tahunSelesaiController.dispose();
     super.dispose();
   }
 
@@ -211,21 +215,61 @@ class _TambahDataPendidikanPageState
           ),
           const SizedBox(height: 20),
 
-          // Tahun Lulus
+          // Tahun Mulai (Start Year)
           _buildTextFormField(
             theme,
-            controller: _tahunLulusController,
-            label: 'Tahun Lulus',
-            hint: 'Masukkan tahun lulus (contoh: 2023)',
+            controller: _tahunMulaiController,
+            label: 'Tahun Mulai',
+            hint: 'contoh: 2019',
             keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+            ],
             validator: (value) {
-              if (value?.isEmpty == true) return 'Tahun lulus wajib diisi';
-              if (value!.length != 4) return 'Format tahun tidak valid';
+              if (value?.isEmpty == true) return 'Tahun mulai wajib diisi';
+              if (value!.length != 4) return 'Format tahun harus 4 digit';
+              final year = int.tryParse(value);
+              if (year == null || year < 1950 || year > DateTime.now().year) {
+                return 'Tahun tidak valid (1950-${DateTime.now().year})';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+
+          // Tahun Selesai (End Year)
+          _buildTextFormField(
+            theme,
+            controller: _tahunSelesaiController,
+            label: 'Tahun Selesai',
+            hint: 'contoh: 2023',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+            ],
+            validator: (value) {
+              if (value?.isEmpty == true) return 'Tahun selesai wajib diisi';
+              if (value!.length != 4) return 'Format tahun harus 4 digit';
+
+              // Compare with start year if both are filled
+              if (_tahunMulaiController.text.isNotEmpty) {
+                final startYear = int.tryParse(_tahunMulaiController.text);
+                final endYear = int.tryParse(value);
+
+                if (startYear != null &&
+                    endYear != null &&
+                    endYear < startYear) {
+                  return 'Tahun selesai tidak boleh kurang dari tahun mulai';
+                }
+              }
+
               final year = int.tryParse(value);
               if (year == null ||
                   year < 1950 ||
                   year > DateTime.now().year + 5) {
-                return 'Tahun tidak valid';
+                return 'Tahun tidak valid (1950-${DateTime.now().year + 5})';
               }
               return null;
             },
@@ -318,6 +362,7 @@ class _TambahDataPendidikanPageState
     required String hint,
     required FormFieldValidator<String?> validator,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,6 +391,7 @@ class _TambahDataPendidikanPageState
           controller: controller,
           validator: validator,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: hint,
             border: OutlineInputBorder(
@@ -416,22 +462,21 @@ class _TambahDataPendidikanPageState
       // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
 
-      // Create new education data
-      final newEducation = EducationData(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        jenjang: _selectedJenisPendidikan!,
-        jurusan: _programStudiController.text.trim().toUpperCase(),
-        institusi: _universitasController.text.trim().toUpperCase(),
-        kota: 'JAKARTA', // Default value - could be another field
-        tahun: _tahunLulusController.text.trim(),
-      );
+      final tahunMulai = _tahunMulaiController.text.trim();
+      final tahunSelesai = _tahunSelesaiController.text.trim();
 
-      // Add to provider
-      final currentData = ref.read(educationDataProvider);
-      ref.read(educationDataProvider.notifier).state = [
-        ...currentData,
-        newEducation,
-      ];
+      // Build new education entry with formatted years for display
+      final newEducation = <String, String>{
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'jenjang': _selectedJenisPendidikan!,
+        'jurusan': _programStudiController.text.trim().toUpperCase(),
+        'institusi': _universitasController.text.trim().toUpperCase(),
+        'kota': 'JAKARTA', // Default value - could be another field
+        'tahun_mulai': tahunMulai,
+        'tahun_selesai': tahunSelesai,
+        // Add formatted display for the card
+        'tahun': '$tahunMulai - $tahunSelesai',
+      };
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -442,10 +487,10 @@ class _TambahDataPendidikanPageState
           ),
         );
 
-        // Delay navigation to avoid Navigator assertion error
+        // Return new item to previous page
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
-            Navigator.pop(context);
+            Navigator.pop(context, {'action': 'add', 'data': newEducation});
           }
         });
       }

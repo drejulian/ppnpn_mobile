@@ -12,17 +12,32 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarg
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga/tambah_data_kelurga_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pendidikan/tambah_data_pendidikan_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pendidikan/edit_data_pendidikan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pendidikan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppa_anggota_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppf_anggota_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/skp_anggota_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppa_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/skp_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/daftar_pengajuan_kunker_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/tambah_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/edit_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/daftar_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/tambah_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
-import '../features/dashboard/presentation/widgets/nav_bar.dart';
+import 'package:ppnpm_dpr/common/widgets/nav_bar.dart';
 import 'routes.dart';
 
 part 'router.g.dart';
@@ -152,7 +167,13 @@ GoRouter router(RouterRef ref) {
       GoRoute(
         path: '/edit-data-pendidikan',
         name: Routes.editDataPendidikan.name,
-        builder: (context, state) => const EditDataKeluargaPage(),
+        builder: (context, state) {
+          final data = state.extra; // Expect Map<String, String> or null
+          return EditDataPendidikanPage(
+            educationToEdit:
+                (data is Map) ? Map<String, String>.from(data) : null,
+          );
+        },
       ),
       GoRoute(
         path: '/riwayat-pekerjaan',
@@ -163,6 +184,14 @@ GoRouter router(RouterRef ref) {
         path: '/add-riwayat-pekerjaan',
         name: Routes.addRiwayatPekerjaan.name,
         builder: (context, state) => const AddWorkHistoryPage(),
+      ),
+      GoRoute(
+        path: '/edit-riwayat-pekerjaan',
+        name: Routes.editRiwayatPekerjaan.name,
+        builder: (context, state) {
+          final data = state.extra as WorkHistoryData;
+          return EditDataPekerjaanPage(data: data);
+        },
       ),
       GoRoute(
         path: '/data-lamaran',
@@ -178,6 +207,83 @@ GoRouter router(RouterRef ref) {
         path: '/ppf',
         name: Routes.ppf.name,
         builder: (context, state) => const BuktiPotongPajakFinalPage(),
+      ),
+      GoRoute(
+        path: '/ppa',
+        name: Routes.ppa.name,
+        builder: (context, state) => const BuktiPotongPajakA1Page(),
+      ),
+      GoRoute(
+        path: '/skpAnggota',
+        name: Routes.skpAnggota.name,
+        builder:
+            (context, state) => const SuratKeteranganPenghasilanAnggotaPage(),
+      ),
+      GoRoute(
+        path: '/ppfAnggota',
+        name: Routes.ppfAnggota.name,
+        builder: (context, state) => const BuktiPotongPajakFinalAnggotaPage(),
+      ),
+      GoRoute(
+        path: '/ppaAnggota',
+        name: Routes.ppaAnggota.name,
+        builder: (context, state) => const BuktiPotongPajakA2Page(),
+      ),
+      GoRoute(
+        path: '/kunkerPerorangan',
+        name: Routes.kunkerPerorangan.name,
+        builder: (context, state) => const DaftarPengajuanKunkerPage(),
+      ),
+      GoRoute(
+        path: '/tambahKunkerPerorangan',
+        name: Routes.tambahKunkerPerorangan.name,
+        builder: (context, state) => const TambahKunkerPeroranganPage(),
+      ),
+      GoRoute(
+        path: '/editKunkerPerorangan',
+        name: Routes.editKunkerPerorangan.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditKunkerPeroranganPage(kunkerData: data);
+        },
+      ),
+      // Cuti
+      GoRoute(
+        path: '/cuti',
+        name: Routes.cuti.name,
+        builder: (context, state) => const DaftarCutiPage(),
+      ),
+      GoRoute(
+        path: '/tambahCuti',
+        name: Routes.tambahCuti.name,
+        builder: (context, state) => const TambahCutiPage(),
+      ),
+      GoRoute(
+        path: '/editCuti',
+        name: Routes.editCuti.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditCutiPage(data: data);
+        },
+      ),
+      // Lembur
+      GoRoute(
+        path: '/lembur',
+        name: Routes.lembur.name,
+        builder: (context, state) => const DaftarLemburPage(),
+      ),
+      GoRoute(
+        path: '/tambahLembur',
+        name: Routes.tambahLembur.name,
+        builder: (context, state) => const TambahLemburPage(),
+      ),
+      GoRoute(
+        path: '/editLembur',
+        name: Routes.editLembur.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditLemburPage(data: data);
+        },
       ),
     ],
   );
