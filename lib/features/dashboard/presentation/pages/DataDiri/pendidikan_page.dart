@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-<<<<<<< HEAD
-=======
 import 'package:ppnpm_dpr/app/routes.dart';
 // import 'package:intl/intl.dart';
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 // No shared education file; this page manages its own local state.
@@ -625,22 +622,4 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           ),
     );
   }
-<<<<<<< HEAD
-
-  void _saveData() {
-    final educationData = ref.read(educationDataProvider);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Data pendidikan untuk user miftahul01 berhasil disimpan (${educationData.length} data)',
-        ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 }
-=======
-}
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062

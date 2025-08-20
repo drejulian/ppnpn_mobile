@@ -326,13 +326,8 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
         showCheckboxColumn: false,
         headingRowColor:
             widget.headerColor != null
-<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
-                ? WidgetStateProperty.all(widget.headerColor!)
-                : WidgetStateProperty.all(Colors.grey[50]),
-=======
                 ? WidgetStatePropertyAll(widget.headerColor!)
                 : WidgetStatePropertyAll(Colors.grey[50]),
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
         dividerThickness: 1,
       ),
     );
@@ -416,24 +411,15 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
                   : null,
           headingRowColor:
               widget.headerColor != null
-<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
-                  ? WidgetStateProperty.all(widget.headerColor!)
-                  : WidgetStateProperty.all(Colors.grey[50]),
-=======
                   ? WidgetStatePropertyAll(widget.headerColor!)
                   : WidgetStatePropertyAll(Colors.grey[50]),
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
           dataRowColor: WidgetStateProperty.resolveWith<Color?>((
             Set<WidgetState> states,
           ) {
             if (states.contains(WidgetState.selected)) {
-<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
-              return Theme.of(context).colorScheme.primary.withOpacity(0.08);
-=======
               return Theme.of(
                 context,
               ).colorScheme.primary.withValues(alpha: 0.08);
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
             }
             return widget.cardBackgroundColor;
           }),

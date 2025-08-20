@@ -19,24 +19,21 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Data%20Pajak%20PPNPN/ppf_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Data%20Pajak%20PPNPN/skp_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_feedback_komisi.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_keanggotaan.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kendaraan.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kesehatan.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_komisi.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kontak.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_penerbangan.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_pribadi.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_tata_naskah.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppa_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppf_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/skp_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppa_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/skp_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_feedback_komisi.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_keanggotaan.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kendaraan.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kesehatan.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_komisi.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_kontak.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_penerbangan.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_pribadi.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_tata_naskah.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/daftar_pengajuan_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/tambah_cuti_page.dart';
@@ -46,6 +43,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -221,56 +219,10 @@ GoRouter router(RouterRef ref) {
         name: Routes.ppf.name,
         builder: (context, state) => const BuktiPotongPajakFinalPage(),
       ),
-      GoRoute(
-        path: '/dataKomisi',
-        name: Routes.dataKomisi.name,
-      ),
-      GoRoute(
-        path: '/data-keanggotaan',
-        name: Routes.dataKeanggotaan.name,
-        builder: (context, state) => const DataKeanggotaanPage(),
-      ),
-      GoRoute(
-        path: '/data-kendaraan',
-        name: Routes.dataKendaraan.name,
-        builder: (context, state) => const DataKendaraanPage(),
-      ),
-      GoRoute(
-        path: '/data-pribadi',
-        name: Routes.dataPribadi.name,
-        builder: (context, state) => const DataPribadiPage(),
-      ),
-      GoRoute(
-        path: '/data-penerbangan',
-        name: Routes.dataPenerbangan.name,
-        builder: (context, state) => const DataPenerbanganPage(),
-      ),
-      GoRoute(
-        path: '/data-kesehatan',
-        name: Routes.dataKesehatan.name,
-        builder: (context, state) => const DataKesehatanPage(),
-      ),
-      GoRoute(
-        path: '/data-kontak',
-        name: Routes.dataKontak.name,
-        builder: (context, state) => const DataKontakPage(),
-      ),
-      GoRoute(
-        path: '/data-tata-naskah',
-        name: Routes.dataTataNaskah.name,
-        builder: (context, state) => const DataTataNaskahPage(),
-      ),
-      GoRoute(
-        path: '/data-feedback-komisi',
-        name: Routes.dataFeedbackKomisi.name,
-        builder: (context, state) => const DataFeedbackKomisiPage(),
-      ),
-      GoRoute(
-        path: '/data-dokumen-anggota',
-        name: Routes.dataDokumenAnggota.name,
-        builder: (context, state) => const DataDokumenAnggotaPage(),
+       GoRoute(
         path: '/ppa',
         name: Routes.ppa.name,
+        builder: (context, state) => const BuktiPotongPajakA1Page(),
       ),
       GoRoute(
         path: '/skpAnggota',
@@ -344,5 +296,56 @@ GoRouter router(RouterRef ref) {
           return EditLemburPage(data: data);
         },
       ),
+      GoRoute(
+        path: '/dataKomisi',
+        name: Routes.dataKomisi.name,
+        builder: (context, state) => const DataKomisiPage(),
+      ),
+      GoRoute(
+        path: '/data-keanggotaan',
+        name: Routes.dataKeanggotaan.name,
+        builder: (context, state) => const DataKeanggotaanPage(),
+      ),
+      GoRoute(
+        path: '/data-kendaraan',
+        name: Routes.dataKendaraan.name,
+        builder: (context, state) => const DataKendaraanPage(),
+      ),
+      GoRoute(
+        path: '/data-pribadi',
+        name: Routes.dataPribadi.name,
+        builder: (context, state) => const DataPribadiPage(),
+      ),
+      GoRoute(
+        path: '/data-penerbangan',
+        name: Routes.dataPenerbangan.name,
+        builder: (context, state) => const DataPenerbanganPage(),
+      ),
+      GoRoute(
+        path: '/data-kesehatan',
+        name: Routes.dataKesehatan.name,
+        builder: (context, state) => const DataKesehatanPage(),
+      ),
+      GoRoute(
+        path: '/data-kontak',
+        name: Routes.dataKontak.name,
+        builder: (context, state) => const DataKontakPage(),
+      ),
+      GoRoute(
+        path: '/data-tata-naskah',
+        name: Routes.dataTataNaskah.name,
+        builder: (context, state) => const DataTataNaskahPage(),
+      ),
+      GoRoute(
+        path: '/data-feedback-komisi',
+        name: Routes.dataFeedbackKomisi.name,
+        builder: (context, state) => const DataFeedbackKomisiPage(),
+      ),
+      GoRoute(
+        path: '/data-dokumen-anggota',
+        name: Routes.dataDokumenAnggota.name,
+        builder: (context, state) => const DataDokumenAnggotaPage(),
+      ),
     ],
+  );
 }
