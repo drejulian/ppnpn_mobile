@@ -83,7 +83,6 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
   String _searchQuery = '';
   int _sortColumnIndex = 0;
   bool _sortAscending = true;
-  int _currentPage = 0;
   late List<Map<String, dynamic>> _filteredData;
   late List<Map<String, dynamic>> _sortedData;
 
@@ -104,7 +103,7 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
   void _updateData() {
     _filteredData = _filterData();
     _sortedData = _sortData(_filteredData);
-    _currentPage = 0; // Reset ke halaman pertama saat data berubah
+    // Reset pagination state if needed (PaginatedDataTable manages its own page)
   }
 
   List<Map<String, dynamic>> _filterData() {
@@ -309,7 +308,7 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
       color: widget.cardBackgroundColor,
       child: PaginatedDataTable(
         rowsPerPage: widget.rowsPerPage,
-        availableRowsPerPage: [5, 10, 20, 50],
+        availableRowsPerPage: const [5, 10, 20, 50],
         columns: dataColumns,
         source: _EnhancedDataSource(
           _sortedData,
@@ -327,8 +326,13 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
         showCheckboxColumn: false,
         headingRowColor:
             widget.headerColor != null
+<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
                 ? WidgetStateProperty.all(widget.headerColor!)
                 : WidgetStateProperty.all(Colors.grey[50]),
+=======
+                ? WidgetStatePropertyAll(widget.headerColor!)
+                : WidgetStatePropertyAll(Colors.grey[50]),
+>>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
         dividerThickness: 1,
       ),
     );
@@ -412,13 +416,24 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
                   : null,
           headingRowColor:
               widget.headerColor != null
+<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
                   ? WidgetStateProperty.all(widget.headerColor!)
                   : WidgetStateProperty.all(Colors.grey[50]),
+=======
+                  ? WidgetStatePropertyAll(widget.headerColor!)
+                  : WidgetStatePropertyAll(Colors.grey[50]),
+>>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
           dataRowColor: WidgetStateProperty.resolveWith<Color?>((
             Set<WidgetState> states,
           ) {
             if (states.contains(WidgetState.selected)) {
+<<<<<<< HEAD:lib/features/dashboard/presentation/widgets/sihaki_table.dart
               return Theme.of(context).colorScheme.primary.withOpacity(0.08);
+=======
+              return Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.08);
+>>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062:lib/common/widgets/sihaki_table.dart
             }
             return widget.cardBackgroundColor;
           }),
@@ -438,12 +453,10 @@ class _EnhancedDataTableState extends ConsumerState<EnhancedDataTable> {
 
           return DataCell(
             column.width != null
-                ? ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: column.width!),
+                ? SizedBox(
+                  width: column.width!,
                   child: Text(
                     value,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
                     textAlign: column.alignment,
                     style:
                         widget.cellTextStyle ??
@@ -547,12 +560,10 @@ class _EnhancedDataSource extends DataTableSource {
 
           return DataCell(
             column.width != null
-                ? ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: column.width!),
+                ? SizedBox(
+                  width: column.width!,
                   child: Text(
                     value,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
                     textAlign: column.alignment,
                     style:
                         cellTextStyle ??
@@ -674,9 +685,9 @@ class TableActionHelpers {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          title: const Text(
+            'Konfirmasi',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Text(message),
           actions: <Widget>[
@@ -709,9 +720,9 @@ class TableActionHelpers {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          title: const Text(
+            'Konfirmasi',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Text(message),
           actions: <Widget>[

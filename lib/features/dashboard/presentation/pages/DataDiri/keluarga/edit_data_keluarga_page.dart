@@ -4,6 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart'
+    as dto;
+
+// Local provider for fetching a member by ID
+final editMemberProvider = FutureProvider.autoDispose
+    .family<dto.FamilyMemberDto?, String>(
+      (ref, id) => ref.read(keluargaApiProvider).getMember(id),
+    );
 
 class EditDataKeluargaPage extends ConsumerStatefulWidget {
   final String? memberId;
@@ -17,6 +26,8 @@ class EditDataKeluargaPage extends ConsumerStatefulWidget {
 
 class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
+  bool _loadedRemote = false;
 
   // Form controllers
   final _namaController = TextEditingController();
@@ -34,7 +45,7 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
   final List<String> _jenisKelaminOptions = ['Laki-laki', 'Perempuan'];
 
   bool _isEditing = false;
-  FamilyMember? _editingMember;
+  dto.FamilyMemberDto? _editingMember;
 
   @override
   void initState() {
@@ -45,15 +56,18 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
   void _checkIfEditing() {
     if (widget.memberId != null) {
       _isEditing = true;
+      // Prefill from local seed if present; remote will override later
       final familyMembers = ref.read(familyDataProvider);
-      try {
-        _editingMember = familyMembers.firstWhere(
-          (m) => m.id == widget.memberId,
-        );
+      dto.FamilyMemberDto? match;
+      for (final m in familyMembers) {
+        if (m.id == widget.memberId) {
+          match = m;
+          break;
+        }
+      }
+      if (match != null) {
+        _editingMember = match;
         _populateFormWithExistingData();
-      } catch (e) {
-        // Member not found, treat as new
-        _isEditing = false;
       }
     }
   }
@@ -81,6 +95,21 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final isEditingWithId = _isEditing && widget.memberId != null;
+    final remote =
+        isEditingWithId
+            ? ref.watch(editMemberProvider(widget.memberId!))
+            : AsyncValue<dto.FamilyMemberDto?>.data(null);
+
+    if (isEditingWithId && !_loadedRemote && remote.hasValue) {
+      // Populate once from remote data
+      final m = remote.value;
+      if (m != null) {
+        _editingMember = m;
+        _populateFormWithExistingData();
+        _loadedRemote = true;
+      }
+    }
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
 
@@ -118,6 +147,7 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
               // Header Info
               _buildHeaderInfo(theme),
               const SizedBox(height: 20),
@@ -523,7 +553,7 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: _saveData,
+        onPressed: _saving ? null : _saveData,
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.primarySwatch,
           foregroundColor: Colors.white,
@@ -533,7 +563,17 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
           ),
           elevation: 2,
         ),
-        icon: Icon(_isEditing ? Icons.update : Icons.save, size: 20),
+        icon:
+            _saving
+                ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                : Icon(_isEditing ? Icons.update : Icons.save, size: 20),
         label: Text(
           _isEditing ? 'UPDATE DATA' : 'SIMPAN DATA',
           style: theme.typographyRegular.bodyMedium.copyWith(
@@ -579,86 +619,8 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
     }
   }
 
-  void _saveData() {
-    if (_formKey.currentState!.validate() && _tanggalLahir != null) {
-      final familyMembers = ref.read(familyDataProvider);
-
-      if (_isEditing && _editingMember != null) {
-        // Update existing member
-        final updatedMember = FamilyMember(
-          id: _editingMember!.id,
-          nama: _namaController.text.trim(),
-          hubungan: _selectedHubungan!,
-          tempatLahir: _tempatLahirController.text.trim(),
-          tanggalLahir: _tanggalLahir!,
-          jenisKelamin: _selectedJenisKelamin!,
-          pekerjaan: _pekerjaanController.text.trim(),
-          tanggalMenikah: _tanggalMenikah,
-        );
-
-        final updatedList =
-            familyMembers.map((member) {
-              return member.id == _editingMember!.id ? updatedMember : member;
-            }).toList();
-
-        ref.read(familyDataProvider.notifier).state = updatedList;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Data ${_namaController.text} berhasil diperbarui',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green[600],
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      } else {
-        // Add new member
-        final newMember = FamilyMember(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          nama: _namaController.text.trim(),
-          hubungan: _selectedHubungan!,
-          tempatLahir: _tempatLahirController.text.trim(),
-          tanggalLahir: _tanggalLahir!,
-          jenisKelamin: _selectedJenisKelamin!,
-          pekerjaan: _pekerjaanController.text.trim(),
-          tanggalMenikah: _tanggalMenikah,
-        );
-
-        ref.read(familyDataProvider.notifier).state = [
-          ...familyMembers,
-          newMember,
-        ];
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Data ${_namaController.text} berhasil ditambahkan'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
-      // Navigate back to family list
-      context.go('/keluarga');
-    } else {
+  Future<void> _saveData() async {
+    if (!_formKey.currentState!.validate() || _tanggalLahir == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mohon lengkapi semua field yang wajib diisi'),
@@ -666,6 +628,60 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
           duration: Duration(seconds: 2),
         ),
       );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final payload = <String, dynamic>{
+        'nama': _namaController.text.trim(),
+        'hubungan': _selectedHubungan!,
+        'tempat_lahir': _tempatLahirController.text.trim(),
+        'tanggal_lahir': _tanggalLahir!.toIso8601String(),
+        'jenis_kelamin': _selectedJenisKelamin!,
+        'pekerjaan': _pekerjaanController.text.trim(),
+        if (_tanggalMenikah != null)
+          'tanggal_menikah': _tanggalMenikah!.toIso8601String(),
+      };
+
+      if (_isEditing && widget.memberId != null) {
+        await ref
+            .read(keluargaApiProvider)
+            .updateMember(widget.memberId!, payload);
+        // refresh list and detail providers
+        ref.invalidate(keluargaRemoteProvider);
+        ref.invalidate(editMemberProvider(widget.memberId!));
+      } else {
+        await ref.read(keluargaApiProvider).createMember(payload);
+        ref.invalidate(keluargaRemoteProvider);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEditing
+                  ? 'Data ${_namaController.text} berhasil diperbarui'
+                  : 'Data ${_namaController.text} berhasil ditambahkan',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        context.go('/keluarga');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 }

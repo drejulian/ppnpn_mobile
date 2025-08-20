@@ -4,8 +4,8 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 
-import '../../../../app/theme.dart';
-import '../pages/home_page.dart';
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/home_page.dart';
 
 final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
 

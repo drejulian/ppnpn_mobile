@@ -3,34 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart'
+    as dto;
 
-// Family member data model
-class FamilyMember {
-  final String id;
-  final String nama;
-  final String hubungan;
-  final String tempatLahir;
-  final DateTime tanggalLahir;
-  final String jenisKelamin;
-  final String pekerjaan;
-  final DateTime? tanggalMenikah;
-
-  FamilyMember({
-    required this.id,
-    required this.nama,
-    required this.hubungan,
-    required this.tempatLahir,
-    required this.tanggalLahir,
-    required this.jenisKelamin,
-    required this.pekerjaan,
-    this.tanggalMenikah,
-  });
-}
-
-// Provider with updated family data
-final familyDataProvider = StateProvider<List<FamilyMember>>((ref) {
+final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {
   return [
-    FamilyMember(
+    dto.FamilyMemberDto(
       id: '1',
       nama: 'RENI GUMILA DEWI',
       hubungan: 'ISTRI',
@@ -40,7 +19,7 @@ final familyDataProvider = StateProvider<List<FamilyMember>>((ref) {
       pekerjaan: 'IBU RUMAH TANGGA',
       tanggalMenikah: DateTime(2008, 12, 14),
     ),
-    FamilyMember(
+    dto.FamilyMemberDto(
       id: '2',
       nama: 'ARVIE PRAMATYA ALGHANI',
       hubungan: 'AK',
@@ -49,7 +28,7 @@ final familyDataProvider = StateProvider<List<FamilyMember>>((ref) {
       jenisKelamin: 'Laki-laki',
       pekerjaan: 'Pelajar',
     ),
-    FamilyMember(
+    dto.FamilyMemberDto(
       id: '3',
       nama: 'DYLAN PRADIPTA ALGHANI',
       hubungan: 'AK',
@@ -58,7 +37,7 @@ final familyDataProvider = StateProvider<List<FamilyMember>>((ref) {
       jenisKelamin: 'Laki-laki',
       pekerjaan: 'Pelajar',
     ),
-    FamilyMember(
+    dto.FamilyMemberDto(
       id: '4',
       nama: 'nadine rafarindya alghani',
       hubungan: 'AK',
@@ -69,6 +48,13 @@ final familyDataProvider = StateProvider<List<FamilyMember>>((ref) {
     ),
   ];
 });
+
+// Remote provider directly uses API; keep simple and composable
+final keluargaRemoteProvider =
+    FutureProvider.autoDispose<List<dto.FamilyMemberDto>>((ref) async {
+      final api = ref.read(keluargaApiProvider);
+      return api.fetchMembers();
+    });
 
 class KeluargaPage extends ConsumerStatefulWidget {
   const KeluargaPage({super.key});
@@ -92,7 +78,10 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final familyMembers = ref.watch(familyDataProvider);
+    // Prefer remote API; fallback to local state
+    final remote = ref.watch(keluargaRemoteProvider);
+    final List<dto.FamilyMemberDto> familyMembers =
+        remote.asData?.value ?? ref.watch(familyDataProvider);
 
     // Real-time Indonesian time (UTC+7)
     final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
@@ -155,6 +144,41 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
             _buildAddFamilyButton(theme),
             const SizedBox(height: 20),
 
+            // Loading/Error banners
+            if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
+            if (remote.hasError)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Gagal memuat data dari server. Menampilkan data lokal.',
+                        style: theme.typographyRegular.bodySmall.copyWith(
+                          color: Colors.orange[900],
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      color: Colors.orange,
+                      onPressed: () => ref.invalidate(keluargaRemoteProvider),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+
             // Family Data Cards
             _buildFamilyCards(theme, filteredMembers),
 
@@ -181,7 +205,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: theme.primarySwatch.withOpacity(0.3),
+            color: theme.primarySwatch.withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 2,
             offset: const Offset(0, 5),
@@ -444,7 +468,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     );
   }
 
-  Widget _buildFamilyCards(dynamic theme, List<FamilyMember> members) {
+  Widget _buildFamilyCards(dynamic theme, List<dto.FamilyMemberDto> members) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -482,22 +506,24 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
                   color: Colors.grey[800],
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.primarySwatch.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${members.length} orang',
-                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                    color: theme.primarySwatch,
-                    fontWeight: FontWeight.w600,
-                  ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.primarySwatch.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${members.length} orang',
+                style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                  color: theme.primarySwatch,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -510,7 +536,10 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     );
   }
 
-  Widget _buildSimpleCardsList(dynamic theme, List<FamilyMember> members) {
+  Widget _buildSimpleCardsList(
+    dynamic theme,
+    List<dto.FamilyMemberDto> members,
+  ) {
     return Column(
       children:
           members
@@ -519,7 +548,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     );
   }
 
-  Widget _buildSimpleMemberCard(dynamic theme, FamilyMember member) {
+  Widget _buildSimpleMemberCard(dynamic theme, dto.FamilyMemberDto member) {
     return GestureDetector(
       onTap: () => _viewMemberDetail(member),
       child: Container(
@@ -572,8 +601,6 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Container(
@@ -696,55 +723,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     context.go('/add-data-keluarga');
   }
 
-  void _editFamilyMember(FamilyMember member) {
-    context.go('/edit-data-keluarga/${member.id}');
-  }
-
-  void _viewMemberDetail(FamilyMember member) {
+  void _viewMemberDetail(dto.FamilyMemberDto member) {
     context.go('/detail-data-keluarga/${member.id}');
-  }
-
-  void _deleteFamilyMember(FamilyMember member) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Hapus Anggota Keluarga'),
-            content: Text(
-              'Apakah Anda yakin ingin menghapus data ${member.nama}?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final currentData = ref.read(familyDataProvider);
-                    final updatedData =
-                        currentData.where((m) => m.id != member.id).toList();
-                    ref.read(familyDataProvider.notifier).state = updatedData;
-                  });
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Data ${member.nama} berhasil dihapus'),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text(
-                  'Hapus',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-    );
   }
 }
