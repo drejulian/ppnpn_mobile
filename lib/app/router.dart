@@ -19,7 +19,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
-<<<<<<< HEAD
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Data%20Pajak%20PPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Data%20Pajak%20PPNPN/skp_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_feedback_komisi.dart';
@@ -32,7 +31,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajak
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_pribadi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_tata_naskah.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
-=======
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppa_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppf_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/skp_anggota_page.dart';
@@ -48,7 +46,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -225,10 +222,8 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const BuktiPotongPajakFinalPage(),
       ),
       GoRoute(
-<<<<<<< HEAD
         path: '/dataKomisi',
         name: Routes.dataKomisi.name,
-        builder: (context, state) => const DataKomisiPage(),
       ),
       GoRoute(
         path: '/data-keanggotaan',
@@ -274,10 +269,8 @@ GoRouter router(RouterRef ref) {
         path: '/data-dokumen-anggota',
         name: Routes.dataDokumenAnggota.name,
         builder: (context, state) => const DataDokumenAnggotaPage(),
-=======
         path: '/ppa',
         name: Routes.ppa.name,
-        builder: (context, state) => const BuktiPotongPajakA1Page(),
       ),
       GoRoute(
         path: '/skpAnggota',
@@ -350,8 +343,6 @@ GoRouter router(RouterRef ref) {
           final data = state.extra as Map<String, dynamic>? ?? {};
           return EditLemburPage(data: data);
         },
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062
       ),
     ],
-  );
 }

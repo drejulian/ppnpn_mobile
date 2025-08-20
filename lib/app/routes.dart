@@ -27,7 +27,6 @@ enum Routes {
   ppa,
   editDataKeluarga,
   editDataKeluargaWithId,
-<<<<<<< HEAD
   dataKomisi,
   dataKeanggotaan,
   dataKendaraan,
@@ -38,8 +37,6 @@ enum Routes {
   dataTataNaskah,
   dataFeedbackKomisi,
   dataDokumenAnggota,
-}
-=======
   skpAnggota,
   ppfAnggota,
   ppaAnggota,
@@ -53,4 +50,3 @@ enum Routes {
   tambahLembur,
   editLembur,
 }
->>>>>>> b007e4e4afb68d259d9d269b91dfb06dd5132062
