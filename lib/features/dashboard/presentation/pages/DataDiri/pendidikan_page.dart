@@ -1,40 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ppnpm_dpr/app/routes.dart';
+// import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-
-// Education data model
-class EducationData {
-  final String id;
-  final String jenjang;
-  final String jurusan;
-  final String institusi;
-  final String kota;
-  final String tahun;
-
-  EducationData({
-    required this.id,
-    required this.jenjang,
-    required this.jurusan,
-    required this.institusi,
-    required this.kota,
-    required this.tahun,
-  });
-}
-
-// Provider with education data
-final educationDataProvider = StateProvider<List<EducationData>>((ref) {
-  return [
-    EducationData(
-      id: '1',
-      jenjang: 'Sarjana/S1',
-      jurusan: 'TEKNIK INFORMATIKA',
-      institusi: 'INSTITUT TEKNOLOGI SEPULUH NOPEMBER (ITSI)',
-      kota: 'SURABAYA',
-      tahun: '2004',
-    ),
-  ];
-});
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+// No shared education file; this page manages its own local state.
 
 class PendidikanPage extends ConsumerStatefulWidget {
   const PendidikanPage({super.key});
@@ -45,7 +16,17 @@ class PendidikanPage extends ConsumerStatefulWidget {
 
 class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  // Local in-memory list of pendidikan entries
+  final List<Map<String, String>> _educationData = [
+    {
+      'id': 'edu-1',
+      'jenjang': 'Sarjana/S1',
+      'jurusan': 'ILMU KOMPUTER',
+      'institusi': 'UNIVERSITAS CONTOH INDONESIA',
+      'kota': 'JAKARTA',
+      'tahun': '2016 - 2020',
+    },
+  ];
 
   @override
   void dispose() {
@@ -58,25 +39,25 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final educationData = ref.watch(educationDataProvider);
+    final educationData = _educationData;
 
     // Real-time Indonesian time (UTC+7)
-    final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
+    // final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
 
     // Filter education data based on search
     final filteredData =
-        educationData.where((education) {
-          return education.jenjang.toLowerCase().contains(
-                _searchQuery.toLowerCase(),
-              ) ||
-              education.jurusan.toLowerCase().contains(
-                _searchQuery.toLowerCase(),
-              ) ||
-              education.institusi.toLowerCase().contains(
-                _searchQuery.toLowerCase(),
-              ) ||
-              education.kota.toLowerCase().contains(_searchQuery.toLowerCase());
+        educationData.where((e) {
+          final searchTerm = _searchController.text.toLowerCase();
+          if (searchTerm.isEmpty) return true;
+
+          return (e['jenjang'] ?? '').toLowerCase().contains(searchTerm) ||
+              (e['jurusan'] ?? '').toLowerCase().contains(searchTerm) ||
+              (e['institusi'] ?? '').toLowerCase().contains(searchTerm) ||
+              (e['kota'] ?? '').toLowerCase().contains(searchTerm);
         }).toList();
+
+    // Check if there are active filters
+    final hasActiveFilters = _searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -108,8 +89,24 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Section
-            _buildSearchSection(theme),
+            // Search + Filter using AppFilterBar
+            AppFilterBar(
+              controller: _searchController,
+              labelText: 'Pencarian Data Pendidikan',
+              hintText:
+                  'Cari berdasarkan jenjang, jurusan, institusi, atau kota...',
+              onChanged: (value) => setState(() {}),
+              onClear: () => setState(() {}),
+              headerTitle: 'Pencarian',
+              hasActiveFilters: hasActiveFilters,
+              onReset:
+                  hasActiveFilters
+                      ? () {
+                        _searchController.clear();
+                        setState(() {});
+                      }
+                      : null,
+            ),
             const SizedBox(height: 20),
 
             // Note Section
@@ -120,93 +117,12 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
             _buildAddEducationButton(theme),
             const SizedBox(height: 20),
 
-            // Education Data Table
-            _buildEducationTable(theme, filteredData, isTablet),
+            // Education Data Cards (replaces table)
+            _buildEducationCards(theme, filteredData, isTablet),
 
             const SizedBox(height: 20), // Bottom spacing
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSearchSection(dynamic theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [theme.primarySwatch, theme.secondarySwatch],
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.search, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Pencarian Data Pendidikan',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _searchController,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: InputDecoration(
-              hintText:
-                  'Cari berdasarkan jenjang, jurusan, institusi, atau kota...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon:
-                  _searchQuery.isNotEmpty
-                      ? IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                        icon: const Icon(Icons.clear),
-                      )
-                      : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: theme.primarySwatch),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -324,9 +240,9 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     );
   }
 
-  Widget _buildEducationTable(
+  Widget _buildEducationCards(
     dynamic theme,
-    List<EducationData> educationData,
+    List<Map<String, String>> educationData,
     bool isTablet,
   ) {
     return Container(
@@ -336,10 +252,10 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -356,11 +272,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.table_chart,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -372,17 +284,30 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: theme.primarySwatch.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  '${educationData.length} data',
-                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                    color: theme.primarySwatch,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      color: theme.primarySwatch,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${educationData.length} data',
+                      style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                        color: theme.primarySwatch,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -392,195 +317,163 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           if (educationData.isEmpty)
             _buildEmptyState(theme)
           else
-            _buildDataTable(theme, educationData),
+            Column(
+              children:
+                  educationData
+                      .map((e) => _buildEducationCard(theme, e))
+                      .toList(),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildDataTable(dynamic theme, List<EducationData> educationData) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
-          dataRowMinHeight: 60,
-          dataRowMaxHeight: 80,
-          columnSpacing: 20,
-          dividerThickness: 1,
-          border: TableBorder.all(color: Colors.grey[300]!, width: 1),
-          columns: [
-            DataColumn(
-              label: Text(
-                'Jenjang',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
+  // Helper for pill chips like in WorkHistory
+  Widget _pillChip({
+    required IconData icon,
+    required String label,
+    required dynamic theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.primarySwatch),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.typographyRegular.bodyExtraSmall,
+              overflow: TextOverflow.ellipsis,
             ),
-            DataColumn(
-              label: Text(
-                'Jurusan',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // New card UI matching WorkHistory style
+  Widget _buildEducationCard(dynamic theme, Map<String, String> e) {
+    final jenjang = (e['jenjang'] ?? '').trim();
+    final jurusan = (e['jurusan'] ?? '').trim();
+    final institusi = (e['institusi'] ?? '').trim();
+    final kota = (e['kota'] ?? '').trim();
+
+    // Use the formatted tahun field if available, or format the individual years
+    String tahun;
+    if (e['tahun'] != null && e['tahun']!.isNotEmpty) {
+      tahun = e['tahun']!;
+    } else if (e['tahun_mulai'] != null && e['tahun_selesai'] != null) {
+      tahun = '${e['tahun_mulai']} - ${e['tahun_selesai']}';
+    } else {
+      tahun = '-';
+    }
+
+    final jenjangColor = _getJenjangColor(jenjang);
+
+    return AppCard(
+      leftAccentColor: jenjangColor,
+      gradient: LinearGradient(
+        colors: [Colors.white, Colors.grey[50]!],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row with jenjang icon and title
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: jenjangColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(Icons.school, color: jenjangColor),
               ),
-            ),
-            DataColumn(
-              label: Text(
-                'Institusi',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Kota',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Tahun',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Aksi',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-          ],
-          rows:
-              educationData
-                  .map(
-                    (education) => DataRow(
-                      cells: [
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getJenjangColor(
-                                education.jenjang,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              education.jenjang,
-                              style: theme.typographyRegular.bodyExtraSmall
-                                  .copyWith(
-                                    color: _getJenjangColor(education.jenjang),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 150),
-                            child: Text(
-                              education.jurusan,
-                              style: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 200),
-                            child: Text(
-                              education.institusi,
-                              style: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            education.kota,
-                            style: theme.typographyRegular.bodySmall.copyWith(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              education.tahun,
-                              style: theme.typographyRegular.bodyExtraSmall
-                                  .copyWith(
-                                    color: Colors.blue[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: () => _editEducation(education),
-                                icon: Icon(
-                                  Icons.edit,
-                                  size: 18,
-                                  color: Colors.blue[600],
-                                ),
-                                tooltip: 'Edit',
-                              ),
-                              IconButton(
-                                onPressed: () => _deleteEducation(education),
-                                icon: Icon(
-                                  Icons.delete,
-                                  size: 18,
-                                  color: Colors.red[600],
-                                ),
-                                tooltip: 'Hapus',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      jurusan.isEmpty ? '-' : jurusan,
+                      style: theme.typographyBold.bodyMedium,
                     ),
-                  )
-                  .toList(),
-        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      institusi.isEmpty ? '-' : institusi,
+                      style: theme.typographyRegular.bodySmall.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Jenjang chip
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: jenjangColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  jenjang.isEmpty ? '-' : jenjang,
+                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    color: jenjangColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          // Information pills
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _pillChip(
+                icon: Icons.location_on,
+                label: kota.isEmpty ? '-' : kota,
+                theme: theme,
+              ),
+              _pillChip(icon: Icons.calendar_today, label: tahun, theme: theme),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          // Action buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                tooltip: 'Edit',
+                icon: Icon(Icons.edit, color: theme.primarySwatch),
+                onPressed: () => _editEducation(e),
+              ),
+              IconButton(
+                tooltip: 'Hapus',
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                onPressed: () => _deleteEducation(e),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -644,22 +537,53 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     }
   }
 
-  void _addEducation() {
-    context.go('/add-data-pendidikan');
+  Future<void> _addEducation() async {
+    final result = await context.pushNamed(Routes.addDataPendidikan.name);
+    if (!mounted) return;
+    if (result is Map && result['action'] == 'add' && result['data'] is Map) {
+      setState(() {
+        _educationData.add(Map<String, String>.from(result['data'] as Map));
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data pendidikan berhasil disimpan'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
-  void _editEducation(EducationData education) {
-    context.go('/add-data-pendidikan');
+  Future<void> _editEducation(Map<String, String> education) async {
+    final result = await context.pushNamed(
+      Routes.editDataPendidikan.name,
+      extra: education,
+    );
+    if (!mounted) return;
+    if (result is Map && result['action'] == 'edit' && result['data'] is Map) {
+      final updated = Map<String, String>.from(result['data'] as Map);
+      setState(() {
+        final idx = _educationData.indexWhere((e) => e['id'] == updated['id']);
+        if (idx != -1) _educationData[idx] = updated;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data pendidikan berhasil diperbarui'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
-  void _deleteEducation(EducationData education) {
+  void _deleteEducation(Map<String, String> education) {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text('Hapus Data Pendidikan'),
             content: Text(
-              'Apakah Anda yakin ingin menghapus data ${education.jenjang} - ${education.jurusan}?',
+              'Apakah Anda yakin ingin menghapus data ${education['jenjang']} - ${education['jurusan']}?',
             ),
             actions: [
               TextButton(
@@ -671,17 +595,17 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
                   Navigator.pop(context);
 
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final currentData = ref.read(educationDataProvider);
-                    final updatedData =
-                        currentData.where((e) => e.id != education.id).toList();
-                    ref.read(educationDataProvider.notifier).state =
-                        updatedData;
+                    setState(() {
+                      _educationData.removeWhere(
+                        (e) => e['id'] == education['id'],
+                      );
+                    });
                   });
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Data ${education.jenjang} berhasil dihapus',
+                        'Data ${education['jenjang']} berhasil dihapus',
                       ),
                       backgroundColor: Colors.green,
                       duration: const Duration(seconds: 2),
@@ -696,20 +620,6 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
               ),
             ],
           ),
-    );
-  }
-
-  void _saveData() {
-    final educationData = ref.read(educationDataProvider);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Data pendidikan untuk user miftahul01 berhasil disimpan (${educationData.length} data)',
-        ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
     );
   }
 }

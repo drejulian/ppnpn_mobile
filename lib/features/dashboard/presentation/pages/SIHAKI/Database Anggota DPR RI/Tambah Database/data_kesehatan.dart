@@ -2,22 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/Database%20Anggota%20DPR%20RI/providers.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class DataPenerbanganPage extends ConsumerStatefulWidget {
-  const DataPenerbanganPage({super.key});
+class DataKesehatanPage extends ConsumerStatefulWidget {
+  const DataKesehatanPage({super.key});
 
   @override
-  ConsumerState<DataPenerbanganPage> createState() => _DataPenerbanganPageState();
+  ConsumerState<DataKesehatanPage> createState() => _DataKesehatanPageState();
 }
 
-class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
+class _DataKesehatanPageState extends ConsumerState<DataKesehatanPage> {
   final _formKey = GlobalKey<FormState>();
-  final _noKartuGarudaController = TextEditingController(text: '');
-  final _noKartuEmiratesController = TextEditingController(text: '');
-  final _noKartuQantasController = TextEditingController(text: '');
-  String? _tempatDuduk;
+  final _riwayatKesehatanController = TextEditingController(text: '');
+  final _fobiaController = TextEditingController(text: '');
+  final _alergiMakananController = TextEditingController(text: '');
+  String? _golonganDarah;
+  String? _statusMerokok;
   bool _isEditing = false;
 
   @override
@@ -28,26 +29,28 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
 
   @override
   void dispose() {
-    _noKartuGarudaController.dispose();
-    _noKartuEmiratesController.dispose();
-    _noKartuQantasController.dispose();
+    _riwayatKesehatanController.dispose();
+    _fobiaController.dispose();
+    _alergiMakananController.dispose();
     super.dispose();
   }
 
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _noKartuGarudaController.text = prefs.getString('noKartuGaruda') ?? '';
-      _noKartuEmiratesController.text = prefs.getString('noKartuEmirates') ?? '';
-      _noKartuQantasController.text = prefs.getString('noKartuQantas') ?? '';
-      _tempatDuduk = prefs.getString('tempatDuduk');
-      if (_noKartuGarudaController.text.isNotEmpty &&
-          _noKartuEmiratesController.text.isNotEmpty &&
-          _noKartuQantasController.text.isNotEmpty &&
-          _tempatDuduk != null) {
-        ref.read(dataPenerbanganFilledProvider.notifier).state = true;
+      _riwayatKesehatanController.text = prefs.getString('riwayatKesehatan') ?? '';
+      _fobiaController.text = prefs.getString('fobia') ?? '';
+      _alergiMakananController.text = prefs.getString('alergiMakanan') ?? '';
+      _golonganDarah = prefs.getString('golonganDarah');
+      _statusMerokok = prefs.getString('statusMerokok');
+      if (_riwayatKesehatanController.text.isNotEmpty &&
+          _fobiaController.text.isNotEmpty &&
+          _alergiMakananController.text.isNotEmpty &&
+          _golonganDarah != null &&
+          _statusMerokok != null) {
+        ref.read(dataKesehatanFilledProvider.notifier).state = true;
       } else {
-        ref.read(dataPenerbanganFilledProvider.notifier).state = false;
+        ref.read(dataKesehatanFilledProvider.notifier).state = false;
       }
     });
   }
@@ -89,14 +92,14 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Data Penerbangan',
+                'Data Kesehatan',
                 style: theme.typographyRegular.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[800],
                 ),
               ),
               const SizedBox(height: 20),
-              _buildFormDataPenerbangan(theme),
+              _buildFormDataKesehatan(theme),
               const SizedBox(height: 20),
             ],
           ),
@@ -105,7 +108,7 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
     );
   }
 
-  Widget _buildFormDataPenerbangan(dynamic theme) {
+  Widget _buildFormDataKesehatan(dynamic theme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -124,39 +127,47 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTextFieldWithRequired(
-            'No. Kartu Garuda',
-            _noKartuGarudaController,
-            Icons.airplanemode_active,
+            'Riwayat Kesehatan',
+            _riwayatKesehatanController,
+            Icons.local_hospital,
             theme,
             isRequired: true,
-            hintText: 'Masukkan nomor kartu Garuda',
-            keyboardType: TextInputType.number,
+            hintText: 'Masukkan riwayat kesehatan',
+            maxLines: 3,
             enabled: _isEditing,
           ),
           _buildTextFieldWithRequired(
-            'No. Kartu Emirates',
-            _noKartuEmiratesController,
-            Icons.airplanemode_active,
+            'Fobia',
+            _fobiaController,
+            Icons.warning,
             theme,
             isRequired: true,
-            hintText: 'Masukkan nomor kartu Emirates',
-            keyboardType: TextInputType.number,
+            hintText: 'Masukkan fobia',
+            maxLines: 3,
             enabled: _isEditing,
           ),
           _buildTextFieldWithRequired(
-            'No. Kartu Qantas',
-            _noKartuQantasController,
-            Icons.airplanemode_active,
+            'Alergi Makanan',
+            _alergiMakananController,
+            Icons.fastfood,
             theme,
             isRequired: true,
-            hintText: 'Masukkan nomor kartu Qantas',
-            keyboardType: TextInputType.number,
+            hintText: 'Masukkan alergi makanan',
+            maxLines: 3,
             enabled: _isEditing,
           ),
           _buildDropdownFieldWithRequired(
-            'Tempat Duduk',
-            _tempatDuduk,
-            Icons.event_seat,
+            'Golongan Darah',
+            _golonganDarah,
+            Icons.bloodtype,
+            theme,
+            isRequired: true,
+            isLast: false,
+          ),
+          _buildDropdownFieldWithRequired(
+            'Status Merokok',
+            _statusMerokok,
+            Icons.smoking_rooms,
             theme,
             isRequired: true,
             isLast: true,
@@ -278,7 +289,7 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Wajib Diisi',
+                            'Wajib diisi',
                             style: theme.typographyRegular.bodyExtraSmall.copyWith(
                               color: Colors.red[700],
                               fontWeight: FontWeight.w500,
@@ -399,7 +410,7 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Wajib Diisi',
+                            'Wajib diisi',
                             style: theme.typographyRegular.bodyExtraSmall.copyWith(
                               color: Colors.red[700],
                               fontWeight: FontWeight.w500,
@@ -410,10 +421,12 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _isEditing || value != null ? value : null,
-                    hint: value == null && !_isEditing
+                    value: value, // Tampilkan nilai yang disimpan sejak awal
+                    hint: value == null
                         ? Text(
-                            'Pilih tempat duduk',
+                            label == 'Golongan Darah'
+                                ? 'Pilih golongan darah'
+                                : 'Pilih status merokok',
                             style: theme.typographyRegular.bodySmall.copyWith(
                               color: Colors.grey[400],
                             ),
@@ -449,16 +462,27 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
                       color: Colors.grey[800],
                       fontWeight: FontWeight.w600,
                     ),
-                    items: ['Economy', 'Business', 'First Class'].map((String option) {
-                      return DropdownMenuItem<String>(
-                        value: option,
-                        child: Text(option),
-                      );
-                    }).toList(),
+                    items: (label == 'Golongan Darah')
+                        ? ['A', 'B', 'AB', 'O'].map((String option) {
+                            return DropdownMenuItem<String>(
+                              value: option,
+                              child: Text(option),
+                            );
+                          }).toList()
+                        : ['Ya', 'Tidak'].map((String option) {
+                            return DropdownMenuItem<String>(
+                              value: option,
+                              child: Text(option),
+                            );
+                          }).toList(),
                     onChanged: _isEditing
                         ? (String? newValue) {
                             setState(() {
-                              _tempatDuduk = newValue;
+                              if (label == 'Golongan Darah') {
+                                _golonganDarah = newValue;
+                              } else {
+                                _statusMerokok = newValue;
+                              }
                             });
                           }
                         : null,
@@ -489,17 +513,20 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
     if (_formKey.currentState!.validate()) {
       List<String> errors = [];
 
-      if (_noKartuGarudaController.text.isEmpty) {
-        errors.add('No. Kartu Garuda harus diisi');
+      if (_riwayatKesehatanController.text.isEmpty) {
+        errors.add('Riwayat Kesehatan harus diisi');
       }
-      if (_noKartuEmiratesController.text.isEmpty) {
-        errors.add('No. Kartu Emirates harus diisi');
+      if (_fobiaController.text.isEmpty) {
+        errors.add('Fobia harus diisi');
       }
-      if (_noKartuQantasController.text.isEmpty) {
-        errors.add('No. Kartu Qantas harus diisi');
+      if (_alergiMakananController.text.isEmpty) {
+        errors.add('Alergi Makanan harus diisi');
       }
-      if (_tempatDuduk == null) {
-        errors.add('Tempat Duduk harus diisi');
+      if (_golonganDarah == null) {
+        errors.add('Golongan Darah harus diisi');
+      }
+      if (_statusMerokok == null) {
+        errors.add('Status Merokok harus diisi');
       }
 
       if (errors.isNotEmpty) {
@@ -508,18 +535,21 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('noKartuGaruda', _noKartuGarudaController.text);
-      await prefs.setString('noKartuEmirates', _noKartuEmiratesController.text);
-      await prefs.setString('noKartuQantas', _noKartuQantasController.text);
-      await prefs.setString('tempatDuduk', _tempatDuduk!);
+      await prefs.setString('riwayatKesehatan', _riwayatKesehatanController.text);
+      await prefs.setString('fobia', _fobiaController.text);
+      await prefs.setString('alergiMakanan', _alergiMakananController.text);
+      await prefs.setString('golonganDarah', _golonganDarah!);
+      await prefs.setString('statusMerokok', _statusMerokok!);
 
-      ref.read(dataPenerbanganFilledProvider.notifier).state = true;
+      ref.read(dataKesehatanFilledProvider.notifier).state = true;
 
       await _showSuccessDialog(context, theme);
 
       setState(() {
         _isEditing = false;
       });
+
+      context.go('/dataKomisi', extra: {'justSaved': true, 'sourcePage': '/data-kesehatan'});
     }
   }
 
@@ -552,17 +582,16 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(
-            'Simpan Data Penerbangan',
+            'Simpan Data Kesehatan',
             style: theme.typographyRegular.bodyMedium.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
-          content: const Text('Data penerbangan berhasil disimpan.'),
+          content: const Text('Data kesehatan berhasil disimpan.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext, rootNavigator: true).pop();
-                context.go('/dataKomisi', extra: {'justSaved': true, 'sourcePage': '/data-penerbangan'});
               },
               child: const Text('OK'),
             ),
@@ -571,4 +600,4 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
       },
     );
   }
-}
+} 

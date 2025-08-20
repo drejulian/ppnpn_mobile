@@ -63,9 +63,9 @@ characters
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/characters-1.4.0/
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/characters-1.4.0/lib/
 checked_yaml
-3.8
-file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.4/
-file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.4/lib/
+2.19
+file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.3/
+file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.3/lib/
 ci
 2.12
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/ci-0.1.0/
@@ -623,9 +623,9 @@ web_socket_channel
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/web_socket_channel-3.0.3/
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/web_socket_channel-3.0.3/lib/
 win32
-3.8
-file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.14.0/
-file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.14.0/lib/
+3.7
+file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.13.0/
+file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.13.0/lib/
 xdg_directories
 3.3
 file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/xdg_directories-1.1.0/

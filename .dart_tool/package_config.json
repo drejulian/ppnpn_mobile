@@ -105,9 +105,9 @@
     },
     {
       "name": "checked_yaml",
-      "rootUri": "file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.4",
+      "rootUri": "file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/checked_yaml-2.0.3",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "2.19"
     },
     {
       "name": "ci",
@@ -969,9 +969,9 @@
     },
     {
       "name": "win32",
-      "rootUri": "file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.14.0",
+      "rootUri": "file:///C:/Users/Rangga/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.13.0",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.7"
     },
     {
       "name": "xdg_directories",
