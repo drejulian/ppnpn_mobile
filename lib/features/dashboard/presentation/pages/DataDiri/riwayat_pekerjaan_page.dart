@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart'; // Assuming this path is correct
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 // Work History data model
 class WorkHistoryData {
@@ -59,7 +60,6 @@ class WorkHistoryPage extends ConsumerStatefulWidget {
 
 class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -77,11 +77,15 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
     // Filter work history data based on search
     final filteredData =
         workHistoryData.where((work) {
-          return work.position.toLowerCase().contains(
-                _searchQuery.toLowerCase(),
-              ) ||
-              work.company.toLowerCase().contains(_searchQuery.toLowerCase());
+          final searchTerm = _searchController.text.toLowerCase();
+          if (searchTerm.isEmpty) return true;
+
+          return work.position.toLowerCase().contains(searchTerm) ||
+              work.company.toLowerCase().contains(searchTerm);
         }).toList();
+
+    // Check if there are active filters
+    final hasActiveFilters = _searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -112,8 +116,23 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Section
-            _buildSearchSection(theme),
+            // Search + Filter using AppFilterBar
+            AppFilterBar(
+              controller: _searchController,
+              labelText: 'Pencarian Riwayat Pekerjaan',
+              hintText: 'Cari berdasarkan posisi atau perusahaan...',
+              onChanged: (value) => setState(() {}),
+              onClear: () => setState(() {}),
+              headerTitle: 'Pencarian',
+              hasActiveFilters: hasActiveFilters,
+              onReset:
+                  hasActiveFilters
+                      ? () {
+                        _searchController.clear();
+                        setState(() {});
+                      }
+                      : null,
+            ),
             const SizedBox(height: 20),
 
             // Note Section (Optional, similar to education page)
@@ -130,86 +149,6 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
             const SizedBox(height: 20), // Bottom spacing
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSearchSection(dynamic theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [theme.primarySwatch, theme.secondarySwatch],
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.search, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Pencarian Data Riwayat Pekerjaan',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _searchController,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: InputDecoration(
-              hintText: 'Cari berdasarkan posisi atau perusahaan...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon:
-                  _searchQuery.isNotEmpty
-                      ? IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                        icon: const Icon(Icons.clear),
-                      )
-                      : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: theme.primarySwatch),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -262,7 +201,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 2),
@@ -338,7 +277,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 2),
@@ -376,7 +315,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: theme.primarySwatch.withOpacity(0.1),
+                  color: theme.primarySwatch.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -393,176 +332,126 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
           if (workHistoryData.isEmpty)
             _buildEmptyState(theme)
           else
-            _buildDataTable(theme, workHistoryData),
+            Column(
+              children: [
+                for (final work in workHistoryData) _buildWorkCard(theme, work),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildDataTable(dynamic theme, List<WorkHistoryData> workHistoryData) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
-          dataRowMinHeight: 60,
-          dataRowMaxHeight: 80,
-          columnSpacing: 20,
-          dividerThickness: 1,
-          border: TableBorder.all(color: Colors.grey[300]!, width: 1),
-          columns: [
-            DataColumn(
-              label: Text(
-                'Posisi',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
+  // Small rounded "pill" chip used in cards
+  Widget _pillChip({
+    required IconData icon,
+    required String label,
+    required dynamic theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.primarySwatch),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.typographyRegular.bodyExtraSmall,
+              overflow: TextOverflow.ellipsis,
             ),
-            DataColumn(
-              label: Text(
-                'Perusahaan',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkCard(dynamic theme, WorkHistoryData work) {
+    final stripeColor = theme.primarySwatch;
+    return AppCard(
+      leftAccentColor: stripeColor,
+      gradient: LinearGradient(
+        colors: [Colors.white, Colors.grey[50]!],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: stripeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(Icons.business_center, color: stripeColor),
               ),
-            ),
-            DataColumn(
-              label: Text(
-                'Tahun Mulai',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Tahun Selesai',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Aksi',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-          ],
-          rows:
-              workHistoryData
-                  .map(
-                    (work) => DataRow(
-                      cells: [
-                        DataCell(
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 150),
-                            child: Text(
-                              work.position,
-                              style: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 200),
-                            child: Text(
-                              work.company,
-                              style: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              work.startYear,
-                              style: theme.typographyRegular.bodyExtraSmall
-                                  .copyWith(
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              work.endYear,
-                              style: theme.typographyRegular.bodyExtraSmall
-                                  .copyWith(
-                                    color: Colors.red[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: () => _editWorkHistory(work),
-                                icon: Icon(
-                                  Icons.edit,
-                                  size: 18,
-                                  color: Colors.blue[600],
-                                ),
-                                tooltip: 'Edit',
-                              ),
-                              IconButton(
-                                onPressed: () => _deleteWorkHistory(work),
-                                icon: Icon(
-                                  Icons.delete,
-                                  size: 18,
-                                  color: Colors.red[600],
-                                ),
-                                tooltip: 'Hapus',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(work.position, style: theme.typographyBold.bodyMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ID: ${work.id}',
+                      style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  )
-                  .toList(),
-        ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _pillChip(
+                icon: Icons.business,
+                label: work.company,
+                theme: theme,
+              ),
+              _pillChip(
+                icon: Icons.calendar_today,
+                label: '${work.startYear} - ${work.endYear}',
+                theme: theme,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                tooltip: 'Edit',
+                icon: Icon(Icons.edit, color: theme.primarySwatch),
+                onPressed: () => _editWorkHistory(work),
+              ),
+              IconButton(
+                tooltip: 'Hapus',
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                onPressed: () => _deleteWorkHistory(work),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -603,8 +492,8 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
   }
 
   void _editWorkHistory(WorkHistoryData work) {
-    // Navigate to a form for editing work history, passing the data
-    context.go('/form-work-history', extra: work);
+    // Navigate to edit page, passing the data
+    context.go('/edit-riwayat-pekerjaan', extra: work);
   }
 
   void _deleteWorkHistory(WorkHistoryData work) {

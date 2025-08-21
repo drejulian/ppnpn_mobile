@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 
 class TambahAnggotaKeluargaPage extends ConsumerStatefulWidget {
   const TambahAnggotaKeluargaPage({super.key});
@@ -17,6 +18,7 @@ class TambahAnggotaKeluargaPage extends ConsumerStatefulWidget {
 class _TambahAnggotaKeluargaPageState
     extends ConsumerState<TambahAnggotaKeluargaPage> {
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   // Text Controllers
   final _namaController = TextEditingController();
@@ -403,7 +405,7 @@ class _TambahAnggotaKeluargaPageState
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _saveData,
+        onPressed: _saving ? null : _saveData,
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.primarySwatch,
           foregroundColor: Colors.white,
@@ -411,13 +413,23 @@ class _TambahAnggotaKeluargaPageState
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 2,
         ),
-        child: Text(
-          'SIMPAN',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
+        child:
+            _saving
+                ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                : Text(
+                  'SIMPAN',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
       ),
     );
   }
@@ -664,43 +676,63 @@ class _TambahAnggotaKeluargaPageState
     );
   }
 
-  void _saveData() {
-    if (_formKey.currentState!.validate()) {
-      // Create new family member
-      final newMember = FamilyMember(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        nama: _namaController.text.trim(),
-        hubungan:
-            _selectedHubungan == 'Anak'
-                ? 'AK'
-                : _selectedHubungan!.toUpperCase(),
-        tempatLahir: _tempatLahirController.text.trim(),
-        tanggalLahir: _selectedTanggalLahir!,
-        jenisKelamin: _selectedGender!,
-        pekerjaan: _pekerjaanController.text.trim(),
-        tanggalMenikah: _selectedTanggalPerkawinan,
-      );
+  Future<void> _saveData() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      // Add to family data
-      final currentData = ref.read(familyDataProvider);
-      final updatedData = [...currentData, newMember];
-      ref.read(familyDataProvider.notifier).state = updatedData;
+    setState(() => _saving = true);
+    try {
+      final hubungan =
+          _selectedHubungan == 'Anak' ? 'AK' : _selectedHubungan!.toUpperCase();
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Data anggota keluarga berhasil disimpan'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      // Build payload aligned with backend keys
+      final payload = <String, dynamic>{
+        'nama': _namaController.text.trim(),
+        'hubungan': hubungan,
+        'tempat_lahir': _tempatLahirController.text.trim(),
+        'tanggal_lahir': _selectedTanggalLahir!.toIso8601String(),
+        'jenis_kelamin': _selectedGender!,
+        'pekerjaan': _pekerjaanController.text.trim(),
+        if (_selectedTanggalPerkawinan != null)
+          'tanggal_menikah': _selectedTanggalPerkawinan!.toIso8601String(),
+        // Optional fields from form
+        'nik': _nikController.text.trim(),
+        'agama': _selectedAgama,
+        'handphone': _handphoneController.text.trim(),
+        'bpjs': _bpjsController.text.trim(),
+        'surat_kuliah': _suratKuliahController.text.trim(),
+      };
 
-      // Navigate back
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/keluarga');
+      await ref.read(keluargaApiProvider).createMember(payload);
+
+      // Refresh list
+      ref.invalidate(keluargaRemoteProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data anggota keluarga berhasil disimpan'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/keluarga');
+        }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 }

@@ -1,355 +1,708 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:ppnpm_dpr/app/routes.dart';
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
-import 'package:ppnpm_dpr/app/theme.dart'; // Assuming you have this theme file
-
-class SuratKeteranganPenghasilanPage extends ConsumerWidget {
+class SuratKeteranganPenghasilanPage extends ConsumerStatefulWidget {
   const SuratKeteranganPenghasilanPage({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+  // Static data for SKP
+  static final List<Map<String, String>> skpAnggotaData = [
+    {
+      'tahun': '2024',
+      'bulan': '01',
+      'nama_bulan': 'Januari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '02',
+      'nama_bulan': 'Februari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '03',
+      'nama_bulan': 'Maret',
+      'penghasilan':
+          'TUNJANGAN HARI RAYA (THR) TENAGA AHLI ANGGOTA DPR RI (TAA); HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '04',
+      'nama_bulan': 'April',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '05',
+      'nama_bulan': 'Mei',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '06',
+      'nama_bulan': 'Juni',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '07',
+      'nama_bulan': 'Juli',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '08',
+      'nama_bulan': 'Agustus',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '09',
+      'nama_bulan': 'September',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '10',
+      'nama_bulan': 'Oktober',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '11',
+      'nama_bulan': 'November',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+    {
+      'tahun': '2024',
+      'bulan': '12',
+      'nama_bulan': 'Desember',
+      'penghasilan':
+          'TUNJANGAN NATAL TENAGA AHLI ANGGOTA DPR RI (TAA); HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+    },
+  ];
 
-    // Sample data based on the SIHAKI PPNPN UI.docx document
-    // In a real application, this data would come from an API call or database.
-    final List<Map<String, String>> skpData = [
-      {
-        'tahun': '2025',
-        'bulan': '01',
-        'penghasilan':
-            'TUNJANGAN PERUMAHAN; UANG KOMUNIKASI INTENSIF DAN PENANGANAN PENGADUAN MASYARAKAT; TUNJANGAN KOMUNIKASI INTENSIF BAGI KETUA, WAKIL KETUA DAN ANGGOTA DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI ANGGARAN DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI LEGISLASI DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; GATI KEHORMATAN ANGGOTA DPR RI; TUNJANGAN UANG KEHORMATAN DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI ANGGARAN DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; TUNJANGAN UNTUK PENINGKATAN PELAKSANAAN FUNGSI PENGAWASAN DAN ANGGARAN SEBAGAI PELAKSANAAN KONSTITUSIONAL DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; TUNJANGAN KOMUNIKASI INTENSIF BAGI KETUA, WAKIL KETUA DAN ANGGOTA DEWAN PERWAKILAN RAKYAT INDONESIA; BANTUAN BIAYA TAGIHAN LISTRIK DAN TELEPON KEPADA ANGGOTA DEWAN PERWAKILAN RAKYAT INDONESIA',
-      },
-      {
-        'tahun': '2025',
-        'bulan': '02',
-        'penghasilan':
-            'GAJI KEHORMATAN ANGGOTA DPR RI; UANG KOMUNIKASI INTENSIF DAN PENANGANAN PENGADUAN MASYARAKAT; TUNJANGAN KOMUNIKASI INTENSIF BAGI KETUA, WAKIL KETUA DAN ANGGOTA DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI ANGGARAN DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI PENGAWASAN DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENINGKATAN FUNGSI LEGISLASI DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; TUNJANGAN UNTUK PENINGKATAN PELAKSANAAN FUNGSI PENGAWASAN DAN ANGGARAN SEBAGAI PELAKSANAAN KONSTITUSIONAL DEWAN PERWAKILAN RAKYAT REPUBLIK INDONESIA; KEGIATAN PENELITIAN DAN PEMANTAUAN PENINGKATAN FUNGSI KONSTITUSIONAL DEWAN KEPADA PIMPINAN ALAT KELENGKAPAN DEWAN PERWAKILAN RAKYAT INDONESIA',
-      },
-      // You can add more data as needed from the document
-      {
-        'tahun': '2024',
-        'bulan': '01',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '02',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '03',
-        'penghasilan':
-            'TUNJANGAN HARI RAYA (THR) TENAGA AHLI ANGGOTA DPR RI (TAA); HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '04',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '05',
-        'penghasilan':
-            'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA); HONOR BULAN KE-13 TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '06',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '07',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '08',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '09',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '10',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '11',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2024',
-        'bulan': '12',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2023',
-        'bulan': '01',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-      {
-        'tahun': '2023',
-        'bulan': '05',
-        'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
-      },
-    ];
+  @override
+  _SuratKeteranganPenghasilanPageState createState() =>
+      _SuratKeteranganPenghasilanPageState();
+}
+
+class _SuratKeteranganPenghasilanPageState
+    extends ConsumerState<SuratKeteranganPenghasilanPage> {
+  final TextEditingController searchController = TextEditingController();
+  int _currentPage = 1;
+  final int _itemsPerPage = 5;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, String>> _getPaginatedData(List<Map<String, String>> data) {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    if (startIndex >= data.length) return [];
+    return data.sublist(
+      startIndex,
+      startIndex + _itemsPerPage > data.length
+          ? data.length
+          : startIndex + _itemsPerPage,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ref.watch(themeProvider);
+    final primaryColor = theme.primarySwatch;
+    final textColor = Colors.grey[800];
+    final secondaryTextColor = Colors.grey[600];
+    final dividerColor = Colors.grey[200];
+
+    final filteredData =
+        SuratKeteranganPenghasilanPage.skpAnggotaData.where((row) {
+          final searchTerm = searchController.text.toLowerCase();
+          if (searchTerm.isEmpty) return true;
+
+          return row['tahun']!.toLowerCase().contains(searchTerm) ||
+              row['bulan']!.toLowerCase().contains(searchTerm) ||
+              row['nama_bulan']!.toLowerCase().contains(searchTerm) ||
+              row['penghasilan']!.toLowerCase().contains(searchTerm);
+        }).toList();
+
+    final paginatedData = _getPaginatedData(filteredData);
+    final totalPages = (filteredData.length / _itemsPerPage).ceil();
+
+    final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Surat Keterangan Penghasilan (SKP)',
-          style: theme.typographyBold.headingSmall.copyWith(
-            fontWeight: FontWeight.bold,
+          'Data Pajak Anggota',
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
+            fontSize: 18,
           ),
         ),
         backgroundColor: theme.primarySwatch,
+        foregroundColor: Colors.white,
+        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.go("/home"),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        color: const Color(0xFFF8F9FA),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Daftar Surat Keterangan Penghasilan',
-              style: theme.typographyRegular.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Mengatur warna latar belakang tabel secara langsung
-            Theme(
-              // Menggunakan Theme untuk secara lokal menerapkan DataTableThemeData
-              data: Theme.of(context).copyWith(
-                dataTableTheme: DataTableThemeData(
-                  dataRowColor: MaterialStateProperty.resolveWith<Color?>((
-                    Set<MaterialState> states,
-                  ) {
-                    // Ganti warna baris data di sini
-                    if (states.contains(MaterialState.selected)) {
-                      return const Color.fromARGB(
-                        255,
-                        255,
-                        255,
-                        255,
-                      ).withOpacity(0.5); // Warna saat dipilih
-                    }
-                    // Anda bisa membuat baris genap/ganjil memiliki warna berbeda
-                    // Misalnya, baris genap merah gelap, baris ganjil merah lebih terang
-                    if (skpData.indexOf(skpData[0]) % 2 == 0) {
-                      // Ini hanya contoh, logika sebenarnya harus berdasarkan index di _DataSource
-                      return const Color.fromARGB(
-                        255,
-                        255,
-                        255,
-                        255,
-                      ); // Merah gelap untuk baris genap
-                    }
-                    return const Color.fromARGB(
-                      255,
-                      255,
-                      255,
-                      255,
-                    ); // Merah standar untuk baris ganjil
-                  }),
-                  headingRowColor: MaterialStateProperty.resolveWith<Color?>((
-                    Set<MaterialState> states,
-                  ) {
-                    return const Color.fromARGB(
-                      255,
-                      255,
-                      255,
-                      255,
-                    ); // Merah sangat gelap untuk header
-                  }),
-                  // Border radius for table cells if desired, typically not directly on DataTableThemeData
-                  // but rather on individual cells or rows if custom painting
-                ),
-              ),
-              child: PaginatedDataTable(
-                rowsPerPage: 10,
-                headingRowColor: MaterialStateProperty.resolveWith<Color?>((
-                  Set<MaterialState> states,
-                ) {
-                  return Colors
-                      .blue; // <-- Warna latar belakang header diubah menjadi biru
-                }),
-                columns: [
-                  DataColumn(
-                    label: Text(
-                      'Tahun',
-                      style: theme.typographyRegular.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Colors
-                                .white, // Sesuaikan warna teks agar kontras dengan latar belakang biru
-                      ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Surat Keterangan Penghasilan (SKP)',
+                    style: theme.typographyBold.bodyLarge.copyWith(
+                      fontSize: 20,
+                      color: textColor,
                     ),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Bulan',
-                      style: theme.typographyRegular.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Colors
-                                .white, // Sesuaikan warna teks agar kontras dengan latar belakang biru
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.arrow_right, size: 16, color: Colors.blue),
+                      const SizedBox(width: 4),
+                      TextButton(
+                        onPressed: () => context.pushNamed(Routes.ppf.name),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Daftar Bukti Potong Pajak Final',
+                          style: theme.typographyRegular.bodyExtraSmall
+                              .copyWith(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Penghasilan',
-                      style: theme.typographyRegular.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Colors
-                                .white, // Sesuaikan warna teks agar kontras dengan latar belakang biru
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.arrow_right, size: 16, color: Colors.blue),
+                      const SizedBox(width: 4),
+                      TextButton(
+                        onPressed: () => context.pushNamed(Routes.ppa.name),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Daftar Bukti Potong Pajak A1',
+                          style: theme.typographyRegular.bodyExtraSmall
+                              .copyWith(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
                       ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Aksi',
-                      style: theme.typographyRegular.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Colors
-                                .white, // Sesuaikan warna teks agar kontras dengan latar belakang biru
-                      ),
-                    ),
+                    ],
                   ),
                 ],
-                source: _DataSource(skpData, context, theme),
-                columnSpacing: 40,
-                horizontalMargin: 10,
-                showCheckboxColumn: false,
               ),
             ),
+
+            // Search
+            AppFilterBar(
+              controller: searchController,
+              labelText: 'Pencarian SKP PPNPN',
+              hintText: 'Cari tahun, bulan, atau jenis penghasilan...',
+              onChanged: (_) => setState(() => _currentPage = 1),
+              onClear: () => setState(() => _currentPage = 1),
+              headerTitle: 'Pencarian',
+              hasActiveFilters: hasActiveFilters,
+              onReset:
+                  hasActiveFilters
+                      ? () {
+                        searchController.clear();
+                        setState(() => _currentPage = 1);
+                      }
+                      : null,
+            ),
+            const SizedBox(height: 20),
+
+            // Data List Header
+            Row(
+              children: [
+                Text(
+                  'Daftar SKP',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.primarySwatch.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${filteredData.length} data',
+                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                      color: theme.primarySwatch,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Divider
+            Divider(color: dividerColor, thickness: 1, height: 1),
+            const SizedBox(height: 8),
+
+            // Data List
+            if (paginatedData.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 64, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Data tidak ditemukan',
+                        style: theme.typographyRegular.bodyMedium.copyWith(
+                          color: secondaryTextColor,
+                        ),
+                      ),
+                      if (searchController.text.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            searchController.clear();
+                            setState(() => _currentPage = 1);
+                          },
+                          child: const Text('Reset Pencarian'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: paginatedData.length,
+                  itemBuilder: (context, index) {
+                    final row = paginatedData[index];
+                    return _buildDataCard(row, theme, primaryColor);
+                  },
+                ),
+              ),
+
+            // Pagination
+            if (filteredData.length > _itemsPerPage)
+              _buildPaginationControls(totalPages, theme, primaryColor),
           ],
         ),
       ),
     );
   }
-}
 
-class _DataSource extends DataTableSource {
-  final List<Map<String, String>> _data;
-  final BuildContext context;
-  final dynamic theme;
-
-  _DataSource(this._data, this.context, this.theme);
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= _data.length) {
-      return null;
-    }
-    final row = _data[index];
-    return DataRow(
-      // Row color is now handled by DataTableThemeData or directly by PaginatedDataTable
-      // but if you need to override per row, you can set 'color' here
-      cells: [
-        DataCell(
-          Text(
-            row['tahun']!,
-            style: theme.typographyRegular.bodySmall.copyWith(
-              color: Colors.black,
-            ), // Teks di sel data putih
-          ),
+  Widget _buildDataCard(
+    Map<String, String> row,
+    dynamic theme,
+    Color primaryColor,
+  ) {
+    return AppListCard(
+      onTap: () => _showDetailDialog(row, theme),
+      leftAccentColor: primaryColor,
+      gradient: LinearGradient(
+        colors: [Colors.white, Colors.grey[50] ?? Colors.white],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      leading: CircleAvatar(
+        radius: 18,
+        backgroundColor: primaryColor.withOpacity(0.1),
+        child: Icon(Icons.receipt_long, size: 18, color: primaryColor),
+      ),
+      title: '${row['nama_bulan']} ${row['tahun']}',
+      subtitle: row['penghasilan']!,
+      chips: [
+        AppPillChip(icon: Icons.calendar_today, label: 'Bulan ${row['bulan']}'),
+      ],
+      actions: [
+        _buildActionButton(
+          icon: Icons.print,
+          label: 'Cetak',
+          color: Colors.blue,
+          onPressed:
+              () =>
+                  _showPrintConfirmation(context, row['tahun']!, row['bulan']!),
         ),
-        DataCell(
-          Text(
-            row['bulan']!,
-            style: theme.typographyRegular.bodySmall.copyWith(
-              color: Colors.black,
-            ), // Teks di sel data putih
-          ),
-        ),
-        DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 300),
-            child: Text(
-              row['penghasilan']!,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: theme.typographyRegular.bodySmall.copyWith(
-                color: Colors.black,
-              ), // Teks di sel data putih
-            ),
-          ),
-        ),
-        DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  _showPrintConfirmation(context, row['tahun']!, row['bulan']!);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue, // Tombol putih
-                  foregroundColor: Colors.white, // Teks tombol merah gelap
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text('CETAK', style: TextStyle(fontSize: 12)),
+        _buildActionButton(
+          icon: Icons.phone,
+          label: 'WhatsApp',
+          color: Colors.green,
+          onPressed:
+              () => _showWhatsappConfirmation(
+                context,
+                row['tahun']!,
+                row['bulan']!,
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  _showWhatsappConfirmation(
-                    context,
-                    row['tahun']!,
-                    row['bulan']!,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.lightGreen, // Tombol WhatsApp hijau terang
-                  foregroundColor: Colors.white, // Teks tombol putih
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text('WHATSAPP', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ),
         ),
       ],
     );
   }
 
-  @override
-  bool get isRowCountApproximate => false;
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton.icon(
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      onPressed: onPressed,
+    );
+  }
 
-  @override
-  int get rowCount => _data.length;
+  Widget _buildPaginationControls(
+    int totalPages,
+    dynamic theme,
+    Color primaryColor,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey[100],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed:
+                _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            decoration: BoxDecoration(
+              color: primaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$_currentPage/$totalPages',
+              style: theme.typographyBold.bodyMedium?.copyWith(
+                color: Colors.white,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey[100],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed:
+                _currentPage < totalPages
+                    ? () => setState(() => _currentPage++)
+                    : null,
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  int get selectedRowCount => 0;
+  void _showDetailDialog(Map<String, String> row, dynamic theme) {
+    final bulanNames = {
+      '01': 'Januari',
+      '02': 'Februari',
+      '03': 'Maret',
+      '04': 'April',
+      '05': 'Mei',
+      '06': 'Juni',
+      '07': 'Juli',
+      '08': 'Agustus',
+      '09': 'September',
+      '10': 'Oktober',
+      '11': 'November',
+      '12': 'Desember',
+    };
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            contentPadding: const EdgeInsets.all(0),
+            content: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white,
+                    theme.primarySwatch.withValues(alpha: 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Title
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Detail',
+                          style: theme.typographyRegular.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.primarySwatch,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            color: theme.primarySwatch,
+                            size: 24,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Data Period Section
+                    Text(
+                      'Periode',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.primarySwatch.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTextField('Tahun', row['tahun']!, theme),
+                          _buildTextField(
+                            'Bulan',
+                            '${bulanNames[row['bulan']]} (${row['bulan']})',
+                            theme,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Income Details Section
+                    Text(
+                      'Rincian Penghasilan',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.primarySwatch.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTextField(
+                            'Jenis Penghasilan',
+                            row['penghasilan']!,
+                            theme,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Action Buttons Section
+                    Text(
+                      'Aksi',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.primarySwatch.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.print, size: 18),
+                              label: const Text('Cetak SKP'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showPrintConfirmation(
+                                  context,
+                                  row['tahun']!,
+                                  row['bulan']!,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.phone, size: 18),
+                              label: const Text('Kirim via WhatsApp'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showWhatsappConfirmation(
+                                  context,
+                                  row['tahun']!,
+                                  row['bulan']!,
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    String value,
+    dynamic theme, {
+    bool isLast = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.typographyRegular.bodySmall.copyWith(
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: theme.typographyRegular.bodyMedium.copyWith(
+            color: Colors.grey[800],
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (!isLast) ...[
+          const SizedBox(height: 16),
+          Divider(color: Colors.grey[200], thickness: 1),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
 
   void _showPrintConfirmation(
     BuildContext context,
@@ -358,39 +711,32 @@ class _DataSource extends DataTableSource {
   ) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Konfirmasi Cetak',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Anda yakin ingin mencetak Surat Keterangan Penghasilan untuk bulan $bulan tahun $tahun?',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Batal'),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-            ElevatedButton(
-              child: const Text('Cetak'),
-              onPressed: () {
-                debugPrint('Mencetak SKP untuk $bulan/$tahun');
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'File SKP untuk $bulan/$tahun sedang dicetak.',
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Konfirmasi Cetak'),
+            content: Text('Cetak SKP untuk $bulan/$tahun?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('SKP $bulan/$tahun sedang dicetak...'),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
+                  );
+                },
+                child: const Text(
+                  'Cetak',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
     );
   }
 
@@ -401,39 +747,32 @@ class _DataSource extends DataTableSource {
   ) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Konfirmasi WhatsApp',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Anda yakin ingin mengirim Surat Keterangan Penghasilan untuk bulan $bulan tahun $tahun via WhatsApp?',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Batal'),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-            ElevatedButton(
-              child: const Text('Kirim'),
-              onPressed: () {
-                debugPrint('Mengirim SKP untuk $bulan/$tahun via WhatsApp');
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'File SKP untuk $bulan/$tahun sedang dikirim via WhatsApp.',
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Kirim via WhatsApp'),
+            content: Text('Kirim SKP $bulan/$tahun via WhatsApp?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('SKP $bulan/$tahun sedang dikirim...'),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
+                  );
+                },
+                child: const Text(
+                  'Kirim',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
     );
   }
 }

@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
+import 'package:flutter/services.dart';
 
 class AddWorkHistoryPage extends ConsumerStatefulWidget {
-  final WorkHistoryData?
-  workHistoryToEdit; // Optional: for editing existing data
-
+  final WorkHistoryData? workHistoryToEdit;
   const AddWorkHistoryPage({super.key, this.workHistoryToEdit});
 
   @override
@@ -99,7 +98,9 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
           ),
         );
       }
-      context.pop(); // Go back to the previous page (AddWorkHistoryPage)
+      context.go(
+        '/riwayat-pekerjaan',
+      );
     }
   }
 
@@ -121,12 +122,9 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
         backgroundColor: theme.primarySwatch,
         foregroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go("/riwayat-pekerjaan"); // Go back to the previous page
-          },
+          onPressed: () => context.go("/riwayat-pekerjaan"),
         ),
       ),
       body: SingleChildScrollView(
@@ -136,137 +134,105 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 2),
+              // Data Pekerjaan card
+              _buildCard(
+                theme,
+                title:
+                    isEditing ? 'Edit Data Pekerjaan' : 'Tambah Data Pekerjaan',
+                icon: isEditing ? Icons.edit_note : Icons.work_outline,
+                child: Column(
+                  children: [
+                    _buildFieldWithIcon(
+                      'Posisi',
+                      _positionController,
+                      Icons.work,
+                      theme,
+                      isRequired: true,
+                      hintText: 'Masukkan posisi, contoh: PROGRAMMER',
+                      validator:
+                          (v) =>
+                              (v == null || v.isEmpty)
+                                  ? 'Posisi tidak boleh kosong'
+                                  : null,
+                    ),
+                    _buildFieldWithIcon(
+                      'Perusahaan',
+                      _companyController,
+                      Icons.business,
+                      theme,
+                      isRequired: true,
+                      hintText: 'Masukkan nama perusahaan',
+                      validator:
+                          (v) =>
+                              (v == null || v.isEmpty)
+                                  ? 'Perusahaan tidak boleh kosong'
+                                  : null,
+                    ),
+                    _buildFieldWithIcon(
+                      'Tahun Mulai',
+                      _startYearController,
+                      Icons.calendar_today,
+                      theme,
+                      isRequired: true,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      hintText: 'contoh: 2006',
+                      validator: (v) {
+                        if (v == null || v.isEmpty)
+                          return 'Tahun Mulai tidak boleh kosong';
+                        if (int.tryParse(v) == null)
+                          return 'Tahun Mulai harus berupa angka';
+                        return null;
+                      },
+                    ),
+                    _buildFieldWithIcon(
+                      'Tahun Selesai',
+                      _endYearController,
+                      Icons.event_available,
+                      theme,
+                      isRequired: true,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      hintText: 'contoh: 2009',
+                      validator: (v) {
+                        if (v == null || v.isEmpty)
+                          return 'Tahun Selesai tidak boleh kosong';
+                        if (int.tryParse(v) == null)
+                          return 'Tahun Selesai harus berupa angka';
+                        return null;
+                      },
+                      isLast: true,
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.primarySwatch,
-                                theme.secondarySwatch,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            isEditing ? Icons.edit : Icons.add,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          isEditing
-                              ? 'Form Edit Riwayat Pekerjaan'
-                              : 'Form Tambah Riwayat Pekerjaan',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                      ],
+              ),
+
+              const SizedBox(height: 24),
+              // Save button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _saveWorkHistoryData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primarySwatch,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _positionController,
-                      labelText: 'Posisi (e.g., PROGRAMMER)',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Posisi tidak boleh kosong';
-                        }
-                        return null;
-                      },
+                    elevation: 2,
+                  ),
+                  icon: Icon(
+                    isEditing ? Icons.save : Icons.add_circle,
+                    size: 20,
+                  ),
+                  label: Text(
+                    isEditing ? 'SIMPAN PERUBAHAN' : 'TAMBAH RIWAYAT PEKERJAAN',
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
                     ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _companyController,
-                      labelText: 'Perusahaan (e.g., PT INSIGHT SYSTEM)',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Perusahaan tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _startYearController,
-                      labelText: 'Tahun Mulai (e.g., 2006)',
-                      theme: theme,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Tahun Mulai tidak boleh kosong';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Tahun Mulai harus berupa angka';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _endYearController,
-                      labelText: 'Tahun Selesai (e.g., 2009 / Sekarang)',
-                      theme: theme,
-                      keyboardType: TextInputType.text, // Allow "Sekarang"
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Tahun Selesai tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _saveWorkHistoryData,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primarySwatch,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 2,
-                        ),
-                        icon: Icon(
-                          isEditing ? Icons.save : Icons.add_circle,
-                          size: 20,
-                        ),
-                        label: Text(
-                          isEditing
-                              ? 'SIMPAN PERUBAHAN'
-                              : 'TAMBAH RIWAYAT PEKERJAAN',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -276,36 +242,172 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String labelText,
-    required dynamic theme,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
+  // Kunker-style card container with gradient header
+  Widget _buildCard(
+    dynamic theme, {
+    required String title,
+    required IconData icon,
+    required Widget child,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: labelText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: theme.primarySwatch),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      validator: validator,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [theme.primarySwatch, theme.secondarySwatch],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: theme.typographyRegular.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // Kunker-style field with left icon and "Wajib diisi" indicator
+  Widget _buildFieldWithIcon(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+    dynamic theme, {
+    bool isRequired = false,
+    String? hintText,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+    bool isLast = false,
+  }) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: theme.primarySwatch.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: theme.primarySwatch, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: theme.typographyRegular.bodySmall.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (isRequired)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Wajib diisi',
+                            style: theme.typographyRegular.bodyExtraSmall
+                                .copyWith(
+                                  color: Colors.red[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    inputFormatters: inputFormatters,
+                    validator: validator,
+                    decoration: InputDecoration(
+                      hintText: hintText,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: theme.primarySwatch),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.red[400]!),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.red[400]!),
+                      ),
+                    ),
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      color: Colors.grey[800],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (!isLast) ...[
+          const SizedBox(height: 16),
+          Divider(color: Colors.grey[200], thickness: 1),
+          const SizedBox(height: 16),
+        ],
+      ],
     );
   }
 }

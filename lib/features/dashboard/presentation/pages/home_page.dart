@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/widgets/sihaki_submenu_modal.dart';
+import 'package:ppnpm_dpr/common/widgets/sihaki_submenu_modal.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -499,7 +499,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Icon(item.icon, color: Colors.white, size: 20),
           ),
           const SizedBox(height: 8),
-          Expanded(
+          Flexible(
             child: Text(
               item.title,
               style: theme.typographyRegular.bodyExtraSmall.copyWith(
@@ -509,6 +509,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              softWrap: true,
             ),
           ),
         ],
@@ -1243,10 +1244,24 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   List<MenuItemData> _getMainMenuItems() {
     return [
-      MenuItemData('Cuti', Icons.event_busy, Colors.orange),
-      MenuItemData('izin', Icons.assignment, Colors.blue,
+      MenuItemData(
+        'Cuti',
+        Icons.event_busy,
+        Colors.orange,
+        onTap: () {
+          context.pushNamed(Routes.cuti.name);
+        },
+      ),
+       MenuItemData('izin', Icons.assignment, Colors.blue,
           onTap: () {context.pushNamed(Routes.izin.name);},),
-      MenuItemData('Lembur', Icons.access_time, Colors.purple),
+      MenuItemData(
+        'Lembur',
+        Icons.access_time,
+        Colors.purple,
+        onTap: () {
+          context.pushNamed(Routes.lembur.name);
+        },
+      ),
       MenuItemData('Reimburse', Icons.assignment, Colors.blue,
           onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
       MenuItemData('Training', Icons.school, Colors.indigo),
@@ -1339,19 +1354,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   List<MenuItemData> _getSihakiItems(BuildContext context) {
     return [
       MenuItemData(
-        'Data Pajak PPNPM',
+        'Data Pajak PPNPN',
         Icons.receipt_long,
         Colors.deepOrange,
         onTap: () {
-          debugPrint('💰 Opening submenu for Data Pajak PPNPM');
-          _showSihakiSubMenu(context, 'Data Pajak PPNPM', [
+          debugPrint('💰 Opening submenu for Data Pajak PPNPN');
+          _showSihakiSubMenu(context, 'Data Pajak PPNPN', [
             SubMenuItemData(
               'Surat Keterangan Penghasilan (SKP)',
               Icons.description,
               Colors.blue,
               onTap: () {
                 // Navigate to SKP PPNPM page
-                debugPrint('Navigating to PPNPM SKP'); //
+                debugPrint('Navigating to PPNPN SKP'); //
                 // context.pushNamed(Routes.ppnpmSkp.name);
                 context.pushNamed(Routes.skp.name);
               },
@@ -1362,7 +1377,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               Colors.green,
               onTap: () {
                 // Navigate to Final Tax Withholding Slip PPNPM page
-                debugPrint('Navigating to PPNPM Bukti Potong Pajak Final'); //
+                debugPrint('Navigating to PPNPN Bukti Potong Pajak Final'); //
                 context.pushNamed(Routes.ppf.name);
               },
             ),
@@ -1372,8 +1387,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               Colors.purple,
               onTap: () {
                 // Navigate to Tax Withholding Slip A1 PPNPM page
-                debugPrint('Navigating to PPNPM Bukti Potong Pajak A1'); //
-                // context.pushNamed(Routes.ppnpmBuktiPotongA1.name);
+                debugPrint('Navigating to PPNPN Bukti Potong Pajak A1');
+                context.pushNamed(Routes.ppa.name);
               },
             ),
           ]);
@@ -1423,7 +1438,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               onTap: () {
                 // Navigate to SKP Anggota page
                 debugPrint('Navigating to Anggota SKP'); //
-                // context.pushNamed(Routes.anggotaSkp.name);
+                context.pushNamed(Routes.skpAnggota.name);
               },
             ),
             SubMenuItemData(
@@ -1433,7 +1448,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               onTap: () {
                 // Navigate to Final Tax Withholding Slip Anggota page
                 debugPrint('Navigating to Anggota Bukti Potong Pajak Final'); //
-                // context.pushNamed(Routes.anggotaBuktiPotongFinal.name);
+                context.pushNamed(Routes.ppfAnggota.name);
               },
             ),
             SubMenuItemData(
@@ -1443,19 +1458,19 @@ class _HomePageState extends ConsumerState<HomePage> {
               onTap: () {
                 // Navigate to Tax Withholding Slip A2 Anggota page
                 debugPrint('Navigating to Anggota Bukti Potong Pajak A2'); //
-                // context.pushNamed(Routes.anggotaBuktiPotongA2.name);
+                context.pushNamed(Routes.ppaAnggota.name);
               },
             ),
           ]);
         },
       ),
       MenuItemData(
-        'Database Anggota DPR RI',
-        Icons.storage,
-        Colors.cyan,
-        onTap: () {
-          debugPrint('🗄️ Navigating to Database Anggota DPR RI'); //
-          // context.pushNamed(Routes.databaseAnggotaDprRi.name);
+  'Database Anggota DPR RI',
+  Icons.storage,
+  Colors.cyan,
+  onTap: () {
+    debugPrint('Navigating directly to Data Komisi');
+    context.pushNamed('dataKomisi');
         },
       ),
       MenuItemData(
@@ -1464,7 +1479,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         Colors.lime,
         onTap: () {
           debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan'); //
-          // context.pushNamed(Routes.dataKunjunganKerjaPerorangan.name);
+          context.pushNamed(Routes.kunkerPerorangan.name);
         },
       ),
       MenuItemData(
@@ -1482,7 +1497,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         Colors.purpleAccent,
         onTap: () {
           debugPrint('📄 Navigating to Dokumen Anggota'); //
-          // context.pushNamed(Routes.dokumenAnggota.name);
+          context.pushNamed(Routes.dataDokumenAnggota.name);
         },
       ),
       MenuItemData(

@@ -1,62 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ppnpm_dpr/app/theme.dart'; // Assuming this path is correct
-
-// Education data model (from your original code)
-class EducationData {
-  final String id;
-  final String jenjang;
-  final String jurusan;
-  final String institusi;
-  final String kota;
-  final String tahun;
-
-  EducationData({
-    required this.id,
-    required this.jenjang,
-    required this.jurusan,
-    required this.institusi,
-    required this.kota,
-    required this.tahun,
-  });
-
-  // Helper to create a copy with new values
-  EducationData copyWith({
-    String? id,
-    String? jenjang,
-    String? jurusan,
-    String? institusi,
-    String? kota,
-    String? tahun,
-  }) {
-    return EducationData(
-      id: id ?? this.id,
-      jenjang: jenjang ?? this.jenjang,
-      jurusan: jurusan ?? this.jurusan,
-      institusi: institusi ?? this.institusi,
-      kota: kota ?? this.kota,
-      tahun: tahun ?? this.tahun,
-    );
-  }
-}
-
-// Provider with education data (from your original code)
-final educationDataProvider = StateProvider<List<EducationData>>((ref) {
-  return [
-    EducationData(
-      id: '1',
-      jenjang: 'Sarjana/S1',
-      jurusan: 'TEKNIK INFORMATIKA',
-      institusi: 'INSTITUT TEKNOLOGI SEPULUH NOPEMBER (ITSI)',
-      kota: 'SURABAYA',
-      tahun: '2004',
-    ),
-  ];
-});
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:flutter/services.dart';
 
 class EditDataPendidikanPage extends ConsumerStatefulWidget {
-  final EducationData? educationToEdit; // Optional: for editing existing data
+  final Map<String, String>? educationToEdit;
 
   const EditDataPendidikanPage({super.key, this.educationToEdit});
 
@@ -68,109 +17,83 @@ class EditDataPendidikanPage extends ConsumerStatefulWidget {
 class _EditDataPendidikanPageState
     extends ConsumerState<EditDataPendidikanPage> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _jenjangController;
   late TextEditingController _jurusanController;
   late TextEditingController _institusiController;
   late TextEditingController _kotaController;
-  late TextEditingController _tahunController;
+  // Replace single year with start and end years
+  late TextEditingController _tahunMulaiController;
+  late TextEditingController _tahunSelesaiController;
+
+  String? _selectedJenjang;
+  bool _isLoading = false;
+
+  final List<String> _jenjangOptions = [
+    'SD',
+    'SMP',
+    'SMA',
+    'SMK',
+    'D1',
+    'D2',
+    'D3',
+    'D4',
+    'Sarjana/S1',
+    'S2/Magister',
+    'S3/Doktor',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _jenjangController = TextEditingController(
-      text: widget.educationToEdit?.jenjang ?? '',
-    );
+    _selectedJenjang = widget.educationToEdit?['jenjang'];
     _jurusanController = TextEditingController(
-      text: widget.educationToEdit?.jurusan ?? '',
+      text: widget.educationToEdit?['jurusan'] ?? '',
     );
     _institusiController = TextEditingController(
-      text: widget.educationToEdit?.institusi ?? '',
+      text: widget.educationToEdit?['institusi'] ?? '',
     );
     _kotaController = TextEditingController(
-      text: widget.educationToEdit?.kota ?? '',
+      text: widget.educationToEdit?['kota'] ?? '',
     );
-    _tahunController = TextEditingController(
-      text: widget.educationToEdit?.tahun ?? '',
-    );
+
+    // Extract years from both individual fields or from the combined display
+    String? tahunMulai = widget.educationToEdit?['tahun_mulai'];
+    String? tahunSelesai = widget.educationToEdit?['tahun_selesai'];
+
+    // If individual year fields are not available, try to parse from combined 'tahun'
+    if ((tahunMulai == null || tahunSelesai == null) &&
+        widget.educationToEdit?['tahun'] != null) {
+      final parts = widget.educationToEdit?['tahun']?.split('-');
+      if (parts != null && parts.length == 2) {
+        tahunMulai = parts[0].trim();
+        tahunSelesai = parts[1].trim();
+      }
+    }
+
+    _tahunMulaiController = TextEditingController(text: tahunMulai ?? '');
+    _tahunSelesaiController = TextEditingController(text: tahunSelesai ?? '');
   }
 
   @override
   void dispose() {
-    _jenjangController.dispose();
     _jurusanController.dispose();
     _institusiController.dispose();
     _kotaController.dispose();
-    _tahunController.dispose();
+    _tahunMulaiController.dispose();
+    _tahunSelesaiController.dispose();
     super.dispose();
-  }
-
-  void _saveEducationData() {
-    if (_formKey.currentState!.validate()) {
-      final String jenjang = _jenjangController.text;
-      final String jurusan = _jurusanController.text;
-      final String institusi = _institusiController.text;
-      final String kota = _kotaController.text;
-      final String tahun = _tahunController.text;
-
-      final currentData = ref.read(educationDataProvider);
-
-      if (widget.educationToEdit == null) {
-        // Add new education data
-        final newEducation = EducationData(
-          id: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
-          jenjang: jenjang,
-          jurusan: jurusan,
-          institusi: institusi,
-          kota: kota,
-          tahun: tahun,
-        );
-        ref.read(educationDataProvider.notifier).state = [
-          ...currentData,
-          newEducation,
-        ];
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data pendidikan berhasil ditambahkan!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // Edit existing education data
-        final updatedData =
-            currentData.map((education) {
-              if (education.id == widget.educationToEdit!.id) {
-                return education.copyWith(
-                  jenjang: jenjang,
-                  jurusan: jurusan,
-                  institusi: institusi,
-                  kota: kota,
-                  tahun: tahun,
-                );
-              }
-              return education;
-            }).toList();
-        ref.read(educationDataProvider.notifier).state = updatedData;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data pendidikan berhasil diperbarui!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-      context.pop(); // Go back to the previous page (PendidikanPage)
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final isEditing = widget.educationToEdit != null;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          isEditing ? 'Edit Data Pendidikan' : 'Tambah Data Pendidikan',
+          'Edit Data Pendidikan',
           style: theme.typographyRegular.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -179,166 +102,32 @@ class _EditDataPendidikanPageState
         backgroundColor: theme.primarySwatch,
         foregroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.pop(); // Go back to the previous page
-          },
+          onPressed: () => context.go('/pendidikan'),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: isTablet ? 24.0 : 16.0,
+          vertical: 16.0,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.primarySwatch,
-                                theme.secondarySwatch,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            isEditing ? Icons.edit : Icons.add,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          isEditing
-                              ? 'Form Edit Data Pendidikan'
-                              : 'Form Tambah Data Pendidikan',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _jenjangController,
-                      labelText: 'Jenjang (e.g., Sarjana/S1)',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Jenjang tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _jurusanController,
-                      labelText: 'Jurusan (e.g., TEKNIK INFORMATIKA)',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Jurusan tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _institusiController,
-                      labelText:
-                          'Institusi (e.g., INSTITUT TEKNOLOGI SEPULUH NOPEMBER (ITSI))',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Institusi tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _kotaController,
-                      labelText: 'Kota (e.g., SURABAYA)',
-                      theme: theme,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Kota tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _tahunController,
-                      labelText: 'Tahun (e.g., 2004)',
-                      theme: theme,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Tahun tidak boleh kosong';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Tahun harus berupa angka';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _saveEducationData,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primarySwatch,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 2,
-                        ),
-                        icon: Icon(
-                          isEditing ? Icons.save : Icons.add_circle,
-                          size: 20,
-                        ),
-                        label: Text(
-                          isEditing
-                              ? 'SIMPAN PERUBAHAN'
-                              : 'TAMBAH DATA PENDIDIKAN',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Header Section (like in tambah_data_pendidikan_page.dart)
+              _buildHeaderSection(theme),
+              const SizedBox(height: 24),
+
+              // Form Section (like in tambah_data_pendidikan_page.dart)
+              _buildFormSection(theme),
+              const SizedBox(height: 32),
+
+              // Save Button
+              _buildSaveButton(theme),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -346,36 +135,417 @@ class _EditDataPendidikanPageState
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String labelText,
-    required dynamic theme,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
+  Widget _buildHeaderSection(dynamic theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [theme.primarySwatch, theme.secondarySwatch],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.school, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit Riwayat Pendidikan',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${widget.educationToEdit?['id'] ?? '-'}',
+                  style: theme.typographyRegular.bodySmall.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormSection(dynamic theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Jenis Pendidikan Dropdown
+          _buildDropdownField(
+            theme,
+            label: 'Jenis Pendidikan',
+            hint: 'Pilih jenis pendidikan',
+            value: _selectedJenjang,
+            items: _jenjangOptions,
+            onChanged: (value) => setState(() => _selectedJenjang = value),
+            validator:
+                (value) =>
+                    value == null ? 'Jenis pendidikan wajib dipilih' : null,
+          ),
+          const SizedBox(height: 20),
+
+          // Program Studi
+          _buildTextFormField(
+            theme,
+            controller: _jurusanController,
+            label: 'Program Studi',
+            hint: 'Masukkan program studi/jurusan',
+            validator:
+                (value) =>
+                    value?.isEmpty == true ? 'Program studi wajib diisi' : null,
+          ),
+          const SizedBox(height: 20),
+
+          // Nama Universitas
+          _buildTextFormField(
+            theme,
+            controller: _institusiController,
+            label: 'Nama Universitas',
+            hint: 'Masukkan nama universitas/institusi',
+            validator:
+                (value) =>
+                    value?.isEmpty == true
+                        ? 'Nama universitas wajib diisi'
+                        : null,
+          ),
+          const SizedBox(height: 20),
+
+          // Kota
+          _buildTextFormField(
+            theme,
+            controller: _kotaController,
+            label: 'Kota',
+            hint: 'Masukkan kota',
+            validator:
+                (value) => value?.isEmpty == true ? 'Kota wajib diisi' : null,
+          ),
+          const SizedBox(height: 20),
+
+          // Tahun Mulai (Start Year)
+          _buildTextFormField(
+            theme,
+            controller: _tahunMulaiController,
+            label: 'Tahun Mulai',
+            hint: 'contoh: 2019',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+            ],
+            validator: (value) {
+              if (value?.isEmpty == true) return 'Tahun mulai wajib diisi';
+              if (value!.length != 4) return 'Format tahun harus 4 digit';
+              final year = int.tryParse(value);
+              if (year == null || year < 1950 || year > DateTime.now().year) {
+                return 'Tahun tidak valid (1950-${DateTime.now().year})';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+
+          // Tahun Selesai (End Year)
+          _buildTextFormField(
+            theme,
+            controller: _tahunSelesaiController,
+            label: 'Tahun Selesai',
+            hint: 'contoh: 2023',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+            ],
+            validator: (value) {
+              if (value?.isEmpty == true) return 'Tahun selesai wajib diisi';
+              if (value!.length != 4) return 'Format tahun harus 4 digit';
+
+              // Compare with start year if both are filled
+              if (_tahunMulaiController.text.isNotEmpty) {
+                final startYear = int.tryParse(_tahunMulaiController.text);
+                final endYear = int.tryParse(value);
+
+                if (startYear != null &&
+                    endYear != null &&
+                    endYear < startYear) {
+                  return 'Tahun selesai tidak boleh kurang dari tahun mulai';
+                }
+              }
+
+              final year = int.tryParse(value);
+              if (year == null ||
+                  year < 1950 ||
+                  year > DateTime.now().year + 5) {
+                return 'Tahun tidak valid (1950-${DateTime.now().year + 5})';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(
+    dynamic theme, {
+    required String label,
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+    required FormFieldValidator<String?> validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: labelText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: theme.typographyRegular.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '*',
+              style: theme.typographyRegular.bodySmall.copyWith(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          onChanged: onChanged,
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: theme.primarySwatch),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          items:
+              items.map((String item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                );
+              }).toList(),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: theme.primarySwatch),
+      ],
+    );
+  }
+
+  Widget _buildTextFormField(
+    dynamic theme, {
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required FormFieldValidator<String?> validator,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: theme.typographyRegular.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '*',
+              style: theme.typographyRegular.bodySmall.copyWith(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: theme.primarySwatch),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton(dynamic theme) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _saveEducationData,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.primarySwatch,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 2,
+        ),
+        icon:
+            _isLoading
+                ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                : const Icon(Icons.save, size: 20),
+        label: Text(
+          'SIMPAN PERUBAHAN',
+          style: theme.typographyRegular.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
-      validator: validator,
     );
+  }
+
+  void _saveEducationData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Simulate API call
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final tahunMulai = _tahunMulaiController.text.trim();
+      final tahunSelesai = _tahunSelesaiController.text.trim();
+
+      final updated = <String, String>{
+        'id':
+            widget.educationToEdit?['id'] ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        'jenjang': _selectedJenjang!,
+        'jurusan': _jurusanController.text.trim().toUpperCase(),
+        'institusi': _institusiController.text.trim().toUpperCase(),
+        'kota': _kotaController.text.trim().toUpperCase(),
+        'tahun_mulai': tahunMulai,
+        'tahun_selesai': tahunSelesai,
+        // Add formatted display string for the cards
+        'tahun': '$tahunMulai - $tahunSelesai',
+      };
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data pendidikan berhasil diperbarui!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Return to pendidikan page
+      context.go('/pendidikan', extra: {'action': 'edit', 'data': updated});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }
