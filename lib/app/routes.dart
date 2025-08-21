@@ -32,7 +32,7 @@ enum Routes {
   dataBPJS,
   daftarPengajuanBPJS,
   izin,
-  reimbursePage
+  reimbursePage,
   dataKomisi,
   dataKeanggotaan,
   dataKendaraan,
