@@ -509,49 +509,102 @@ class _DaftarPengajuanRumahAspirasiPageState
                       itemCount: filteredList.length,
                       itemBuilder: (context, index) {
                         final rumahAspirasi = filteredList[index];
-                        return InkWell(
-                          onTap: () => _showDetailDialog(context, rumahAspirasi, theme),
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Tanggal Surat: ${rumahAspirasi.tanggalSurat}',
-                                          style: theme.typographyRegular.bodySmall.copyWith(
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => _showDetailDialog(context, rumahAspirasi, theme),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    width: 4,
+                                    decoration: BoxDecoration(
+                                      color: theme.primarySwatch,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        bottomLeft: Radius.circular(12),
                                       ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
                                       Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  rumahAspirasi.nama,
+                                                  style: theme.typographyBold.bodyMedium,
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  rumahAspirasi.tahunSidang,
+                                                  style: theme.typographyRegular.bodySmall.copyWith(color: Colors.grey[600]),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Divider(color: Colors.grey[200], height: 1),
+                                      const SizedBox(height: 12),
+                                      _buildInfoRow(
+                                        icon: Icons.person,
+                                        label: 'Nama',
+                                        value: rumahAspirasi.nama,
+                                        theme: theme,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow(
+                                        icon: Icons.calendar_today,
+                                        label: 'Tanggal Surat',
+                                        value: rumahAspirasi.tanggalSurat,
+                                        theme: theme,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow(
+                                        icon: Icons.account_balance,
+                                        label: 'Fraksi',
+                                        value: rumahAspirasi.fraksiAnggota,
+                                        theme: theme,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow(
+                                        icon: Icons.location_city,
+                                        label: 'Dapil',
+                                        value: rumahAspirasi.dapilAnggota,
+                                        theme: theme,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
-                                              Icons.edit,
-                                              color: theme.primarySwatch,
-                                              size: 20,
-                                            ),
+                                            tooltip: 'Edit',
+                                            icon: Icon(Icons.edit, color: theme.primarySwatch),
                                             onPressed: () => context.push(
                                               '/rumah-aspirasi/edit',
                                               extra: rumahAspirasi,
                                             ),
                                           ),
                                           IconButton(
-                                            icon: Icon(
-                                              Icons.delete,
-                                              color: Colors.red[600],
-                                              size: 20,
-                                            ),
+                                            tooltip: 'Hapus',
+                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
                                             onPressed: () {
                                               ref.read(rumahAspirasiDataProvider.notifier).removeRumahAspirasi(index);
                                               ScaffoldMessenger.of(context).showSnackBar(
@@ -567,17 +620,8 @@ class _DaftarPengajuanRumahAspirasiPageState
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  _buildCardItem(
-                                    'Tahun Sidang',
-                                    rumahAspirasi.tahunSidang,
-                                  ),
-                                  _buildCardItem(
-                                    'Nama',
-                                    rumahAspirasi.nama,
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -590,23 +634,35 @@ class _DaftarPengajuanRumahAspirasiPageState
     );
   }
 
-  Widget _buildCardItem(String label, String value) {
-    return Column(
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required dynamic theme,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.typographyRegular.bodyExtraSmall?.copyWith(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.typographyRegular.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+
 import 'package:ppnpm_dpr/app/theme.dart'; // Assuming you have this theme file
 
 class SuratKeteranganPenghasilanPage extends ConsumerWidget {

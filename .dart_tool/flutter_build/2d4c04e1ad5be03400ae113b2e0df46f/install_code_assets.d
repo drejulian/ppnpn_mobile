@@ -1,0 +1,1 @@
+ C:\\project\\ppnpn-mobile\\.dart_tool\\flutter_build\\2d4c04e1ad5be03400ae113b2e0df46f\\native_assets.json: 

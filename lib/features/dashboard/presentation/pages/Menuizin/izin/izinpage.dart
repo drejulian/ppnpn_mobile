@@ -15,6 +15,7 @@ class IzinPage extends ConsumerStatefulWidget {
 
 class _IzinPageState extends ConsumerState<IzinPage> {
   final _formKey = GlobalKey<FormState>();
+  final _editFormKey = GlobalKey<FormState>();
   late DateTime _currentTime;
   late Timer _timer;
   String? _selectedLeaveType;
@@ -230,35 +231,43 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                           DropdownButtonFormField<String>(
                             decoration: InputDecoration(
                               labelText: 'Jenis Izin',
-                              labelStyle: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                              labelStyle: theme.typographyRegular.bodySmall
+                                  .copyWith(color: Colors.grey[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: theme.primarySwatch),
+                                borderSide: BorderSide(
+                                  color: theme.primarySwatch,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             value: _selectedLeaveType,
-                            items: _leaveTypes.map((String type) {
-                              return DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(
-                                  type,
-                                  style: theme.typographyRegular.bodySmall.copyWith(
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                            items:
+                                _leaveTypes.map((String type) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(
+                                      type,
+                                      style: theme.typographyRegular.bodySmall
+                                          .copyWith(color: Colors.grey[800]),
+                                    ),
+                                  );
+                                }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
                                 _selectedLeaveType = newValue;
@@ -311,41 +320,57 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: 'Tanggal Mulai Izin',
-                              labelStyle: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                              labelStyle: theme.typographyRegular.bodySmall
+                                  .copyWith(color: Colors.grey[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: theme.primarySwatch),
+                                borderSide: BorderSide(
+                                  color: theme.primarySwatch,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             readOnly: true,
                             controller: TextEditingController(
-                              text: _selectedStartDate != null
-                                  ? DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedStartDate!)
-                                  : '',
+                              text:
+                                  _selectedStartDate != null
+                                      ? DateFormat(
+                                        'dd MMMM yyyy',
+                                        'id_ID',
+                                      ).format(_selectedStartDate!)
+                                      : '',
                             ),
                             onTap: () async {
                               final DateTime? picked = await showDatePicker(
                                 context: context,
                                 initialDate: DateTime.now(),
                                 firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 30)),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 30),
+                                ),
                               );
                               if (picked != null) {
                                 setState(() {
                                   _selectedStartDate = picked;
                                 });
-                                debugPrint('📅 Selected leave start date: ${DateFormat('yyyy-MM-dd').format(picked)}');
+                                debugPrint(
+                                  '📅 Selected leave start date: ${DateFormat('yyyy-MM-dd').format(picked)}',
+                                );
                               }
                             },
                             validator: (value) {
@@ -396,22 +421,30 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                             controller: _durationController,
                             decoration: InputDecoration(
                               labelText: 'Durasi (Hari)',
-                              labelStyle: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                              labelStyle: theme.typographyRegular.bodySmall
+                                  .copyWith(color: Colors.grey[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: theme.primarySwatch),
+                                borderSide: BorderSide(
+                                  color: theme.primarySwatch,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (value) {
@@ -466,22 +499,30 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                             controller: _reasonController,
                             decoration: InputDecoration(
                               labelText: 'Alasan Izin',
-                              labelStyle: theme.typographyRegular.bodySmall.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                              labelStyle: theme.typographyRegular.bodySmall
+                                  .copyWith(color: Colors.grey[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: theme.primarySwatch),
+                                borderSide: BorderSide(
+                                  color: theme.primarySwatch,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             maxLines: 3,
                             validator: (value) {
@@ -525,10 +566,11 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                             children: [
                               Text(
                                 'Unggah Berkas (opsional)',
-                                style: theme.typographyRegular.bodySmall.copyWith(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: theme.typographyRegular.bodySmall
+                                    .copyWith(
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                               const SizedBox(height: 8),
                               Row(
@@ -538,17 +580,21 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                                     icon: const Icon(Icons.upload_file),
                                     label: const Text('Pilih Berkas'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.primarySwatch.withOpacity(0.8),
+                                      backgroundColor: theme.primarySwatch
+                                          .withOpacity(0.8),
                                       foregroundColor: Colors.white,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Text(
-                                      _selectedFile != null ? path.basename(_selectedFile!.path!) : 'Tidak ada berkas dipilih',
-                                      style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                                        color: Colors.grey[600],
-                                      ),
+                                      _selectedFile != null
+                                          ? path.basename(_selectedFile!.path!)
+                                          : 'Tidak ada berkas dipilih',
+                                      style: theme
+                                          .typographyRegular
+                                          .bodyExtraSmall
+                                          .copyWith(color: Colors.grey[600]),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -583,12 +629,20 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                       });
                       debugPrint('📤 Submitting leave request');
                       debugPrint('👤 User: miftahul01');
-                      debugPrint('📅 Time: ${_currentTime.toIso8601String().substring(0, 19)} WIB');
-                      debugPrint('📅 Leave Start Date: ${DateFormat('yyyy-MM-dd').format(_selectedStartDate!)}');
+                      debugPrint(
+                        '📅 Time: ${_currentTime.toIso8601String().substring(0, 19)} WIB',
+                      );
+                      debugPrint(
+                        '📅 Leave Start Date: ${DateFormat('yyyy-MM-dd').format(_selectedStartDate!)}',
+                      );
                       debugPrint('📋 Leave Type: $_selectedLeaveType');
-                      debugPrint('📏 Duration: ${_durationController.text} hari');
+                      debugPrint(
+                        '📏 Duration: ${_durationController.text} hari',
+                      );
                       debugPrint('📝 Reason: ${_reasonController.text}');
-                      debugPrint('📄 File: ${_selectedFile?.name ?? 'No file'}');
+                      debugPrint(
+                        '📄 File: ${_selectedFile?.name ?? 'No file'}',
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Pengajuan izin berhasil dikirim'),
@@ -600,7 +654,10 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primarySwatch,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -621,7 +678,11 @@ class _IzinPageState extends ConsumerState<IzinPage> {
     );
   }
 
-  Widget _buildLeaveHistory(dynamic theme, BuildContext context, DateTime currentTime) {
+  Widget _buildLeaveHistory(
+    dynamic theme,
+    BuildContext context,
+    DateTime currentTime,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -641,7 +702,9 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                 debugPrint('👤 User: miftahul01');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Fitur lihat semua riwayat akan segera tersedia'),
+                    content: Text(
+                      'Fitur lihat semua riwayat akan segera tersedia',
+                    ),
                     duration: Duration(seconds: 2),
                   ),
                 );
@@ -671,17 +734,18 @@ class _IzinPageState extends ConsumerState<IzinPage> {
               ),
             ],
           ),
-          child: _leaveItems.isEmpty
-              ? _buildEmptyState('Tidak ada riwayat izin', Icons.history)
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _leaveItems.length,
-                  itemBuilder: (context, index) {
-                    final leave = _leaveItems[index];
-                    return _buildLeaveCard(leave, theme);
-                  },
-                ),
+          child:
+              _leaveItems.isEmpty
+                  ? _buildEmptyState('Tidak ada riwayat izin', Icons.history)
+                  : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _leaveItems.length,
+                    itemBuilder: (context, index) {
+                      final leave = _leaveItems[index];
+                      return _buildLeaveCard(leave, theme);
+                    },
+                  ),
         ),
       ],
     );
@@ -697,7 +761,12 @@ class _IzinPageState extends ConsumerState<IzinPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showDetailDialog(context, leave, theme),
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => _showDetailDialog(context, leave, theme),
+          );
+        },
         child: Stack(
           children: [
             Positioned(
@@ -728,13 +797,17 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              DateFormat('dd MMMM yyyy', 'id_ID').format(leave['date'] as DateTime),
+                              DateFormat(
+                                'dd MMMM yyyy',
+                                'id_ID',
+                              ).format(leave['date'] as DateTime),
                               style: theme.typographyBold.bodyMedium,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               leave['type'],
-                              style: theme.typographyRegular.bodySmall?.copyWith(color: Colors.grey[600]),
+                              style: theme.typographyRegular.bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
                             ),
                           ],
                         ),
@@ -749,7 +822,10 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                   _buildInfoRow(
                     icon: Icons.calendar_today,
                     label: 'Tanggal',
-                    value: DateFormat('dd MMMM yyyy', 'id_ID').format(leave['date'] as DateTime),
+                    value: DateFormat(
+                      'dd MMMM yyyy',
+                      'id_ID',
+                    ).format(leave['date'] as DateTime),
                     theme: theme,
                   ),
                   const SizedBox(height: 8),
@@ -785,8 +861,13 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.green,
                           side: const BorderSide(color: Colors.green),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         onPressed: () => _downloadBuktiIzin(leave),
                       ),
@@ -796,14 +877,6 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      IconButton(
-                        tooltip: isApproved ? 'Tidak dapat diedit' : 'Edit',
-                        icon: Icon(
-                          Icons.edit,
-                          color: isApproved ? Colors.grey : theme.primarySwatch,
-                        ),
-                        onPressed: isApproved ? null : () => _navigateToEditPage(leave),
-                      ),
                       IconButton(
                         tooltip: 'Hapus',
                         icon: const Icon(Icons.delete, color: Colors.redAccent),
@@ -870,62 +943,59 @@ class _IzinPageState extends ConsumerState<IzinPage> {
     );
   }
 
-  void _navigateToEditPage(Map<String, dynamic> leave) {
-    debugPrint('📝 Navigating to edit page for leave on ${DateFormat('yyyy-MM-dd').format(leave['date'] as DateTime)}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur edit izin akan segera tersedia'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   void _downloadBuktiIzin(Map<String, dynamic> leave) {
-    debugPrint('📥 Downloading proof for leave on ${DateFormat('yyyy-MM-dd').format(leave['date'] as DateTime)}');
+    debugPrint(
+      '📥 Downloading proof for leave on ${DateFormat('yyyy-MM-dd').format(leave['date'] as DateTime)}',
+    );
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Mengunduh bukti izin untuk ${leave['type']}'),
-      ),
+      SnackBar(content: Text('Mengunduh bukti izin untuk ${leave['type']}')),
     );
   }
 
   void _confirmDelete(Map<String, dynamic> leave) {
-    final date = DateFormat('dd MMMM yyyy', 'id_ID').format(leave['date'] as DateTime);
+    final date = DateFormat(
+      'dd MMMM yyyy',
+      'id_ID',
+    ).format(leave['date'] as DateTime);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Pengajuan Izin'),
-        content: Text('Yakin menghapus pengajuan izin pada $date?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Batal'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Hapus Pengajuan Izin'),
+            content: Text('Yakin menghapus pengajuan izin pada $date?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _leaveItems.remove(leave);
+                  });
+                  debugPrint('🗑️ Deleting leave on $date');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pengajuan izin dihapus')),
+                  );
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('Hapus'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _leaveItems.remove(leave);
-              });
-              debugPrint('🗑️ Deleting leave on $date');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pengajuan izin dihapus')),
-              );
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _showDetailDialog(BuildContext context, Map<String, dynamic> leave, dynamic theme) {
+  Widget _showDetailDialog(
+    BuildContext context,
+    Map<String, dynamic> leave,
+    dynamic theme,
+  ) {
     final statusColor = leave['statusColor'] as Color;
+    final canEdit = _canEdit(leave);
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
       contentPadding: const EdgeInsets.all(0),
@@ -1015,19 +1085,14 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                   children: [
                     _buildTextField(
                       'Tanggal',
-                      DateFormat('dd MMMM yyyy', 'id_ID').format(leave['date'] as DateTime),
+                      DateFormat(
+                        'dd MMMM yyyy',
+                        'id_ID',
+                      ).format(leave['date'] as DateTime),
                       theme,
                     ),
-                    _buildTextField(
-                      'Jenis Izin',
-                      leave['type'],
-                      theme,
-                    ),
-                    _buildTextField(
-                      'Durasi',
-                      leave['duration'],
-                      theme,
-                    ),
+                    _buildTextField('Jenis Izin', leave['type'], theme),
+                    _buildTextField('Durasi', leave['duration'], theme),
                     _buildTextField(
                       'Alasan',
                       leave['reason'],
@@ -1045,24 +1110,49 @@ class _IzinPageState extends ConsumerState<IzinPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (leave['status'] == 'Disetujui') ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.download, size: 18),
-                    label: const Text('Unduh Bukti Izin'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (leave['status'] == 'Disetujui') ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.download, size: 18),
+                        label: const Text('Unduh Bukti Izin'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => _downloadBuktiIzin(leave),
                       ),
                     ),
-                    onPressed: () => _downloadBuktiIzin(leave),
-                  ),
-                ),
-              ],
+                  ],
+                  if (canEdit) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Edit Izin'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primarySwatch,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _openEditSheet(leave);
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
@@ -1150,6 +1240,386 @@ class _IzinPageState extends ConsumerState<IzinPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  bool _canEdit(Map<String, dynamic> leave) {
+    final status = leave['status'];
+    return status == 'Menunggu Persetujuan' || status == 'Ditolak';
+  }
+
+  void _openEditSheet(Map<String, dynamic> leave) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Edit Pengajuan Izin',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildEditForm(leave, context),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEditForm(Map<String, dynamic> leave, BuildContext context) {
+    final theme = ref.watch(themeProvider);
+    final initialType = leave['type'] as String;
+    final initialDate = leave['date'] as DateTime;
+    final initialDuration = leave['duration'].toString().split(' ')[0];
+    final initialReason = leave['reason'] as String;
+    String? selectedType = initialType;
+    DateTime? selectedDate = initialDate;
+    PlatformFile? selectedFile =
+        leave['fileName'] != null
+            ? PlatformFile(name: leave['fileName'], size: 0)
+            : null;
+    final TextEditingController durationController = TextEditingController(
+      text: initialDuration,
+    );
+    final TextEditingController reasonController = TextEditingController(
+      text: initialReason,
+    );
+
+    return Form(
+      key: _editFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Jenis Izin',
+            style: theme.typographyRegular.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: theme.primarySwatch),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            value: selectedType,
+            items:
+                _leaveTypes.map((String type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(
+                      type,
+                      style: theme.typographyRegular.bodySmall.copyWith(
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  );
+                }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                selectedType = newValue;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Pilih jenis izin';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tanggal Mulai Izin',
+            style: theme.typographyRegular.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: theme.primarySwatch),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            readOnly: true,
+            controller: TextEditingController(
+              text: DateFormat('dd MMMM yyyy', 'id_ID').format(selectedDate),
+            ),
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: initialDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 30)),
+              );
+              if (picked != null) {
+                setState(() {
+                  selectedDate = picked;
+                });
+                debugPrint(
+                  '📅 Selected leave start date: ${DateFormat('yyyy-MM-dd').format(picked)}',
+                );
+              }
+            },
+            validator: (value) {
+              if (selectedDate == null) {
+                return 'Pilih tanggal mulai izin';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Durasi (Hari)',
+            style: theme.typographyRegular.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: durationController,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: theme.primarySwatch),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Masukkan durasi izin';
+              }
+              final numValue = double.tryParse(value);
+              if (numValue == null || numValue <= 0) {
+                return 'Durasi harus berupa angka positif';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Alasan Izin',
+            style: theme.typographyRegular.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: reasonController,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: theme.primarySwatch),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            maxLines: 3,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Masukkan alasan izin';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.primarySwatch.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.upload_file,
+                  color: theme.primarySwatch,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Unggah Berkas (opsional)',
+                      style: theme.typographyRegular.bodySmall.copyWith(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            FilePickerResult? result = await FilePicker.platform
+                                .pickFiles(
+                                  type: FileType.custom,
+                                  allowedExtensions: ['jpg', 'png', 'pdf'],
+                                );
+                            if (result != null) {
+                              setState(() {
+                                selectedFile = result.files.first;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Pilih Berkas'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primarySwatch.withOpacity(
+                              0.8,
+                            ),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            selectedFile != null
+                                ? path.basename(selectedFile!.name)
+                                : 'Tidak ada berkas dipilih',
+                            style: theme.typographyRegular.bodyExtraSmall
+                                .copyWith(color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              if (_editFormKey.currentState!.validate()) {
+                setState(() {
+                  leave['type'] = selectedType;
+                  leave['date'] = selectedDate;
+                  leave['duration'] = durationController.text + ' hari';
+                  leave['reason'] = reasonController.text;
+                  leave['status'] = 'Menunggu Persetujuan';
+                  leave['statusColor'] = Colors.orange;
+                  leave['fileName'] = selectedFile?.name;
+                });
+                debugPrint('📤 Updating leave request');
+                debugPrint('👤 User: miftahul01');
+                debugPrint(
+                  '📅 Time: ${_currentTime.toIso8601String().substring(0, 19)} WIB',
+                );
+                debugPrint(
+                  '📅 Leave Start Date: ${DateFormat('yyyy-MM-dd').format(selectedDate!)}',
+                );
+                debugPrint('📋 Leave Type: $selectedType');
+                debugPrint('📏 Duration: ${durationController.text} hari');
+                debugPrint('📝 Reason: ${reasonController.text}');
+                debugPrint('📄 File: ${selectedFile?.name ?? 'No file'}');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pengajuan izin berhasil diperbarui'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                Navigator.of(context).pop();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primarySwatch,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'Perbarui Izin',
+              style: theme.typographyRegular.bodyMedium.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
