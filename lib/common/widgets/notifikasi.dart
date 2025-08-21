@@ -113,11 +113,7 @@ class NotificationUtils {
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(icon, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -134,18 +130,17 @@ class NotificationUtils {
         backgroundColor: backgroundColor,
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         elevation: 6,
-        action: (actionLabel != null && onActionPressed != null)
-            ? SnackBarAction(
-                label: actionLabel,
-                textColor: Colors.white,
-                onPressed: onActionPressed,
-              )
-            : null,
+        action:
+            (actionLabel != null && onActionPressed != null)
+                ? SnackBarAction(
+                  label: actionLabel,
+                  textColor: Colors.white,
+                  onPressed: onActionPressed,
+                )
+                : null,
       ),
     );
   }
@@ -175,13 +170,18 @@ class NotificationUtils {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (isDangerous ? Colors.red : confirmButtonColor ?? Colors.blue)
-                        .withOpacity(0.1),
+                    color: (isDangerous
+                            ? Colors.red
+                            : confirmButtonColor ?? Colors.blue)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     icon,
-                    color: isDangerous ? Colors.red : confirmButtonColor ?? Colors.blue,
+                    color:
+                        isDangerous
+                            ? Colors.red
+                            : confirmButtonColor ?? Colors.blue,
                     size: 24,
                   ),
                 ),
@@ -221,9 +221,15 @@ class NotificationUtils {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDangerous ? Colors.red : confirmButtonColor ?? Colors.blue,
+                backgroundColor:
+                    isDangerous
+                        ? Colors.red
+                        : confirmButtonColor ?? Colors.blue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -231,9 +237,7 @@ class NotificationUtils {
               ),
               child: Text(
                 confirmButtonText,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -262,7 +266,7 @@ class NotificationUtils {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -301,7 +305,10 @@ class NotificationUtils {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -309,9 +316,7 @@ class NotificationUtils {
               ),
               child: Text(
                 buttonText,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -340,7 +345,7 @@ class NotificationUtils {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -379,7 +384,10 @@ class NotificationUtils {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -387,9 +395,7 @@ class NotificationUtils {
               ),
               child: Text(
                 buttonText,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -455,16 +461,17 @@ class NotificationUtils {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: title != null
-              ? Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                    color: Colors.grey[800],
-                  ),
-                )
-              : null,
+          title:
+              title != null
+                  ? Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                      color: Colors.grey[800],
+                    ),
+                  )
+                  : null,
           content: content,
           actions: actions,
         );

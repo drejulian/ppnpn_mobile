@@ -4,6 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
+import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart'
+    as dto;
+
+// Remote provider to fetch a member by ID
+final keluargaMemberProvider = FutureProvider.autoDispose
+    .family<dto.FamilyMemberDto, String>(
+      (ref, id) => ref.read(keluargaApiProvider).getMember(id),
+    );
 
 class DetailDataKeluargaPage extends ConsumerWidget {
   final String memberId;
@@ -13,13 +22,18 @@ class DetailDataKeluargaPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
-    final familyMembers = ref.watch(familyDataProvider);
-
-    // Find the specific family member
-    final member = familyMembers.firstWhere(
-      (m) => m.id == memberId,
-      orElse: () => throw Exception('Member not found'),
-    );
+    final remote = ref.watch(keluargaMemberProvider(memberId));
+    // Fallback to local list when remote not available
+    final localList = ref.watch(familyDataProvider);
+    dto.FamilyMemberDto? member = remote.asData?.value;
+    if (member == null) {
+      for (final m in localList) {
+        if (m.id == memberId) {
+          member = m;
+          break;
+        }
+      }
+    }
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
@@ -49,7 +63,13 @@ class DetailDataKeluargaPage extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () => _editFamilyMember(context, member),
+            onPressed:
+                member == null
+                    ? null
+                    : () {
+                      final m = member; // promote to non-null inside closure
+                      if (m != null) _editFamilyMember(context, m);
+                    },
             icon: const Icon(Icons.edit, color: Colors.white),
             tooltip: 'Edit Data',
           ),
@@ -57,7 +77,9 @@ class DetailDataKeluargaPage extends ConsumerWidget {
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
               if (value == 'delete') {
-                _deleteFamilyMember(context, ref, member);
+                if (member != null) {
+                  _deleteFamilyMember(context, ref, member);
+                }
               }
             },
             itemBuilder:
@@ -84,33 +106,78 @@ class DetailDataKeluargaPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Header
-            _buildProfileHeader(theme, member),
-            const SizedBox(height: 20),
+            if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
+            if (remote.hasError)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Gagal memuat detail dari server. Menampilkan data lokal bila tersedia.',
+                        style: theme.typographyRegular.bodySmall.copyWith(
+                          color: Colors.orange[900],
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed:
+                          () =>
+                              ref.invalidate(keluargaMemberProvider(memberId)),
+                      icon: const Icon(Icons.refresh, color: Colors.orange),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
 
-            // Personal Information
-            _buildPersonalInfoSection(theme, member),
-            const SizedBox(height: 20),
+            if (member == null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    'Data tidak ditemukan.',
+                    style: theme.typographyRegular.bodyMedium,
+                  ),
+                ),
+              )
+            else ...[
+              // Profile Header
+              _buildProfileHeader(theme, member),
+              const SizedBox(height: 20),
 
-            // Family Information
-            _buildFamilyInfoSection(theme, member),
-            const SizedBox(height: 20),
+              // Personal Information
+              _buildPersonalInfoSection(theme, member),
+              const SizedBox(height: 20),
 
-            // Additional Information
-            if (member.tanggalMenikah != null)
-              _buildMarriageInfoSection(theme, member),
+              // Family Information
+              _buildFamilyInfoSection(theme, member),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 20),
+              // Additional Information
+              if (member.tanggalMenikah != null)
+                _buildMarriageInfoSection(theme, member),
 
-            // Action Buttons
-            _buildActionButtons(theme, context, ref, member),
+              const SizedBox(height: 20),
+
+              // Action Buttons
+              _buildActionButtons(theme, context, ref, member),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader(dynamic theme, FamilyMember member) {
+  Widget _buildProfileHeader(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -160,8 +227,6 @@ class DetailDataKeluargaPage extends ConsumerWidget {
               fontSize: 24.0,
             ),
             textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
 
@@ -187,7 +252,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildPersonalInfoSection(dynamic theme, FamilyMember member) {
+  Widget _buildPersonalInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -264,7 +329,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildFamilyInfoSection(dynamic theme, FamilyMember member) {
+  Widget _buildFamilyInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -324,7 +389,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildMarriageInfoSection(dynamic theme, FamilyMember member) {
+  Widget _buildMarriageInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -437,7 +502,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
     dynamic theme,
     BuildContext context,
     WidgetRef ref,
-    FamilyMember member,
+    dto.FamilyMemberDto member,
   ) {
     return Column(
       children: [
@@ -566,7 +631,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
   }
 
   // FIXED: Navigate to the correct route with member ID
-  void _editFamilyMember(BuildContext context, FamilyMember member) {
+  void _editFamilyMember(BuildContext context, dto.FamilyMemberDto member) {
     // Use the route with memberId parameter
     context.go('/edit-data-keluarga/${member.id}');
   }
@@ -574,7 +639,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
   void _deleteFamilyMember(
     BuildContext context,
     WidgetRef ref,
-    FamilyMember member,
+    dto.FamilyMemberDto member,
   ) {
     showDialog(
       context: context,
@@ -590,14 +655,22 @@ class DetailDataKeluargaPage extends ConsumerWidget {
                 child: const Text('Batal'),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(context);
 
-                  // Remove member from provider
-                  final currentData = ref.read(familyDataProvider);
-                  final updatedData =
-                      currentData.where((m) => m.id != member.id).toList();
-                  ref.read(familyDataProvider.notifier).state = updatedData;
+                  // Try API deletion, fallback to local removal
+                  try {
+                    await ref.read(keluargaApiProvider).deleteMember(member.id);
+                    // Refresh remote list and member detail providers
+                    ref.invalidate(keluargaRemoteProvider);
+                    ref.invalidate(keluargaMemberProvider(member.id));
+                  } catch (_) {
+                    // Fallback: update local provider
+                    final currentData = ref.read(familyDataProvider);
+                    final updatedData =
+                        currentData.where((m) => m.id != member.id).toList();
+                    ref.read(familyDataProvider.notifier).state = updatedData;
+                  }
 
                   // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(

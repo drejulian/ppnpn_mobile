@@ -106,7 +106,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
           _selectedPlacement == 'Lainnya'
               ? _otherPlacementController.text
               : _selectedPlacement;
-      final String? subPlacement = _subPlacementController.text;
+      final String subPlacement = _subPlacementController.text;
       final DateTime? startDate = ref.read(selectedStartDateProvider);
       final DateTime? letterDate = ref.read(selectedLetterDateProvider);
       final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
