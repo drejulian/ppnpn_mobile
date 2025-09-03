@@ -20,6 +20,42 @@ class BuktiPotongPajakFinalAnggotaPage extends ConsumerStatefulWidget {
     },
     {
       'tahun': '2025',
+      'bulan': '01',
+      'nama_bulan': 'Januari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+      'jumlah_penghasilan_bruto': '11.800.000',
+      'tarif': '15',
+      'pph_dipotong': '472.000',
+    },
+    {
+      'tahun': '2025',
+      'bulan': '01',
+      'nama_bulan': 'Januari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+      'jumlah_penghasilan_bruto': '11.800.000',
+      'tarif': '15',
+      'pph_dipotong': '472.000',
+    },
+    {
+      'tahun': '2025',
+      'bulan': '01',
+      'nama_bulan': 'Januari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+      'jumlah_penghasilan_bruto': '11.800.000',
+      'tarif': '15',
+      'pph_dipotong': '472.000',
+    },
+    {
+      'tahun': '2025',
+      'bulan': '02',
+      'nama_bulan': 'Februari',
+      'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
+      'jumlah_penghasilan_bruto': '11.800.000',
+      'tarif': '15',
+      'pph_dipotong': '472.000',
+    },
+    {
+      'tahun': '2025',
       'bulan': '02',
       'nama_bulan': 'Februari',
       'penghasilan': 'HONORARIUM TENAGA AHLI ANGGOTA DPR RI (TAA)',
@@ -62,25 +98,23 @@ class _BuktiPotongPajakFinalAnggotaPageState
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final primaryColor = theme.primarySwatch;
-    final textColor = Colors.grey[800];
-    final secondaryTextColor = Colors.grey[600];
-    final dividerColor = Colors.grey[200];
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     final filteredData =
         BuktiPotongPajakFinalAnggotaPage.data.where((row) {
-          final q = searchController.text.toLowerCase();
-          if (q.isEmpty) return true;
-          return row.values.any((v) => v.toLowerCase().contains(q));
+          final searchTerm = searchController.text.toLowerCase();
+          if (searchTerm.isEmpty) return true;
+          return row.values.any((v) => v.toLowerCase().contains(searchTerm));
         }).toList();
 
     final paginatedData = _getPaginatedData(filteredData);
-    final totalPages = (filteredData.length / _itemsPerPage).ceil().clamp(
-      1,
-      9999,
-    );
+    final totalPages = (filteredData.length / _itemsPerPage).ceil();
+
+    // Check if there are active filters
+    final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text(
           'Data Pajak Anggota',
@@ -95,84 +129,60 @@ class _BuktiPotongPajakFinalAnggotaPageState
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/home'),
+          onPressed: () => context.go("/home"),
         ),
       ),
-      body: Container(
-        color: const Color(0xFFF8F9FA),
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(isTablet ? 24 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // SIHAKI Header
+            SIHAKIPageHeader(
+              title: 'PPF Anggota',
+              subtitle: 'Bukti Potong Pajak Final',
+              icon: Icons.description_rounded,
+              isTablet: isTablet,
+              quickActions: [
+                SIHAKIActionButton(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Surat Keterangan',
+                  isTablet: isTablet,
+                  onTap: () => context.pushNamed(Routes.skpAnggota.name),
+                ),
+                SIHAKIActionButton(
+                  icon: Icons.assignment_rounded,
+                  label: 'Bukti Potong A2',
+                  isTablet: isTablet,
+                  onTap: () => context.pushNamed(Routes.ppaAnggota.name),
+                ),
+              ],
+              statsSection: Row(
                 children: [
+                  Icon(
+                    Icons.analytics_rounded,
+                    size: isTablet ? 20 : 18,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  SizedBox(width: isTablet ? 10 : 8),
                   Text(
-                    'Daftar Bukti Potong Pajak Final',
-                    style: theme.typographyBold.bodyLarge.copyWith(
-                      fontSize: 20,
-                      color: textColor,
+                    'Total ${filteredData.length} data tersedia',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: isTablet ? 14.0 : 12.0,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.arrow_right, size: 16, color: Colors.blue),
-                      const SizedBox(width: 4),
-                      TextButton(
-                        onPressed:
-                            () => context.pushNamed(Routes.skpAnggota.name),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Daftar Surat Keterangan Penghasilan',
-                          style: theme.typographyRegular.bodyExtraSmall
-                              .copyWith(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.arrow_right, size: 16, color: Colors.blue),
-                      const SizedBox(width: 4),
-                      TextButton(
-                        onPressed:
-                            () => context.pushNamed(Routes.ppaAnggota.name),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Daftar Bukti Potong Pajak A2',
-                          style: theme.typographyRegular.bodyExtraSmall
-                              .copyWith(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
 
+            SizedBox(height: isTablet ? 24 : 20),
+
             // Search + Filter using AppFilterBar
             AppFilterBar(
               controller: searchController,
-              labelText: 'Pencarian Bukti Potong Final',
+              labelText: 'Pencarian PPF Anggota',
               hintText: 'Cari tahun, bulan, penghasilan, atau nominal...',
               onChanged: (_) => setState(() => _currentPage = 1),
               onClear: () => setState(() => _currentPage = 1),
@@ -186,239 +196,143 @@ class _BuktiPotongPajakFinalAnggotaPageState
                       }
                       : null,
             ),
-            const SizedBox(height: 20),
 
-            // Header summary
-            Row(
-              children: [
-                Text(
-                  'Daftar Bukti Potong Pajak Final',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.primarySwatch.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${filteredData.length} data',
-                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: theme.primarySwatch,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Divider(color: dividerColor, thickness: 1, height: 1),
-            const SizedBox(height: 8),
+            SizedBox(height: isTablet ? 24 : 20),
 
-            // List
+            // Content Section
             if (paginatedData.isEmpty)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search_off, size: 64, color: Colors.grey[300]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Data tidak ditemukan',
-                        style: theme.typographyRegular.bodyMedium.copyWith(
-                          color: secondaryTextColor,
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(isTablet ? 48 : 40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      hasActiveFilters
+                          ? Icons.search_off_rounded
+                          : Icons.inbox_rounded,
+                      size: isTablet ? 64 : 56,
+                      color: Colors.grey[300],
+                    ),
+                    SizedBox(height: isTablet ? 20 : 16),
+                    Text(
+                      hasActiveFilters ? 'Tidak ada hasil' : 'Belum ada data',
+                      style: theme.typographyRegular.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[600],
+                        fontSize: isTablet ? 18.0 : 16.0,
+                      ),
+                    ),
+                    SizedBox(height: isTablet ? 8 : 6),
+                    Text(
+                      hasActiveFilters
+                          ? 'Coba ubah kata kunci pencarian'
+                          : 'Data PPF belum tersedia',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: isTablet ? 14.0 : 13.0,
+                      ),
+                    ),
+                    if (hasActiveFilters) ...[
+                      SizedBox(height: isTablet ? 20 : 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          searchController.clear();
+                          setState(() => _currentPage = 1);
+                        },
+                        icon: Icon(
+                          Icons.clear_all_rounded,
+                          size: isTablet ? 18 : 16,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          'Reset Pencarian',
+                          style: theme.typographyRegular.bodyMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: isTablet ? 14.0 : 13.0,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primarySwatch,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTablet ? 24 : 20,
+                            vertical: isTablet ? 12 : 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                      if (searchController.text.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () {
-                            searchController.clear();
-                            setState(() => _currentPage = 1);
-                          },
-                          child: const Text('Reset Pencarian'),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
               )
             else
-              Expanded(
-                child: ListView.builder(
-                  itemCount: paginatedData.length,
-                  itemBuilder: (context, index) {
-                    final row = paginatedData[index];
-                    return _buildDataCard(row, theme, primaryColor);
-                  },
-                ),
+              Column(
+                children:
+                    paginatedData.map((row) {
+                      return SIHAKICard(
+                        title: '${row['nama_bulan']} ${row['tahun']}',
+                        periode: '${row['nama_bulan']} ${row['tahun']}',
+                        penghasilan: row['penghasilan']!,
+                        tahun: row['tahun']!,
+                        bulan: row['bulan']!,
+                        isTablet: isTablet,
+                        onTap: () => _showDetailDialog(row, theme),
+                        onPrint:
+                            () => _showPrintConfirmation(
+                              context,
+                              row['tahun']!,
+                              row['bulan']!,
+                            ),
+                        onWhatsApp:
+                            () => _showWhatsappConfirmation(
+                              context,
+                              row['tahun']!,
+                              row['bulan']!,
+                            ),
+                      );
+                    }).toList(),
               ),
 
-            if (filteredData.length > _itemsPerPage)
-              _buildPaginationControls(totalPages, theme, primaryColor),
+            if (totalPages > 1) ...[
+              SizedBox(height: isTablet ? 24 : 20),
+              SIHAKIPagination(
+                currentPage: _currentPage,
+                totalPages: totalPages,
+                onPrevious:
+                    _currentPage > 1
+                        ? () => setState(() => _currentPage--)
+                        : null,
+                onNext:
+                    _currentPage < totalPages
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                primaryColor: theme.primarySwatch,
+                theme: theme,
+                isTablet: isTablet,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDataCard(
-    Map<String, String> row,
-    dynamic theme,
-    Color primaryColor,
-  ) {
-    return AppListCard(
-      onTap: () => _showDetailDialog(row, theme),
-      leftAccentColor: primaryColor,
-      gradient: LinearGradient(
-        colors: [Colors.white, Colors.grey[50] ?? Colors.white],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      leading: CircleAvatar(
-        radius: 18,
-        backgroundColor: primaryColor.withValues(alpha: 0.1),
-        child: Icon(Icons.receipt_long, size: 18, color: primaryColor),
-      ),
-      title: '${row['nama_bulan']} ${row['tahun']}',
-      subtitle: row['penghasilan']!,
-      chips: [
-        AppPillChip(icon: Icons.calendar_today, label: 'Bulan ${row['bulan']}'),
-        AppPillChip(
-          icon: Icons.summarize,
-          label: 'Bruto Rp ${row['jumlah_penghasilan_bruto']!}',
-        ),
-        AppPillChip(icon: Icons.percent, label: 'Tarif ${row['tarif']}%'),
-        AppPillChip(
-          icon: Icons.account_balance_wallet,
-          label: 'PPh Rp ${row['pph_dipotong']!}',
-          color: Colors.red[700],
-        ),
-      ],
-      actions: [
-        _buildActionButton(
-          icon: Icons.print,
-          label: 'Cetak',
-          color: Colors.blue,
-          onPressed:
-              () => _showPrintConfirmation(
-                context,
-                row['tahun']!,
-                row['bulan']!,
-                row['jumlah_penghasilan_bruto']!,
-              ),
-        ),
-        _buildActionButton(
-          icon: Icons.phone,
-          label: 'WhatsApp',
-          color: Colors.green,
-          onPressed:
-              () => _showWhatsappConfirmation(
-                context,
-                row['tahun']!,
-                row['bulan']!,
-                row['jumlah_penghasilan_bruto']!,
-              ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton.icon(
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      onPressed: onPressed,
-    );
-  }
-
-  Widget _buildPaginationControls(
-    int totalPages,
-    dynamic theme,
-    Color primaryColor,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey[100],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed:
-                _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            decoration: BoxDecoration(
-              color: primaryColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '$_currentPage/$totalPages',
-              style: theme.typographyBold.bodyMedium?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey[100],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed:
-                _currentPage < totalPages
-                    ? () => setState(() => _currentPage++)
-                    : null,
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showDetailDialog(Map<String, String> row, dynamic theme) {
-    const bulanNames = {
+    final bulanNames = {
       '01': 'Januari',
       '02': 'Februari',
       '03': 'Maret',
@@ -433,241 +347,71 @@ class _BuktiPotongPajakFinalAnggotaPageState
       '12': 'Desember',
     };
 
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            contentPadding: const EdgeInsets.all(0),
-            content: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white,
-                    theme.primarySwatch.withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Detail',
-                          style: theme.typographyRegular.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.primarySwatch,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: theme.primarySwatch,
-                            size: 24,
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Periode',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField('Tahun', row['tahun']!, theme),
-                          _buildTextField(
-                            'Bulan',
-                            '${bulanNames[row['bulan']]} (${row['bulan']})',
-                            theme,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Rincian Penghasilan',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField(
-                            'Jenis Penghasilan',
-                            row['penghasilan']!,
-                            theme,
-                          ),
-                          _buildTextField(
-                            'Jumlah Penghasilan Bruto',
-                            'Rp ${row['jumlah_penghasilan_bruto']!}',
-                            theme,
-                          ),
-                          _buildTextField(
-                            'Tarif Pajak',
-                            '${row['tarif']!}%',
-                            theme,
-                          ),
-                          _buildTextField(
-                            'PPh Dipotong',
-                            'Rp ${row['pph_dipotong']!}',
-                            theme,
-                            isLast: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Aksi',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.print, size: 18),
-                              label: const Text('Cetak Bukti Potong'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _showPrintConfirmation(
-                                  context,
-                                  row['tahun']!,
-                                  row['bulan']!,
-                                  row['jumlah_penghasilan_bruto']!,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.phone, size: 18),
-                              label: const Text('Kirim via WhatsApp'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _showWhatsappConfirmation(
-                                  context,
-                                  row['tahun']!,
-                                  row['bulan']!,
-                                  row['jumlah_penghasilan_bruto']!,
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    // Use new SIHAKI Dialog Component
+    SIHAKIDetailDialog.show(
+      context,
+      SIHAKIDialogData(
+        title: 'Detail PPF ${bulanNames[row['bulan']]} ${row['tahun']}',
+        fields: [
+          SIHAKIDialogField(label: 'Tahun', value: row['tahun']!),
+          SIHAKIDialogField(
+            label: 'Bulan',
+            value: '${bulanNames[row['bulan']]} (${row['bulan']})',
           ),
+          SIHAKIDialogField(
+            label: 'Jenis Penghasilan',
+            value: row['penghasilan']!,
+          ),
+          SIHAKIDialogField(
+            label: 'Jumlah Penghasilan Bruto',
+            value: 'Rp ${_formatCurrency(row['jumlah_penghasilan_bruto']!)}',
+          ),
+          SIHAKIDialogField(label: 'Tarif PPh', value: '${row['tarif']}%'),
+          SIHAKIDialogField(
+            label: 'PPh yang Dipotong',
+            value: 'Rp ${_formatCurrency(row['pph_dipotong']!)}',
+          ),
+        ],
+        actions: [
+          SIHAKIDialogAction(
+            label: 'Cetak PPF',
+            icon: Icons.print_rounded,
+            backgroundColor: Colors.blue[600],
+            onTap: () {
+              Navigator.of(context).pop();
+              _showPrintConfirmation(context, row['tahun']!, row['bulan']!);
+            },
+          ),
+          SIHAKIDialogAction(
+            label: 'Kirim WhatsApp',
+            icon: Icons.phone_android_rounded,
+            backgroundColor: Colors.green[600],
+            onTap: () {
+              Navigator.of(context).pop();
+              _showWhatsappConfirmation(context, row['tahun']!, row['bulan']!);
+            },
+          ),
+          SIHAKIDialogAction(
+            label: 'Unduh PDF',
+            icon: Icons.download_rounded,
+            backgroundColor: Colors.orange[600],
+            onTap: () {
+              Navigator.of(context).pop();
+              _showDownloadConfirmation(context, row['tahun']!, row['bulan']!);
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    String value,
-    dynamic theme, {
-    bool isLast = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.typographyRegular.bodySmall.copyWith(
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        if (!isLast) ...[
-          const SizedBox(height: 16),
-          Divider(color: Colors.grey[200], thickness: 1),
-          const SizedBox(height: 16),
-        ],
-      ],
+  String _formatCurrency(String amount) {
+    // Remove existing dots and parse the number
+    final cleanAmount = amount.replaceAll('.', '');
+    final num = int.tryParse(cleanAmount) ?? 0;
+    return num.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
     );
   }
 
@@ -675,40 +419,43 @@ class _BuktiPotongPajakFinalAnggotaPageState
     BuildContext context,
     String tahun,
     String bulan,
-    String jumlah,
   ) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Konfirmasi Cetak'),
-            content: Text(
-              'Cetak Bukti Potong untuk $bulan/$tahun (Rp $jumlah)?',
+    final bulanNames = {
+      '01': 'Januari',
+      '02': 'Februari',
+      '03': 'Maret',
+      '04': 'April',
+      '05': 'Mei',
+      '06': 'Juni',
+      '07': 'Juli',
+      '08': 'Agustus',
+      '09': 'September',
+      '10': 'Oktober',
+      '11': 'November',
+      '12': 'Desember',
+    };
+
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Konfirmasi Cetak PPF',
+      message:
+          'Apakah Anda yakin ingin mencetak dokumen PPF ${bulanNames[bulan]} $tahun?',
+      confirmText: 'Ya, Cetak Sekarang',
+      cancelText: 'Batal',
+      icon: Icons.print_rounded,
+      iconColor: Colors.blue,
+      onConfirm: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PPF ${bulanNames[bulan]} $tahun sedang dicetak...'),
+            backgroundColor: Colors.blue,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Bukti Potong $bulan/$tahun sedang dicetak...',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Cetak',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
           ),
+        );
+      },
     );
   }
 
@@ -716,40 +463,87 @@ class _BuktiPotongPajakFinalAnggotaPageState
     BuildContext context,
     String tahun,
     String bulan,
-    String jumlah,
   ) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Kirim via WhatsApp'),
-            content: Text(
-              'Bagikan Bukti Potong untuk $bulan/$tahun (Rp $jumlah)?',
+    final bulanNames = {
+      '01': 'Januari',
+      '02': 'Februari',
+      '03': 'Maret',
+      '04': 'April',
+      '05': 'Mei',
+      '06': 'Juni',
+      '07': 'Juli',
+      '08': 'Agustus',
+      '09': 'September',
+      '10': 'Oktober',
+      '11': 'November',
+      '12': 'Desember',
+    };
+
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Kirim via WhatsApp',
+      message:
+          'Apakah Anda yakin ingin mengirim dokumen PPF ${bulanNames[bulan]} $tahun melalui WhatsApp?',
+      confirmText: 'Ya, Kirim Sekarang',
+      cancelText: 'Batal',
+      icon: Icons.phone_android_rounded,
+      iconColor: Colors.green,
+      onConfirm: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PPF ${bulanNames[bulan]} $tahun sedang dikirim...'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Bukti Potong $bulan/$tahun sedang dibagikan...',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Kirim',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showDownloadConfirmation(
+    BuildContext context,
+    String tahun,
+    String bulan,
+  ) {
+    final bulanNames = {
+      '01': 'Januari',
+      '02': 'Februari',
+      '03': 'Maret',
+      '04': 'April',
+      '05': 'Mei',
+      '06': 'Juni',
+      '07': 'Juli',
+      '08': 'Agustus',
+      '09': 'September',
+      '10': 'Oktober',
+      '11': 'November',
+      '12': 'Desember',
+    };
+
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Unduh PPF',
+      message:
+          'Apakah Anda yakin ingin mengunduh dokumen PPF ${bulanNames[bulan]} $tahun dalam format PDF?',
+      confirmText: 'Ya, Unduh Sekarang',
+      cancelText: 'Batal',
+      icon: Icons.download_rounded,
+      iconColor: Colors.orange,
+      onConfirm: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PPF ${bulanNames[bulan]} $tahun sedang diunduh...'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      },
     );
   }
 }

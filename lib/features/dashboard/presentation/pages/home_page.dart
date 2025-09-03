@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/sihaki_submenu_modal.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -85,15 +84,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _buildMenuSection(
                   'Data Pribadi',
                   _getDataPribadiItems(context),
-                  theme,
-                  context,
-                ),
-                const SizedBox(height: 24),
-
-                // SIHAKI Section (New Addition)
-                _buildSihakiSection(
-                  'SIHAKI', // Title for the new section
-                  _getSihakiItems(context), // Get SIHAKI specific menu items
                   theme,
                   context,
                 ),
@@ -514,61 +504,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-    );
-  }
-
-  // New method for SIHAKI section
-  Widget _buildSihakiSection(
-    String title,
-    List<MenuItemData> items,
-    dynamic theme,
-    BuildContext context,
-  ) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                blurRadius: 10,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isTablet ? 6 : 4,
-              childAspectRatio: 1,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return _buildMenuItem(item, theme);
-            },
-          ),
-        ),
-      ],
     );
   }
 
@@ -1252,8 +1187,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.pushNamed(Routes.cuti.name);
         },
       ),
-       MenuItemData('izin', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.izin.name);},),
+      MenuItemData(
+        'izin',
+        Icons.assignment,
+        Colors.blue,
+        onTap: () {
+          context.pushNamed(Routes.izin.name);
+        },
+      ),
       MenuItemData(
         'Lembur',
         Icons.access_time,
@@ -1262,8 +1203,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.pushNamed(Routes.lembur.name);
         },
       ),
-      MenuItemData('Reimburse', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
+      MenuItemData(
+        'Reimburse',
+        Icons.assignment,
+        Colors.blue,
+        onTap: () {
+          context.pushNamed(Routes.reimbursePage.name);
+        },
+      ),
       MenuItemData('Training', Icons.school, Colors.indigo),
       MenuItemData('Meeting', Icons.groups, Colors.teal),
       MenuItemData('Task', Icons.task_alt, Colors.red),
@@ -1348,193 +1295,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
       ),
     ];
-  }
-
-  // Updated method to provide SIHAKI menu items with sub-menu functionality
-  List<MenuItemData> _getSihakiItems(BuildContext context) {
-    return [
-      MenuItemData(
-        'Data Pajak PPNPN',
-        Icons.receipt_long,
-        Colors.deepOrange,
-        onTap: () {
-          debugPrint('💰 Opening submenu for Data Pajak PPNPN');
-          _showSihakiSubMenu(context, 'Data Pajak PPNPN', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP PPNPM page
-                debugPrint('Navigating to PPNPN SKP'); //
-                // context.pushNamed(Routes.ppnpmSkp.name);
-                context.pushNamed(Routes.skp.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppf.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A1',
-              Icons.format_list_numbered,
-              Colors.purple,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A1 PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak A1');
-                context.pushNamed(Routes.ppa.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Agenda Pribadi Anggota',
-        Icons.calendar_today,
-        Colors.pink,
-        onTap: () {
-          debugPrint('🗓️ Opening submenu for Agenda Pribadi Anggota');
-          _showSihakiSubMenu(context, 'Agenda Pribadi Anggota', [
-            SubMenuItemData(
-              'Daftar Agenda',
-              Icons.list_alt,
-              Colors.orange,
-              onTap: () {
-                // Navigate to Agenda List page
-                debugPrint('Navigating to Daftar Agenda'); //
-                 context.pushNamed(Routes.daftarAgenda.name);
-              },
-            ),
-            SubMenuItemData(
-              'Media Sosial Anggota',
-              Icons.share,
-              Colors.teal,
-              onTap: () {
-                // Navigate to Member's Social Media page
-                debugPrint('Navigating to Media Sosial Anggota'); 
-                 context.pushNamed(Routes.mediaSosialAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Data Pajak Anggota',
-        Icons.account_balance_wallet,
-        Colors.brown,
-        onTap: () {
-          debugPrint('💲 Opening submenu for Data Pajak Anggota');
-          _showSihakiSubMenu(context, 'Data Pajak Anggota', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP Anggota page
-                debugPrint('Navigating to Anggota SKP'); //
-                context.pushNamed(Routes.skpAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppfAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A2',
-              Icons.format_list_numbered_rtl,
-              Colors.red,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A2 Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak A2'); //
-                context.pushNamed(Routes.ppaAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-  'Database Anggota DPR RI',
-  Icons.storage,
-  Colors.cyan,
-  onTap: () {
-    debugPrint('Navigating directly to Data Komisi');
-    context.pushNamed('dataKomisi');
-        },
-      ),
-      MenuItemData(
-        'Data Kunjungan Kerja Perorangan',
-        Icons.flight,
-        Colors.lime,
-        onTap: () {
-          debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan'); //
-          context.pushNamed(Routes.kunkerPerorangan.name);
-        },
-      ),
-      MenuItemData(
-        'Data SIGOTA - KANJENK',
-        Icons.fingerprint,
-        Colors.grey,
-        onTap: () {
-          debugPrint('👍 Navigating to Data SIGOTA - KANJENK'); //
-          // context.pushNamed(Routes.dataSigotaKanjek.name);
-        },
-      ),
-      MenuItemData(
-        'Dokumen Anggota',
-        Icons.article,
-        Colors.purpleAccent,
-        onTap: () {
-          debugPrint('📄 Navigating to Dokumen Anggota'); //
-          context.pushNamed(Routes.dataDokumenAnggota.name);
-        },
-      ),
-      MenuItemData(
-        'Kegiatan Rumah Aspirasi',
-        Icons.home,
-        Colors.tealAccent,
-        onTap: () {
-          debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi'); //
-          context.pushNamed(Routes.daftarPengajuanRumahAspirasi.name);
-        },
-      ),
-      MenuItemData(
-        'BPJS',
-        Icons.local_hospital,
-        Colors.lightGreen,
-        onTap: () {
-          debugPrint('🏥 Navigating to BPJS'); //
-          context.pushNamed(Routes.dataBPJS.name);
-        },
-      ),
-    ];
-  }
-
-  // Helper method to show the bottom sheet modal
-  void _showSihakiSubMenu(
-    BuildContext context,
-    String title,
-    List<SubMenuItemData> subMenuItems,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext bc) {
-        return SihakiSubMenuModal(title: title, subMenuItems: subMenuItems);
-      },
-    );
   }
 }
 
