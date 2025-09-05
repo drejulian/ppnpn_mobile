@@ -60,4 +60,7 @@ enum Routes {
   lembur,
   tambahLembur,
   editLembur,
+  meeting,
+  task,
+  tambahTask,
 }

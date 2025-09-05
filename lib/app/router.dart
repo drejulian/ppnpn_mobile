@@ -52,6 +52,9 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/e
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/daftar_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/tambah_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Meeting/meeting_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/task_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/tambah_task_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
@@ -388,6 +391,23 @@ GoRouter router(RouterRef ref) {
           final data = state.extra as Map<String, dynamic>? ?? {};
           return EditLemburPage(data: data);
         },
+      ),
+      // Meeting
+      GoRoute(
+        path: '/meeting',
+        name: Routes.meeting.name,
+        builder: (context, state) => const MeetingPage(),
+      ),
+      // Task
+      GoRoute(
+        path: '/task',
+        name: Routes.task.name,
+        builder: (context, state) => const TaskPage(),
+      ),
+      GoRoute(
+        path: '/tambahTask',
+        name: Routes.tambahTask.name,
+        builder: (context, state) => const TambahTaskPage(),
       ),
       GoRoute(
         path: '/dataKomisi',

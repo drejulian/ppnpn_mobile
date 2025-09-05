@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/sihaki_submenu_modal.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -76,24 +75,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _buildMenuSection(
                   'Menu Utama',
                   _getMainMenuItems(),
-                  theme,
-                  context,
-                ),
-                const SizedBox(height: 24),
-
-                // Data Pribadi Section
-                _buildMenuSection(
-                  'Data Pribadi',
-                  _getDataPribadiItems(context),
-                  theme,
-                  context,
-                ),
-                const SizedBox(height: 24),
-
-                // SIHAKI Section (New Addition)
-                _buildSihakiSection(
-                  'SIHAKI', // Title for the new section
-                  _getSihakiItems(context), // Get SIHAKI specific menu items
                   theme,
                   context,
                 ),
@@ -482,95 +463,67 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildMenuItem(MenuItemData item, dynamic theme) {
     return GestureDetector(
       onTap: item.onTap ?? () {},
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [item.color.withValues(alpha: 0.8), item.color],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(item.icon, color: Colors.white, size: 20),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              item.color.withOpacity(0.8),
+              item.color,
+            ],
           ),
-          const SizedBox(height: 8),
-          Flexible(
-            child: Text(
-              item.title,
-              style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: item.color.withOpacity(0.3),
+              blurRadius: 8,
+              spreadRadius: 1,
+              offset: const Offset(0, 3),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon container with white background
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                item.icon, 
+                color: Colors.white, 
+                size: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Title text
+            Flexible(
+              child: Text(
+                item.title,
+                style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 9.0,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // New method for SIHAKI section
-  Widget _buildSihakiSection(
-    String title,
-    List<MenuItemData> items,
-    dynamic theme,
-    BuildContext context,
-  ) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                blurRadius: 10,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isTablet ? 6 : 4,
-              childAspectRatio: 1,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return _buildMenuItem(item, theme);
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildKalenderSection(
     dynamic theme,
@@ -1252,7 +1205,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.pushNamed(Routes.cuti.name);
         },
       ),
-       MenuItemData('izin', Icons.assignment, Colors.blue,
+       MenuItemData('Izin', Icons.assignment, Colors.blue,
           onTap: () {context.pushNamed(Routes.izin.name);},),
       MenuItemData(
         'Lembur',
@@ -1265,276 +1218,24 @@ class _HomePageState extends ConsumerState<HomePage> {
       MenuItemData('Reimburse', Icons.assignment, Colors.blue,
           onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
       MenuItemData('Training', Icons.school, Colors.indigo),
-      MenuItemData('Meeting', Icons.groups, Colors.teal),
-      MenuItemData('Task', Icons.task_alt, Colors.red),
-      MenuItemData('Report', Icons.bar_chart, Colors.amber),
-    ];
-  }
-
-  List<MenuItemData> _getDataPribadiItems(BuildContext context) {
-    return [
       MenuItemData(
-        'Edit Profil',
-        Icons.person,
-        Colors.blueAccent,
-        onTap: () {
-          context.pushNamed(Routes.editProfile.name);
-        },
-      ),
-      MenuItemData(
-        'Edit Identitas Diri',
-        Icons.person,
-        Colors.blue,
-        onTap: () {
-          context.pushNamed(Routes.pribadi.name);
-        },
-      ),
-      MenuItemData(
-        'Edit Data Honorarium',
-        Icons.payments,
-        Colors.green,
-        onTap: () {
-          context.pushNamed(Routes.honorarium.name);
-        },
-      ),
-      MenuItemData(
-        'Keluarga',
-        Icons.family_restroom,
-        Colors.green,
-        onTap: () {
-          context.pushNamed(Routes.keluarga.name);
-        },
-      ),
-      MenuItemData(
-        'PAS Foto',
-        Icons.contact_phone,
-        Colors.red,
-        onTap: () {
-          context.pushNamed(Routes.idCard.name);
-        },
-      ),
-      MenuItemData(
-        'Dokumen',
-        Icons.folder,
+        'Meeting',
+        Icons.groups,
         Colors.teal,
         onTap: () {
-          context.pushNamed(Routes.dokumen.name);
+          context.pushNamed(Routes.meeting.name);
         },
       ),
       MenuItemData(
-        'Pendidikan',
-        Icons.school,
-        Colors.purple,
+        'Task',
+        Icons.task_alt,
+        Colors.red,
         onTap: () {
-          debugPrint('🎓 Navigating to Pendidikan page');
-          debugPrint('👤 User: miftahul01');
-          context.pushNamed(Routes.pendidikan.name);
+          context.pushNamed(Routes.task.name);
         },
       ),
-      MenuItemData(
-        'Riwayat Pekerjaan',
-        Icons.work,
-        Colors.orange,
-        onTap: () {
-          context.pushNamed(Routes.riwayatPekerjaan.name);
-        },
-      ),
-      MenuItemData(
-        'Data Lamaran',
-        Icons.card_membership,
-        Colors.indigo,
-        onTap: () {
-          context.pushNamed(Routes.dataLamaran.name);
-        },
-      ),
+      MenuItemData('Report', Icons.bar_chart, Colors.amber),
     ];
-  }
-
-  // Updated method to provide SIHAKI menu items with sub-menu functionality
-  List<MenuItemData> _getSihakiItems(BuildContext context) {
-    return [
-      MenuItemData(
-        'Data Pajak PPNPN',
-        Icons.receipt_long,
-        Colors.deepOrange,
-        onTap: () {
-          debugPrint('💰 Opening submenu for Data Pajak PPNPN');
-          _showSihakiSubMenu(context, 'Data Pajak PPNPN', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP PPNPM page
-                debugPrint('Navigating to PPNPN SKP'); //
-                // context.pushNamed(Routes.ppnpmSkp.name);
-                context.pushNamed(Routes.skp.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppf.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A1',
-              Icons.format_list_numbered,
-              Colors.purple,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A1 PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak A1');
-                context.pushNamed(Routes.ppa.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Agenda Pribadi Anggota',
-        Icons.calendar_today,
-        Colors.pink,
-        onTap: () {
-          debugPrint('🗓️ Opening submenu for Agenda Pribadi Anggota');
-          _showSihakiSubMenu(context, 'Agenda Pribadi Anggota', [
-            SubMenuItemData(
-              'Daftar Agenda',
-              Icons.list_alt,
-              Colors.orange,
-              onTap: () {
-                // Navigate to Agenda List page
-                debugPrint('Navigating to Daftar Agenda'); //
-                 context.pushNamed(Routes.daftarAgenda.name);
-              },
-            ),
-            SubMenuItemData(
-              'Media Sosial Anggota',
-              Icons.share,
-              Colors.teal,
-              onTap: () {
-                // Navigate to Member's Social Media page
-                debugPrint('Navigating to Media Sosial Anggota'); 
-                 context.pushNamed(Routes.mediaSosialAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Data Pajak Anggota',
-        Icons.account_balance_wallet,
-        Colors.brown,
-        onTap: () {
-          debugPrint('💲 Opening submenu for Data Pajak Anggota');
-          _showSihakiSubMenu(context, 'Data Pajak Anggota', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP Anggota page
-                debugPrint('Navigating to Anggota SKP'); //
-                context.pushNamed(Routes.skpAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppfAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A2',
-              Icons.format_list_numbered_rtl,
-              Colors.red,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A2 Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak A2'); //
-                context.pushNamed(Routes.ppaAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-  'Database Anggota DPR RI',
-  Icons.storage,
-  Colors.cyan,
-  onTap: () {
-    debugPrint('Navigating directly to Data Komisi');
-    context.pushNamed('dataKomisi');
-        },
-      ),
-      MenuItemData(
-        'Data Kunjungan Kerja Perorangan',
-        Icons.flight,
-        Colors.lime,
-        onTap: () {
-          debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan'); //
-          context.pushNamed(Routes.kunkerPerorangan.name);
-        },
-      ),
-      MenuItemData(
-        'Data SIGOTA - KANJENK',
-        Icons.fingerprint,
-        Colors.grey,
-        onTap: () {
-          debugPrint('👍 Navigating to Data SIGOTA - KANJENK'); //
-          // context.pushNamed(Routes.dataSigotaKanjek.name);
-        },
-      ),
-      MenuItemData(
-        'Dokumen Anggota',
-        Icons.article,
-        Colors.purpleAccent,
-        onTap: () {
-          debugPrint('📄 Navigating to Dokumen Anggota'); //
-          context.pushNamed(Routes.dataDokumenAnggota.name);
-        },
-      ),
-      MenuItemData(
-        'Kegiatan Rumah Aspirasi',
-        Icons.home,
-        Colors.tealAccent,
-        onTap: () {
-          debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi'); //
-          context.pushNamed(Routes.daftarPengajuanRumahAspirasi.name);
-        },
-      ),
-      MenuItemData(
-        'BPJS',
-        Icons.local_hospital,
-        Colors.lightGreen,
-        onTap: () {
-          debugPrint('🏥 Navigating to BPJS'); //
-          context.pushNamed(Routes.dataBPJS.name);
-        },
-      ),
-    ];
-  }
-
-  // Helper method to show the bottom sheet modal
-  void _showSihakiSubMenu(
-    BuildContext context,
-    String title,
-    List<SubMenuItemData> subMenuItems,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext bc) {
-        return SihakiSubMenuModal(title: title, subMenuItems: subMenuItems);
-      },
-    );
   }
 }
 
