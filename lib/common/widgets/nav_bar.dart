@@ -6,6 +6,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dar
 
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/home_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/sihaki_main_page.dart';
 
 final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
 
@@ -13,10 +14,10 @@ class MainLayout extends ConsumerWidget {
   const MainLayout({super.key});
 
   final List<Widget> _pages = const [
-    HomePage(), // Index 0 - Beranda
-    AbsensiPage(), // Index 1 - Absensi
-    HomePage(), // Index 2 - Menu 2 (placeholder)
-    ProfilePage(), // Index 3 - Profile
+    HomePage(),
+    AbsensiPage(),
+    SihakiMainPage(),
+    ProfilePage(),
   ];
 
   @override
@@ -91,8 +92,8 @@ class NavBar extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               GButton(
-                icon: Icons.chat,
-                text: 'Menu 2',
+                icon: Icons.analytics_outlined,
+                text: 'SIHAKI',
                 textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
                   color: Colors.white,
                 ),

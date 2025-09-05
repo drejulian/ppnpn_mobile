@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/tambah_agenda_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/edit_agenda_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/lupa_password_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/data_lamaran_page.dart';
@@ -19,18 +23,19 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/daftar_agenda.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/detail_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/daftar_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/edit_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/tambah_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/daftar_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/edit_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/tambah_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/daftar_agenda.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/reimburse.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/izinpage.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/daftar_pengajuan_BPJS.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/data_bpjs_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/daftar_pengajuan_bpjs.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/tambah_bpjs_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/edit_bpjs_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/skp_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/TambahRumahAspirasi/tambah_rumah_aspirasi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/tambah_rumah_aspirasi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/edit_rumah_aspirasi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/daftar_pengajuan_rumah_aspirasi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppa_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppf_anggota_page.dart';
@@ -57,12 +62,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/t
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/tambah_task_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/tambah_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/edit_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/agenda_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
 import 'package:ppnpm_dpr/common/widgets/nav_bar.dart';
@@ -157,13 +156,13 @@ GoRouter router(RouterRef ref) {
         name: Routes.addDataKeluarga.name,
         builder: (context, state) => const TambahAnggotaKeluargaPage(),
       ),
-      
+
       GoRoute(
         path: '/edit-data-keluarga',
         name: Routes.editDataKeluarga.name,
         builder: (context, state) => const EditDataKeluargaPage(),
       ),
-      
+
       GoRoute(
         path: '/edit-data-keluarga/:memberId',
         name: Routes.editDataKeluargaWithId.name,
@@ -247,20 +246,12 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const TambahAgendaPage(),
       ),
       GoRoute(
-      path: '/edit-agenda',
-      name: Routes.editAgenda.name,
-      builder: (context, state) {
-        final agendaItem = state.extra as AgendaItem;
-        return EditAgendaPage(agendaItem: agendaItem);
-      },
-      ),
-      GoRoute(
-      path: '/detail-agenda',
-      name: Routes.detailAgenda.name,
-      builder: (context, state)  {
-        final agendaItem = state.extra as AgendaItem;
-        return DetailAgendaPage(agenda: agendaItem);
-      },
+        path: '/edit-agenda',
+        name: Routes.editAgenda.name,
+        builder: (context, state) {
+          final agendaItem = state.extra as Map<String, dynamic>;
+          return EditAgendaPage(agendaItem: agendaItem);
+        },
       ),
       GoRoute(
         path: '/media-sosial-anggota',
@@ -276,13 +267,8 @@ GoRouter router(RouterRef ref) {
         path: '/edit-media-sosial-anggota',
         name: Routes.editMediaSosialAnggota.name,
         builder: (context, state) {
-          final medsos = state.extra as Map<String, String>? ?? {};
-          final namaPlatform = medsos['platform'] ?? '';
-          final username = medsos['username'] ?? '';
-          return EditSosialMediaAnggotaPage(
-            namaPlatform: namaPlatform,
-            username: username,
-          );
+          final medsos = state.extra as Map<String, dynamic>? ?? {};
+          return EditMediaSosialAnggotaPage(medsos: medsos);
         },
       ),
       GoRoute(
@@ -293,29 +279,56 @@ GoRouter router(RouterRef ref) {
       GoRoute(
         path: '/tambah-rumah-aspirasi',
         name: Routes.tambahRumahAspirasi.name,
-        builder: (context, state) => const TambahRumahAspirasiPage()
+        builder: (context, state) => const TambahRumahAspirasiPage(),
+      ),
+      GoRoute(
+        path: '/edit-rumah-aspirasi',
+        name: Routes.editRumahAspirasi.name,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          if (extra == null) {
+            throw Exception(
+              'EditRumahAspirasiPage requires rumahAspirasiItem data',
+            );
+          }
+          return EditRumahAspirasiPage(rumahAspirasiItem: extra);
+        },
       ),
       GoRoute(
         path: '/data-bpjs',
         name: Routes.dataBPJS.name,
-        builder: (context, state) => const DaftarBPJSPage()
+        builder: (context, state) => const DaftarPengajuanBPJS(),
       ),
       GoRoute(
         path: '/daftar-pengajuan-bpjs',
         name: Routes.daftarPengajuanBPJS.name,
-        builder: (context, state) => const DaftarPengajuanBPJS()
+        builder: (context, state) => const DaftarPengajuanBPJS(),
+      ),
+      GoRoute(
+        path: '/tambah-bpjs',
+        name: Routes.tambahBPJS.name,
+        builder: (context, state) => const TambahBpjsPage(),
+      ),
+      GoRoute(
+        path: '/edit-bpjs/:index',
+        name: Routes.editBPJS.name,
+        builder: (context, state) {
+          final index = int.parse(state.pathParameters['index']!);
+          final extra = state.extra as BPJSData;
+          return EditBpjsPage(bpjsItem: extra, index: index);
+        },
       ),
       GoRoute(
         path: '/izin',
         name: Routes.izin.name,
-        builder: (context, state) => const IzinPage()
+        builder: (context, state) => const IzinPage(),
       ),
       GoRoute(
         path: '/reimburse',
         name: Routes.reimbursePage.name,
-        builder: (context, state) => const ReimbursePage()
+        builder: (context, state) => const ReimbursePage(),
       ),
-       GoRoute(
+      GoRoute(
         path: '/ppa',
         name: Routes.ppa.name,
         builder: (context, state) => const BuktiPotongPajakA1Page(),

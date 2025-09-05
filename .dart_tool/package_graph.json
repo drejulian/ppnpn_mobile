@@ -13,6 +13,7 @@
         "flutter_riverpod",
         "flutter_secure_storage",
         "flutter_svg",
+        "font_awesome_flutter",
         "geolocator",
         "go_router",
         "google_fonts",
@@ -230,6 +231,13 @@
         "test_api",
         "vector_math",
         "vm_service"
+      ]
+    },
+    {
+      "name": "font_awesome_flutter",
+      "version": "10.9.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
