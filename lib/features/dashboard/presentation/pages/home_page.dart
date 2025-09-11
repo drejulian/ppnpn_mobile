@@ -294,12 +294,17 @@ class _HomePageState extends ConsumerState<HomePage> {
               // Check In Button
               Expanded(
                 flex: 2,
-                child: _buildAbsensiButton(
-                  'Check In',
-                  Icons.login,
-                  '08:00',
-                  theme,
-                  true,
+                child: GestureDetector(
+                  onTap: () {
+                    context.pushNamed(Routes.absensi.name);
+                  },
+                  child: _buildAbsensiButton(
+                    'Check In',
+                    Icons.login,
+                    '08:00',
+                    theme,
+                    true,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -307,12 +312,17 @@ class _HomePageState extends ConsumerState<HomePage> {
               // Check Out Button
               Expanded(
                 flex: 2,
-                child: _buildAbsensiButton(
-                  'Check Out',
-                  Icons.logout,
-                  '--:--',
-                  theme,
-                  false,
+                child: GestureDetector(
+                  onTap: () {
+                    context.pushNamed(Routes.absensi.name);
+                  },
+                  child: _buildAbsensiButton(
+                    'Check Out',
+                    Icons.logout,
+                    '--:--',
+                    theme,
+                    false,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
