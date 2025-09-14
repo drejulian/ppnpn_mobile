@@ -66,7 +66,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Expanded(
                     child: Text(
                       'Kredensial tersimpan untuk: $savedEmail',
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: 13.0),
                     ),
                   ),
                 ],

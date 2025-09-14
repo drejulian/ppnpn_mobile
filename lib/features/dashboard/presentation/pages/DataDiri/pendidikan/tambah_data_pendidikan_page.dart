@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:flutter/services.dart';
-// No shared education state; this page returns result via Navigator.pop.
 
 class TambahDataPendidikanPage extends ConsumerStatefulWidget {
   const TambahDataPendidikanPage({super.key});
@@ -18,7 +16,6 @@ class _TambahDataPendidikanPageState
   final _formKey = GlobalKey<FormState>();
   final _programStudiController = TextEditingController();
   final _universitasController = TextEditingController();
-  // Replace single year controller with start and end year controllers
   final _tahunMulaiController = TextEditingController();
   final _tahunSelesaiController = TextEditingController();
 
@@ -69,9 +66,7 @@ class _TambahDataPendidikanPageState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go("/pendidikan");
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
@@ -478,6 +473,9 @@ class _TambahDataPendidikanPageState
         'tahun': '$tahunMulai - $tahunSelesai',
       };
 
+      // DON'T update provider here - let the main page handle provider updates
+      // This ensures consistent data flow and prevents conflicts
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -488,11 +486,7 @@ class _TambahDataPendidikanPageState
         );
 
         // Return new item to previous page
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            Navigator.pop(context, {'action': 'add', 'data': newEducation});
-          }
-        });
+        Navigator.pop(context, {'action': 'add', 'data': newEducation});
       }
     } catch (e) {
       if (mounted) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
 import 'package:flutter/services.dart';
@@ -55,10 +54,8 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
       final String startYear = _startYearController.text;
       final String endYear = _endYearController.text;
 
-      final currentData = ref.read(workHistoryDataProvider);
-
       if (widget.workHistoryToEdit == null) {
-        // Add new work history data
+        // Add new work history data - ONLY return data, don't update providers
         final newWorkHistory = WorkHistoryData(
           id: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
           position: position,
@@ -66,41 +63,82 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
           startYear: startYear,
           endYear: endYear,
         );
-        ref.read(workHistoryDataProvider.notifier).state = [
-          ...currentData,
-          newWorkHistory,
-        ];
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Data riwayat pekerjaan berhasil ditambahkan!'),
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Return data to parent page - CRITICAL: Ensure no isDummy flag
+        final resultData = {
+          'id': newWorkHistory.id,
+          'position': newWorkHistory.position,
+          'company': newWorkHistory.company,
+          'startYear': newWorkHistory.startYear,
+          'endYear': newWorkHistory.endYear,
+          // CRITICAL: Explicitly ensure isDummy is NOT set or is false
+          // Don't set isDummy at all since absence = false
+        };
+        
+        print('=== RETURNING ADD DATA TO PARENT ===');
+        print('Result data: $resultData');
+        print('Contains isDummy: ${resultData.containsKey('isDummy')}');
+        print('isDummy value: ${resultData['isDummy']}');
+        print('namaPerusahaan: ${resultData['namaPerusahaan']}');
+        
+        final returnPayload = {
+          'action': 'add',
+          'data': resultData,
+        };
+        
+        print('Final return payload:');
+        print('  action: ${returnPayload['action']}');
+        print('  data.isDummy: ${(returnPayload['data'] as Map?)?['isDummy']}');
+        print('  complete payload: $returnPayload');
+        
+        Navigator.pop(context, returnPayload);
       } else {
-        // Edit existing work history data
-        final updatedData =
-            currentData.map((work) {
-              if (work.id == widget.workHistoryToEdit!.id) {
-                return work.copyWith(
-                  position: position,
-                  company: company,
-                  startYear: startYear,
-                  endYear: endYear,
-                );
-              }
-              return work;
-            }).toList();
-        ref.read(workHistoryDataProvider.notifier).state = updatedData;
+        // Edit existing work history data - ONLY return data, don't update providers
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Data riwayat pekerjaan berhasil diperbarui!'),
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Return data to parent page - CRITICAL: Ensure no isDummy flag  
+        final resultData = {
+          'id': widget.workHistoryToEdit!.id,
+          'position': position,
+          'company': company,
+          'startYear': startYear,
+          'endYear': endYear,
+          // CRITICAL: Explicitly ensure isDummy is NOT set or is false
+          // Don't set isDummy at all since absence = false
+        };
+        
+        print('=== RETURNING EDIT DATA TO PARENT ===');
+        print('Edit result data: $resultData');
+        print('Contains isDummy: ${resultData.containsKey('isDummy')}');
+        print('isDummy value: ${resultData['isDummy']}');
+        print('namaPerusahaan: ${resultData['company']}');
+        
+        final editPayload = {
+          'action': 'edit',
+          'data': resultData,
+        };
+        
+        print('Final edit payload:');
+        print('  action: ${editPayload['action']}');
+        print('  data.isDummy: ${(editPayload['data'] as Map?)?['isDummy']}');
+        print('  complete payload: $editPayload');
+        
+        Navigator.pop(context, editPayload);
+        return;
       }
-      context.go(
-        '/riwayat-pekerjaan',
-      );
+      // Don't call context.go here since we're using Navigator.pop with result
     }
   }
 
@@ -124,7 +162,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/riwayat-pekerjaan"),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(

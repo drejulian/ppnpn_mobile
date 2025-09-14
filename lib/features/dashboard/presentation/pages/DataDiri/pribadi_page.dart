@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
+import 'providers/profile_data_provider.dart';
 
 class PribadiPage extends ConsumerStatefulWidget {
   const PribadiPage({super.key});
@@ -12,7 +13,6 @@ class PribadiPage extends ConsumerStatefulWidget {
 }
 
 class _PribadiPageState extends ConsumerState<PribadiPage> {
-  // Text Controllers
   final TextEditingController _tempatLahirController = TextEditingController();
   final TextEditingController _tanggalLahirController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -29,16 +29,15 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   final TextEditingController _handphoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
-  // Dropdown values
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   String _selectedStatusPerkawinan = 'Kawin';
   String _selectedAgama = 'Islam';
   String _selectedGolonganDarah = 'O';
 
-  // Radio button values
   String _selectedJenisKelamin = 'Laki-Laki';
   String _selectedStatusDomisili = 'Alamat Rumah dan Alamat Sesuai KTP';
 
-  // Dropdown options
   final List<String> _statusPerkawinanOptions = [
     'Belum Kawin',
     'Kawin',
@@ -67,7 +66,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize with current values
+    // Initialize with static data first
     _tempatLahirController.text = 'TANGERANG';
     _tanggalLahirController.text = '05-10-1981';
     _addressController.text = 'Cluster Kencana Pamulang A25, Jalan Sawo';
@@ -91,7 +90,56 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load data from provider if available (will override static data) - only once
+    _loadDataFromProviderOnce();
+  }
+
+  bool _hasLoadedFromProvider = false;
+
+  void _loadDataFromProviderOnce() {
+    if (_hasLoadedFromProvider) return;
+    
+    final pribadiData = ref.read(pribadiDataProvider);
+    
+    if (pribadiData.email.isNotEmpty || pribadiData.handphone.isNotEmpty) {
+      // Data exists in provider, use it instead of static data
+      _tempatLahirController.text = pribadiData.tempatLahir;
+      _tanggalLahirController.text = pribadiData.tanggalLahir;
+      _addressController.text = pribadiData.address;
+      _propinsiController.text = pribadiData.propinsi;
+      _kotaController.text = pribadiData.kota;
+      _kecamatanController.text = pribadiData.kecamatan;
+      _kelurahanController.text = pribadiData.kelurahan;
+      _rtController.text = pribadiData.rt;
+      _rwController.text = pribadiData.rw;
+      _kodePosController.text = pribadiData.kodePos;
+      _teleponRumahController.text = pribadiData.teleponRumah;
+      _teleponKantorController.text = pribadiData.teleponKantor;
+      _handphoneController.text = pribadiData.handphone;
+      _emailController.text = pribadiData.email;
+
+      _selectedStatusPerkawinan = pribadiData.statusPerkawinan.isNotEmpty ? pribadiData.statusPerkawinan : 'Kawin';
+      _selectedAgama = pribadiData.agama.isNotEmpty ? pribadiData.agama : 'Islam';
+      _selectedGolonganDarah = pribadiData.golonganDarah.isNotEmpty ? pribadiData.golonganDarah : 'O';
+      _selectedJenisKelamin = pribadiData.jenisKelamin.isNotEmpty ? pribadiData.jenisKelamin : 'Laki-Laki';
+      _selectedStatusDomisili = pribadiData.statusDomisili.isNotEmpty ? pribadiData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+      
+      _hasLoadedFromProvider = true;
+      
+      print('=== LOADED DATA FROM PROVIDER ===');
+      print('Email: ${pribadiData.email}');
+      print('Handphone: ${pribadiData.handphone}');
+      print('Address: ${pribadiData.address}');
+      print('Status Perkawinan: ${pribadiData.statusPerkawinan}');
+      print('===============================');
+    }
+  }
+
+  @override
   void dispose() {
+    // Dispose controllers
     _tempatLahirController.dispose();
     _tanggalLahirController.dispose();
     _addressController.dispose();
@@ -109,14 +157,90 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     super.dispose();
   }
 
+  // Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    // Get current data from provider
+    final savedData = ref.read(pribadiDataProvider);
+    
+    // If provider has data, compare with it; otherwise compare with static data
+    final referenceTempatLahir = savedData.tempatLahir.isNotEmpty ? savedData.tempatLahir : 'TANGERANG';
+    final referenceTanggalLahir = savedData.tanggalLahir.isNotEmpty ? savedData.tanggalLahir : '05-10-1981';
+    final referenceAddress = savedData.address.isNotEmpty ? savedData.address : 'Cluster Kencana Pamulang A25, Jalan Sawo';
+    final referencePropinsi = savedData.propinsi.isNotEmpty ? savedData.propinsi : 'BANTEN';
+    final referenceKota = savedData.kota.isNotEmpty ? savedData.kota : '';
+    final referenceKecamatan = savedData.kecamatan.isNotEmpty ? savedData.kecamatan : '';
+    final referenceKelurahan = savedData.kelurahan.isNotEmpty ? savedData.kelurahan : '';
+    final referenceRt = savedData.rt.isNotEmpty ? savedData.rt : '000';
+    final referenceRw = savedData.rw.isNotEmpty ? savedData.rw : '009';
+    final referenceKodePos = savedData.kodePos.isNotEmpty ? savedData.kodePos : '15020';
+    final referenceTeleponRumah = savedData.teleponRumah.isNotEmpty ? savedData.teleponRumah : '';
+    final referenceTeleponKantor = savedData.teleponKantor.isNotEmpty ? savedData.teleponKantor : '';
+    final referenceHandphone = savedData.handphone.isNotEmpty ? savedData.handphone : '08128365992';
+    final referenceEmail = savedData.email.isNotEmpty ? savedData.email : '';
+    final referenceStatusPerkawinan = savedData.statusPerkawinan.isNotEmpty ? savedData.statusPerkawinan : 'Kawin';
+    final referenceAgama = savedData.agama.isNotEmpty ? savedData.agama : 'Islam';
+    final referenceGolonganDarah = savedData.golonganDarah.isNotEmpty ? savedData.golonganDarah : 'O';
+    final referenceJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
+    final referenceStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+    
+    // Debug print untuk melihat perbandingan data
+    print('=== CHECKING PRIBADI UNSAVED CHANGES ===');
+    print('Status Perkawinan: "$_selectedStatusPerkawinan" vs Expected: "$referenceStatusPerkawinan"');
+    print('Agama: "$_selectedAgama" vs Expected: "$referenceAgama"');
+    print('Tempat Lahir: "${_tempatLahirController.text}" vs Expected: "$referenceTempatLahir"');
+    print('Tanggal Lahir: "${_tanggalLahirController.text}" vs Expected: "$referenceTanggalLahir"');
+    print('Jenis Kelamin: "$_selectedJenisKelamin" vs Expected: "$referenceJenisKelamin"');
+    print('Golongan Darah: "$_selectedGolonganDarah" vs Expected: "$referenceGolonganDarah"');
+    print('Status Domisili: "$_selectedStatusDomisili" vs Expected: "$referenceStatusDomisili"');
+    print('Address: "${_addressController.text}" vs Expected: "$referenceAddress"');
+    print('Handphone: "${_handphoneController.text}" vs Expected: "$referenceHandphone"');
+    print('Email: "${_emailController.text}" vs Expected: "$referenceEmail"');
+    
+    final hasChanges = _selectedStatusPerkawinan != referenceStatusPerkawinan ||
+           _selectedAgama != referenceAgama ||
+           _tempatLahirController.text.trim() != referenceTempatLahir.trim() ||
+           _tanggalLahirController.text.trim() != referenceTanggalLahir.trim() ||
+           _selectedJenisKelamin != referenceJenisKelamin ||
+           _selectedGolonganDarah != referenceGolonganDarah ||
+           _selectedStatusDomisili != referenceStatusDomisili ||
+           _addressController.text.trim() != referenceAddress.trim() ||
+           _propinsiController.text.trim() != referencePropinsi.trim() ||
+           _kotaController.text.trim() != referenceKota.trim() ||
+           _kecamatanController.text.trim() != referenceKecamatan.trim() ||
+           _kelurahanController.text.trim() != referenceKelurahan.trim() ||
+           _rtController.text.trim() != referenceRt.trim() ||
+           _rwController.text.trim() != referenceRw.trim() ||
+           _kodePosController.text.trim() != referenceKodePos.trim() ||
+           _teleponRumahController.text.trim() != referenceTeleponRumah.trim() ||
+           _teleponKantorController.text.trim() != referenceTeleponKantor.trim() ||
+           _handphoneController.text.trim() != referenceHandphone.trim() ||
+           _emailController.text.trim() != referenceEmail.trim();
+           
+    print('Has changes: $hasChanges');
+    print('========================================');
+    
+    return hasChanges;
+  }
+
+  // Show unsaved changes dialog
+  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+    final result = await notification.NotificationUtils.showConfirmationDialog(
+      context,
+      title: 'Perubahan Belum Disimpan',
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmButtonText: 'Keluar Tanpa Menyimpan',
+      cancelButtonText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      isDangerous: true,
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-
-    // Real-time Indonesian time (UTC+7)
-    final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -133,28 +257,37 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+          onPressed: () async {
+            // Check if there are unsaved changes
+            if (_hasUnsavedChanges()) {
+              final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+              if (shouldLeave) {
+                Navigator.pop(context, false);
+              }
+              // Jika user memilih batal, tidak melakukan apa-apa (tetap di halaman)
             } else {
-              context.go('/home');
+              // Tidak ada perubahan, langsung keluar tanpa dialog
+              Navigator.pop(context, false);
             }
           },
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
-          vertical: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Form Data Pribadi
-            _buildFormDataPribadi(theme),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Form Data Pribadi
+              _buildFormDataPribadi(theme),
 
-            const SizedBox(height: 20), // Bottom spacing
-          ],
+              const SizedBox(height: 20), // Bottom spacing
+            ],
+          ),
         ),
       ),
     );
@@ -313,7 +446,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             hintText: 'Masukkan nama propinsi',
           ),
 
-          _buildTextFieldWithRequired(
+          _buildTextField(
             'Kota (City)',
             _kotaController,
             Icons.location_city,
@@ -322,7 +455,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             hintText: 'Masukkan nama kota',
           ),
 
-          _buildTextFieldWithRequired(
+          _buildTextField(
             'Kecamatan (District)',
             _kecamatanController,
             Icons.place,
@@ -331,7 +464,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             hintText: 'Masukkan nama kecamatan',
           ),
 
-          _buildTextFieldWithRequired(
+          _buildTextField(
             'Kelurahan (Sub-district)',
             _kelurahanController,
             Icons.location_on,
@@ -375,6 +508,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             _teleponRumahController,
             Icons.phone,
             theme,
+            isRequired: true,
             hintText: 'Masukkan nomor telepon rumah',
             keyboardType: TextInputType.phone,
           ),
@@ -384,6 +518,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             _teleponKantorController,
             Icons.business,
             theme,
+            isRequired: true,
             hintText: 'Masukkan nomor telepon kantor',
             keyboardType: TextInputType.phone,
           ),
@@ -403,6 +538,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
             _emailController,
             Icons.email,
             theme,
+            isRequired: true,
             hintText: 'Masukkan alamat email',
             keyboardType: TextInputType.emailAddress,
             isLast: true,
@@ -977,6 +1113,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     TextEditingController controller,
     IconData icon,
     dynamic theme, {
+    bool isRequired = false,
     String? hintText,
     TextInputType? keyboardType,
     bool isLast = false,
@@ -1000,12 +1137,37 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: theme.typographyRegular.bodySmall.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (isRequired)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Wajib diisi',
+                            style: theme.typographyRegular.bodyExtraSmall
+                                .copyWith(
+                                  color: Colors.red[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -1053,105 +1215,119 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   }
 
   void _saveData(BuildContext context, dynamic theme) {
-    // Validate required fields
-    List<String> errors = [];
+    if (_formKey.currentState!.validate()) {
+      // Validate required fields
+      List<String> errors = [];
 
-    if (_selectedStatusPerkawinan.isEmpty) {
-      errors.add('Status Perkawinan harus dipilih');
-    }
-    if (_selectedAgama.isEmpty) {
-      errors.add('Agama harus dipilih');
-    }
-    if (_tempatLahirController.text.isEmpty) {
-      errors.add('Tempat Lahir harus diisi');
-    }
-    if (_tanggalLahirController.text.isEmpty) {
-      errors.add('Tanggal Lahir harus diisi');
-    }
-    if (_selectedJenisKelamin.isEmpty) {
-      errors.add('Jenis Kelamin harus dipilih');
-    }
-    if (_selectedGolonganDarah.isEmpty) {
-      errors.add('Golongan Darah harus dipilih');
-    }
-    if (_selectedStatusDomisili.isEmpty) {
-      errors.add('Status Domisili harus dipilih');
-    }
-    if (_addressController.text.isEmpty) {
-      errors.add('Address harus diisi');
-    }
-    if (_propinsiController.text.isEmpty) {
-      errors.add('Propinsi harus diisi');
-    }
-    if (_kotaController.text.isEmpty) {
-      errors.add('Kota harus diisi');
-    }
-    if (_kecamatanController.text.isEmpty) {
-      errors.add('Kecamatan harus diisi');
-    }
-    if (_kelurahanController.text.isEmpty) {
-      errors.add('Kelurahan harus diisi');
-    }
-    if (_rtController.text.isEmpty) {
-      errors.add('RT harus diisi');
-    }
-    if (_rwController.text.isEmpty) {
-      errors.add('RW harus diisi');
-    }
-    if (_kodePosController.text.isEmpty) {
-      errors.add('Kode Pos harus diisi');
-    }
-    if (_handphoneController.text.isEmpty) {
-      errors.add('Handphone harus diisi');
-    }
+      if (_selectedStatusPerkawinan.isEmpty) {
+        errors.add('Status Perkawinan harus dipilih');
+      }
+      if (_selectedAgama.isEmpty) {
+        errors.add('Agama harus dipilih');
+      }
+      if (_tempatLahirController.text.isEmpty) {
+        errors.add('Tempat Lahir harus diisi');
+      }
+      if (_tanggalLahirController.text.isEmpty) {
+        errors.add('Tanggal Lahir harus diisi');
+      }
+      if (_selectedJenisKelamin.isEmpty) {
+        errors.add('Jenis Kelamin harus dipilih');
+      }
+      if (_selectedGolonganDarah.isEmpty) {
+        errors.add('Golongan Darah harus dipilih');
+      }
+      if (_selectedStatusDomisili.isEmpty) {
+        errors.add('Status Domisili harus dipilih');
+      }
+      if (_addressController.text.isEmpty) {
+        errors.add('Address harus diisi');
+      }
+      if (_propinsiController.text.isEmpty) {
+        errors.add('Propinsi harus diisi');
+      }
+      if (_kotaController.text.isEmpty) {
+        errors.add('Kota harus diisi');
+      }
+      if (_kecamatanController.text.isEmpty) {
+        errors.add('Kecamatan harus diisi');
+      }
+      if (_kelurahanController.text.isEmpty) {
+        errors.add('Kelurahan harus diisi');
+      }
+      if (_rtController.text.isEmpty) {
+        errors.add('RT harus diisi');
+      }
+      if (_rwController.text.isEmpty) {
+        errors.add('RW harus diisi');
+      }
+      if (_kodePosController.text.isEmpty) {
+        errors.add('Kode Pos harus diisi');
+      }
+      if (_teleponRumahController.text.isEmpty) {
+        errors.add('Telepon Rumah harus diisi');
+      }
+      if (_teleponKantorController.text.isEmpty) {
+        errors.add('Telepon Kantor harus diisi');
+      }
+      if (_handphoneController.text.isEmpty) {
+        errors.add('Handphone harus diisi');
+      }
+      if (_emailController.text.isEmpty) {
+        errors.add('Email harus diisi');
+      } else if (!_emailController.text.contains('@') || !_emailController.text.contains('.')) {
+        errors.add('Format email tidak valid');
+      }
 
-    if (errors.isNotEmpty) {
-      _showErrorDialog(context, theme, errors.join('\n'));
-      return;
+      if (errors.isNotEmpty) {
+        notification.NotificationUtils.showErrorDialog(
+          context,
+          title: 'Error',
+          message: errors.join('\n'),
+        );
+        return;
+      }
+
+      // Save data to provider
+      final pribadiData = PribadiData(
+        tempatLahir: _tempatLahirController.text.trim(),
+        tanggalLahir: _tanggalLahirController.text.trim(),
+        address: _addressController.text.trim(),
+        propinsi: _propinsiController.text.trim(),
+        kota: _kotaController.text.trim(),
+        kecamatan: _kecamatanController.text.trim(),
+        kelurahan: _kelurahanController.text.trim(),
+        rt: _rtController.text.trim(),
+        rw: _rwController.text.trim(),
+        kodePos: _kodePosController.text.trim(),
+        teleponRumah: _teleponRumahController.text.trim(),
+        teleponKantor: _teleponKantorController.text.trim(),
+        handphone: _handphoneController.text.trim(),
+        email: _emailController.text.trim(),
+        statusPerkawinan: _selectedStatusPerkawinan,
+        agama: _selectedAgama,
+        golonganDarah: _selectedGolonganDarah,
+        jenisKelamin: _selectedJenisKelamin,
+        statusDomisili: _selectedStatusDomisili,
+      );
+
+      // Update provider with new data
+      ref.read(pribadiDataProvider.notifier).updateData(pribadiData);
+
+      print('=== PRIBADI DATA SAVED TO PROVIDER ===');
+      print('Email: ${pribadiData.email}');
+      print('Handphone: ${pribadiData.handphone}');
+      print('Address: ${pribadiData.address}');
+      print('Status Perkawinan: ${pribadiData.statusPerkawinan}');
+      print('====================================');
+
+      // Show success dialog
+      notification.NotificationUtils.showSuccessDialog(
+        context,
+        title: 'Simpan Data Pribadi',
+        message: 'Data pribadi berhasil disimpan.',
+        onPressed: () => Navigator.pop(context, 'saved'), // Return 'saved' to indicate data was saved
+      );
     }
-
-    // Show success dialog
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Simpan Data Pribadi',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            content: const Text('Data pribadi berhasil disimpan.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showErrorDialog(BuildContext context, dynamic theme, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Error',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.red[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
   }
 }

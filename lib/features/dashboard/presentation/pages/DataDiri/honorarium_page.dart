@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'providers/profile_data_provider.dart';
 
 class HonorariumPage extends ConsumerStatefulWidget {
   const HonorariumPage({super.key});
@@ -33,17 +35,136 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize with default values
-    _kartuKeluargaController.text = '1111111111111111';
-    _ktpController.text = '0603200310820003';
-    _namaKtpController.text = 'AIRLANGGA EKA WARDHANA 01';
-    _bpjsKesehatanController.text = '406546495464';
-    _npwpController.text = '111111111111111';
-    _namaIbuController.text = 'HARTINI WIJAYA';
-    _rekeningController.text = '1582100318';
-    _namaPemilikRekController.text = 'Bpk. AIRLANGGA EKA WARDHANA';
-    _jumlahAnakController.text = '3';
-    _selectedStatusPTKP = 'Kawin (K)';
+    // Data akan diload dari provider di didChangeDependencies
+  }
+
+  // Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    final savedData = ref.read(honorariumDataProvider);
+    
+    // Default values yang diset di controller
+    final defaultKK = '1111111111111111';
+    final defaultKTP = '0603200310820003';
+    final defaultNamaKTP = 'AIRLANGGA EKA WARDHANA 01';
+    final defaultBPJS = '406546495464';
+    final defaultNPWP = '111111111111111';
+    final defaultNamaIbu = 'HARTINI WIJAYA';
+    final defaultRekening = '1582100318';
+    final defaultNamaPemilikRek = 'Bpk. AIRLANGGA EKA WARDHANA';
+    final defaultJumlahAnak = '3';
+    final defaultStatusPTKP = 'Kawin (K)';
+    
+    // Ambil nilai yang seharusnya (dari saved data atau default)
+    final expectedKK = savedData.kartuKeluarga.isNotEmpty ? savedData.kartuKeluarga : defaultKK;
+    final expectedKTP = savedData.ktp.isNotEmpty ? savedData.ktp : defaultKTP;
+    final expectedNamaKTP = savedData.namaKtp.isNotEmpty ? savedData.namaKtp : defaultNamaKTP;
+    final expectedBPJS = savedData.bpjsKesehatan.isNotEmpty ? savedData.bpjsKesehatan : defaultBPJS;
+    final expectedNPWP = savedData.npwp.isNotEmpty ? savedData.npwp : defaultNPWP;
+    final expectedNamaIbu = savedData.namaIbu.isNotEmpty ? savedData.namaIbu : defaultNamaIbu;
+    final expectedRekening = savedData.rekening.isNotEmpty ? savedData.rekening : defaultRekening;
+    final expectedNamaPemilikRek = savedData.namaPemilikRek.isNotEmpty ? savedData.namaPemilikRek : defaultNamaPemilikRek;
+    final expectedJumlahAnak = savedData.jumlahAnak.isNotEmpty ? savedData.jumlahAnak : defaultJumlahAnak;
+    final expectedStatusPTKP = savedData.statusPTKP.isNotEmpty ? savedData.statusPTKP : defaultStatusPTKP;
+    
+    // Debug print untuk melihat perbandingan data
+    print('=== CHECKING HONORARIUM UNSAVED CHANGES ===');
+    print('Controller KK: "${_kartuKeluargaController.text}" vs Expected: "$expectedKK"');
+    print('Controller KTP: "${_ktpController.text}" vs Expected: "$expectedKTP"');
+    print('Controller Nama KTP: "${_namaKtpController.text}" vs Expected: "$expectedNamaKTP"');
+    print('Controller BPJS: "${_bpjsKesehatanController.text}" vs Expected: "$expectedBPJS"');
+    print('Controller NPWP: "${_npwpController.text}" vs Expected: "$expectedNPWP"');
+    print('Controller Nama Ibu: "${_namaIbuController.text}" vs Expected: "$expectedNamaIbu"');
+    print('Controller Rekening: "${_rekeningController.text}" vs Expected: "$expectedRekening"');
+    print('Controller Nama Pemilik Rek: "${_namaPemilikRekController.text}" vs Expected: "$expectedNamaPemilikRek"');
+    print('Controller Jumlah Anak: "${_jumlahAnakController.text}" vs Expected: "$expectedJumlahAnak"');
+    print('Selected Status PTKP: "$_selectedStatusPTKP" vs Expected: "$expectedStatusPTKP"');
+    
+    final hasChanges = _kartuKeluargaController.text.trim() != expectedKK.trim() ||
+           _ktpController.text.trim() != expectedKTP.trim() ||
+           _namaKtpController.text.trim() != expectedNamaKTP.trim() ||
+           _bpjsKesehatanController.text.trim() != expectedBPJS.trim() ||
+           _npwpController.text.trim() != expectedNPWP.trim() ||
+           _namaIbuController.text.trim() != expectedNamaIbu.trim() ||
+           _rekeningController.text.trim() != expectedRekening.trim() ||
+           _namaPemilikRekController.text.trim() != expectedNamaPemilikRek.trim() ||
+           _jumlahAnakController.text.trim() != expectedJumlahAnak.trim() ||
+           _selectedStatusPTKP != expectedStatusPTKP;
+           
+    print('Has changes: $hasChanges');
+    print('==========================================');
+    
+    return hasChanges;
+  }
+
+  // Show unsaved changes dialog
+  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+    final result = await NotificationUtils.showConfirmationDialog(
+      context,
+      title: 'Perubahan Belum Disimpan',
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmButtonText: 'Keluar Tanpa Menyimpan',
+      cancelButtonText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      isDangerous: true,
+    );
+    return result ?? false;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load data from provider when page is loaded
+    final savedData = ref.read(honorariumDataProvider);
+    
+    // Only set data if controllers are empty (not already set)
+    if (_kartuKeluargaController.text.isEmpty) {
+      _kartuKeluargaController.text = savedData.kartuKeluarga.isNotEmpty 
+        ? savedData.kartuKeluarga 
+        : '1111111111111111';
+    }
+    if (_ktpController.text.isEmpty) {
+      _ktpController.text = savedData.ktp.isNotEmpty 
+        ? savedData.ktp 
+        : '0603200310820003';
+    }
+    if (_namaKtpController.text.isEmpty) {
+      _namaKtpController.text = savedData.namaKtp.isNotEmpty 
+        ? savedData.namaKtp 
+        : 'AIRLANGGA EKA WARDHANA 01';
+    }
+    if (_bpjsKesehatanController.text.isEmpty) {
+      _bpjsKesehatanController.text = savedData.bpjsKesehatan.isNotEmpty 
+        ? savedData.bpjsKesehatan 
+        : '406546495464';
+    }
+    if (_npwpController.text.isEmpty) {
+      _npwpController.text = savedData.npwp.isNotEmpty 
+        ? savedData.npwp 
+        : '111111111111111';
+    }
+    if (_namaIbuController.text.isEmpty) {
+      _namaIbuController.text = savedData.namaIbu.isNotEmpty 
+        ? savedData.namaIbu 
+        : 'HARTINI WIJAYA';
+    }
+    if (_rekeningController.text.isEmpty) {
+      _rekeningController.text = savedData.rekening.isNotEmpty 
+        ? savedData.rekening 
+        : '1582100318';
+    }
+    if (_namaPemilikRekController.text.isEmpty) {
+      _namaPemilikRekController.text = savedData.namaPemilikRek.isNotEmpty 
+        ? savedData.namaPemilikRek 
+        : 'Bpk. AIRLANGGA EKA WARDHANA';
+    }
+    if (_jumlahAnakController.text.isEmpty) {
+      _jumlahAnakController.text = savedData.jumlahAnak.isNotEmpty 
+        ? savedData.jumlahAnak 
+        : '3';
+    }
+    if (_selectedStatusPTKP == 'Kawin (K)' && savedData.statusPTKP.isNotEmpty) {
+      _selectedStatusPTKP = savedData.statusPTKP;
+    }
   }
 
   @override
@@ -84,7 +205,19 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            // Check if there are unsaved changes
+            if (_hasUnsavedChanges()) {
+              final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+              if (shouldLeave) {
+                Navigator.pop(context, false);
+              }
+              // Jika user memilih batal, tidak melakukan apa-apa (tetap di halaman)
+            } else {
+              // Tidak ada perubahan, langsung keluar tanpa dialog
+              Navigator.pop(context, false);
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -594,48 +727,41 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
       return;
     }
 
-    // Show success dialog
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Simpan Data Honorarium',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            content: const Text('Data honorarium berhasil disimpan.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    // Save data to provider
+    final newData = HonorariumData(
+      kartuKeluarga: _kartuKeluargaController.text,
+      ktp: _ktpController.text,
+      namaKtp: _namaKtpController.text,
+      bpjsKesehatan: _bpjsKesehatanController.text,
+      npwp: _npwpController.text,
+      namaIbu: _namaIbuController.text,
+      rekening: _rekeningController.text,
+      namaPemilikRek: _namaPemilikRekController.text,
+      jumlahAnak: _jumlahAnakController.text,
+      statusPTKP: _selectedStatusPTKP,
+    );
+    
+    ref.read(honorariumDataProvider.notifier).updateData(newData);
+    
+    // Debug print untuk memastikan data tersimpan
+    print('=== SAVING HONORARIUM DATA ===');
+    print('KTP: ${newData.ktp}');
+    print('Rekening: ${newData.rekening}');
+    print('NPWP: ${newData.npwp}');
+    print('==============================');    // Show success dialog
+    NotificationUtils.showSuccessDialog(
+      context,
+      title: 'Simpan Data Honorarium',
+      message: 'Data honorarium berhasil disimpan.',
+      onPressed: () => Navigator.pop(context, 'saved'), // Return 'saved' to indicate data was saved
     );
   }
 
   void _showErrorDialog(BuildContext context, dynamic theme, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Error',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.red[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    NotificationUtils.showErrorDialog(
+      context,
+      title: 'Error',
+      message: message,
     );
   }
 }

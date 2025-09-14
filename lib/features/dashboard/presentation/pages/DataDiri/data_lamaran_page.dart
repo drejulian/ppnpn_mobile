@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:ppnpm_dpr/app/theme.dart'; // Assuming your theme path is correct
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'providers/profile_data_provider.dart'; 
 
-// Dummy data for dropdowns and autocomplete
+
 const List<String> positions = [
   'Tenaga Ahli',
   'Staf Administrasi',
@@ -45,7 +47,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
 
   String? _selectedPosition;
   String? _selectedPlacement;
-  String? _selectedSubPlacement;
   late TextEditingController _subPlacementController;
   late TextEditingController _otherPositionController; // For "Lainnya" position
   late TextEditingController
@@ -63,20 +64,51 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
   @override
   void initState() {
     super.initState();
-    _subPlacementController = TextEditingController(
-      text: _selectedSubPlacement,
-    );
+    _subPlacementController = TextEditingController();
     _otherPositionController = TextEditingController();
     _otherPlacementController = TextEditingController();
     _notesController = TextEditingController();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load data from provider when page is loaded
+    final savedData = ref.read(dataLamaranDataProvider);
+    
+    // Only set data if not already set
+    if (_selectedPosition == null && savedData.position.isNotEmpty) {
+      _selectedPosition = savedData.position;
+      if (savedData.otherPosition.isNotEmpty) {
+        _otherPositionController.text = savedData.otherPosition;
+      }
+      _selectedPlacement = savedData.placement.isNotEmpty ? savedData.placement : null;
+      _subPlacementController.text = savedData.subPlacement;
+      
+      // Set dates to providers
+      if (savedData.startDate != null) {
+        ref.read(selectedStartDateProvider.notifier).state = savedData.startDate;
+      }
+      if (savedData.letterDate != null) {
+        ref.read(selectedLetterDateProvider.notifier).state = savedData.letterDate;
+      }
+      if (savedData.placementDate != null) {
+        ref.read(selectedPlacementDateProvider.notifier).state = savedData.placementDate;
+      }
+    }
+  }
+
+  @override
   void dispose() {
-    _subPlacementController.dispose();
-    _otherPositionController.dispose();
-    _otherPlacementController.dispose();
-    _notesController.dispose();
+    // Safe dispose with null checks
+    try {
+      _subPlacementController.dispose();
+      _otherPositionController.dispose();
+      _otherPlacementController.dispose();
+      _notesController.dispose();
+    } catch (e) {
+      print('Error disposing controllers: $e');
+    }
     super.dispose();
   }
 
@@ -110,38 +142,72 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
       final DateTime? startDate = ref.read(selectedStartDateProvider);
       final DateTime? letterDate = ref.read(selectedLetterDateProvider);
       final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
-      final String notes = _notesController.text;
 
-      // Here you would typically send this data to a backend or save it locally
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Data Lamaran berhasil disimpan untuk posisi: ${position ?? 'N/A'}\n'
-            'Penempatan: ${placement ?? 'N/A'}\n'
-            'Sub Penempatan: ${subPlacement ?? 'N/A'}\n'
-            'Tgl Mulai: ${startDate != null ? DateFormat('dd-MM-yyyy').format(startDate) : 'N/A'}\n'
-            'Tgl Surat: ${letterDate != null ? DateFormat('dd-MM-yyyy').format(letterDate) : 'N/A'}\n'
-            'Tgl Penempatan: ${placementDate != null ? DateFormat('dd-MM-yyyy').format(placementDate) : 'N/A'}\n'
-            'Catatan Lainnya: $notes',
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 5),
-        ),
+      // Save data to provider
+      final dataLamaranData = DataLamaranData(
+        position: position ?? '',
+        placement: placement ?? '',
+        subPlacement: subPlacement,
+        otherPosition: _selectedPosition == 'Lainnya' ? _otherPositionController.text : '',
+        startDate: startDate,
+        letterDate: letterDate,
+        placementDate: placementDate,
       );
-      // You might want to navigate away or clear the form after submission
-      _formKey.currentState!.reset(); // Clear form fields
-      ref.read(selectedStartDateProvider.notifier).state = null;
-      ref.read(selectedLetterDateProvider.notifier).state = null;
-      ref.read(selectedPlacementDateProvider.notifier).state = null;
-      _subPlacementController.clear();
-      _otherPositionController.clear();
-      _otherPlacementController.clear();
-      _notesController.clear();
-      setState(() {
-        _selectedPosition = null;
-        _selectedPlacement = null;
-        _selectedExistingPosition = null;
-      });
+      
+      ref.read(dataLamaranDataProvider.notifier).updateData(dataLamaranData);
+
+      // Show success dialog
+      NotificationUtils.showSuccessDialog(
+        context,
+        title: 'Simpan Data Lamaran',
+        message: 'Data lamaran berhasil disimpan.',
+        onPressed: () => context.pop('saved'), // Return 'saved' to indicate data was saved
+      );
+    }
+  }
+
+  void _saveAllApplicationData() {
+    if (_formKey.currentState!.validate()) {
+      // Collect all form data
+      final String? position =
+          _selectedPosition == 'Lainnya'
+              ? _otherPositionController.text
+              : _selectedPosition;
+      final String? placement =
+          _selectedPlacement == 'Lainnya'
+              ? _otherPlacementController.text
+              : _selectedPlacement;
+      final String subPlacement = _subPlacementController.text;
+      final DateTime? startDate = ref.read(selectedStartDateProvider);
+      final DateTime? letterDate = ref.read(selectedLetterDateProvider);
+      final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
+
+      // Save data to provider
+      final dataLamaranData = DataLamaranData(
+        position: position ?? '',
+        placement: placement ?? '',
+        subPlacement: subPlacement,
+        otherPosition: _selectedPosition == 'Lainnya' ? _otherPositionController.text : '',
+        startDate: startDate,
+        letterDate: letterDate,
+        placementDate: placementDate,
+      );
+      
+      ref.read(dataLamaranDataProvider.notifier).updateData(dataLamaranData);
+
+      // Show success dialog
+      NotificationUtils.showSuccessDialog(
+        context,
+        title: 'Simpan Data Lamaran',
+        message: 'Semua data lamaran berhasil disimpan.',
+        onPressed: () => context.pop('saved'), // Return 'saved' to indicate data was saved
+      );
+    } else {
+      // Show validation error
+      NotificationUtils.showError(
+        context,
+        'Mohon lengkapi semua field yang diperlukan.',
+      );
     }
   }
 
@@ -191,9 +257,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go("/home"); // Adjust this route as needed
-          },
+          onPressed: () => Navigator.pop(context, false), // Return false (not completed)
         ),
       ),
       body: SingleChildScrollView(
@@ -270,6 +334,74 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             ),
             const SizedBox(height: 16),
             _buildPrintFilesSection(theme),
+            const SizedBox(height: 30),
+
+            // Tombol Simpan Utama
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.save_outlined,
+                    size: 48,
+                    color: theme.primarySwatch,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Simpan Semua Data Lamaran',
+                    style: theme.typographyRegular.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pastikan semua data telah diisi dengan benar sebelum menyimpan.',
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _saveAllApplicationData,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primarySwatch,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
+                      ),
+                      icon: const Icon(Icons.save, size: 22),
+                      label: Text(
+                        'SIMPAN DATA LAMARAN',
+                        style: theme.typographyRegular.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 30), // Bottom spacing
           ],
         ),
@@ -489,7 +621,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               },
               onSelected: (String selection) {
                 setState(() {
-                  _selectedSubPlacement = selection;
                   _subPlacementController.text = selection; // Update controller
                 });
               },
@@ -512,9 +643,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 textEditingController.clear();
-                                setState(() {
-                                  _selectedSubPlacement = null;
-                                });
                               },
                             )
                             : null,
@@ -607,7 +735,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 ),
                 icon: const Icon(Icons.check_circle_outline, size: 20),
                 label: Text(
-                  'UNTUK PEMENUHAN POSISI BARU',
+                  'SUBMIT POSISI BARU',
                   style: theme.typographyRegular.bodyMedium.copyWith(
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -696,7 +824,10 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
           DropdownButtonFormField<String>(
             decoration: _inputDecoration(theme),
             value: _selectedExistingPosition,
-            hint: const Text('Pilih Posisi yang Sudah Ada'),
+            hint: const Text(
+              'Pilih Posisi',
+              overflow: TextOverflow.ellipsis,
+            ),
             onChanged: (String? newValue) {
               setState(() {
                 _selectedExistingPosition = newValue;
@@ -708,7 +839,13 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 ) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      child: Text(
+                        value,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   );
                 }).toList(),
             validator: (value) {

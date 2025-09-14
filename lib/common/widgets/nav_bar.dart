@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
-
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_page.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/home_page.dart';
 

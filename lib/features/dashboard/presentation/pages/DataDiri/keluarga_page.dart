@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart'
     as dto;
+import 'providers/profile_data_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {
   return [
@@ -65,12 +68,99 @@ class KeluargaPage extends ConsumerStatefulWidget {
 
 class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String _searchQuery = '';
+  
+  // Store original data for change detection
+  late List<dto.FamilyMemberDto> _originalFamilyData;
+  bool _hasLoadedInitialData = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load initial data for change detection
+    if (!_hasLoadedInitialData) {
+      final remote = ref.read(keluargaRemoteProvider);
+      _originalFamilyData = List.from(remote.asData?.value ?? ref.read(familyDataProvider));
+      _hasLoadedInitialData = true;
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    final remote = ref.read(keluargaRemoteProvider);
+    final currentFamilyData = remote.asData?.value ?? ref.read(familyDataProvider);
+    
+    // Ensure we have valid data to compare
+    if (currentFamilyData == null) {
+      print('=== CHECKING KELUARGA UNSAVED CHANGES ===');
+      print('Current family data is null, no changes detected');
+      print('Has changes: false');
+      print('==========================================');
+      return false;
+    }
+    
+    // Debug print untuk melihat perbandingan data
+    print('=== CHECKING KELUARGA UNSAVED CHANGES ===');
+    print('Original data count: ${_originalFamilyData.length}');
+    print('Current data count: ${currentFamilyData.length}');
+    
+    // Compare family data lists
+    if (_originalFamilyData.length != currentFamilyData.length) {
+      print('Different length detected');
+      print('Has changes: true');
+      print('==========================================');
+      return true;
+    }
+    
+    // Check each member for changes
+    for (int i = 0; i < _originalFamilyData.length; i++) {
+      final original = _originalFamilyData[i];
+      final current = currentFamilyData[i];
+      
+      if (original.id != current.id ||
+          original.nama.trim() != current.nama.trim() ||
+          original.hubungan != current.hubungan ||
+          original.tempatLahir.trim() != current.tempatLahir.trim() ||
+          original.tanggalLahir != current.tanggalLahir ||
+          original.jenisKelamin != current.jenisKelamin ||
+          original.pekerjaan.trim() != current.pekerjaan.trim() ||
+          original.tanggalMenikah != current.tanggalMenikah) {
+        
+        print('Changes detected in member ${original.nama}:');
+        print('  Nama: "${original.nama}" vs "${current.nama}"');
+        print('  Hubungan: "${original.hubungan}" vs "${current.hubungan}"');
+        print('  Pekerjaan: "${original.pekerjaan}" vs "${current.pekerjaan}"');
+        print('Has changes: true');
+        print('==========================================');
+        return true;
+      }
+    }
+    
+    print('No changes detected');
+    print('Has changes: false');
+    print('==========================================');
+    return false;
+  }
+
+  // Show unsaved changes dialog
+  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+    final result = await NotificationUtils.showConfirmationDialog(
+      context,
+      title: 'Perubahan Belum Disimpan',
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmButtonText: 'Keluar Tanpa Menyimpan',
+      cancelButtonText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      isDangerous: true,
+    );
+    return result ?? false;
   }
 
   @override
@@ -80,15 +170,14 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     final isTablet = screenWidth > 600;
     // Prefer remote API; fallback to local state
     final remote = ref.watch(keluargaRemoteProvider);
-    final List<dto.FamilyMemberDto> familyMembers =
-        remote.asData?.value ?? ref.watch(familyDataProvider);
-
+    List<dto.FamilyMemberDto> allFamilyMembers = remote.asData?.value ?? ref.watch(familyDataProvider);
+    
     // Real-time Indonesian time (UTC+7)
     final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
 
     // Filter family members based on search
     final filteredMembers =
-        familyMembers.where((member) {
+        allFamilyMembers.where((member) {
           return member.nama.toLowerCase().contains(
                 _searchQuery.toLowerCase(),
               ) ||
@@ -115,75 +204,145 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+          onPressed: () async {
+            // Check if there are unsaved changes
+            if (_hasUnsavedChanges()) {
+              final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+              if (shouldLeave) {
+                // Safe navigation back
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context, false);
+                } else {
+                  context.go('/profile-sections');
+                }
+              }
             } else {
-              context.go('/home');
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context, false);
+              } else {
+                context.go('/profile-sections');
+              }
             }
           },
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
-          vertical: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Info
-            _buildHeaderInfo(theme, currentTime, familyMembers.length),
-            const SizedBox(height: 20),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Info
+              _buildHeaderInfo(theme, currentTime, allFamilyMembers.length),
+              const SizedBox(height: 20),
 
-            // Search Section
-            _buildSearchSection(theme),
-            const SizedBox(height: 20),
+              // Search Section
+              _buildSearchSection(theme),
+              const SizedBox(height: 20),
 
-            // Add Family Member Button
-            _buildAddFamilyButton(theme),
-            const SizedBox(height: 20),
+              // Add Family Member Button
+              _buildAddFamilyButton(theme),
+              const SizedBox(height: 20),
 
-            // Loading/Error banners
-            if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
-            if (remote.hasError)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.4),
+              // Loading/Error banners
+              if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
+              if (remote.hasError)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.4),
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber, color: Colors.orange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Gagal memuat data dari server. Menampilkan data lokal.',
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          color: Colors.orange[900],
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Gagal memuat data dari server. Menampilkan data lokal.',
+                          style: theme.typographyRegular.bodySmall.copyWith(
+                            color: Colors.orange[900],
+                          ),
                         ),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        color: Colors.orange,
+                        onPressed: () => ref.invalidate(keluargaRemoteProvider),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+
+              // Family Data Cards with dummy data filtering
+              FutureBuilder<bool>(
+                future: SharedPreferences.getInstance().then((prefs) => prefs.getBool('family_user_saved') ?? false),
+                builder: (context, snapshot) {
+                  final familyUserSaved = snapshot.data ?? false;
+                  List<dto.FamilyMemberDto> displayMembers = filteredMembers;
+                  
+                  print('=== FAMILY DATA DISPLAY FILTER ===');
+                  print('familyUserSaved: $familyUserSaved');
+                  print('All filtered members: ${filteredMembers.length}');
+                  
+                  // Jika user belum pernah save, filter dummy data
+                  if (!familyUserSaved) {
+                    displayMembers = filteredMembers.where((member) {
+                      bool isDummy = member.nama.contains('RENI GUMILA') || 
+                                   member.nama.contains('ARVIE PRAMATYA') ||
+                                   member.nama.contains('DYLAN PRADIPTA') ||
+                                   member.nama.contains('nadine rafarindya');
+                      return !isDummy;
+                    }).toList();
+                    print('User has not saved - filtered to ${displayMembers.length} non-dummy members');
+                  } else {
+                    print('User has saved - showing all ${displayMembers.length} members');
+                  }
+                  
+                  return _buildFamilyCards(theme, displayMembers);
+                },
+              ),
+
+              const SizedBox(height: 30),
+              
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    print('=== SAVE BUTTON CLICKED ===');
+                    _saveData(context, theme);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primarySwatch,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      color: Colors.orange,
-                      onPressed: () => ref.invalidate(keluargaRemoteProvider),
+                  ),
+                  child: Text(
+                    'SIMPAN',
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
                     ),
-                  ],
+                  ),
                 ),
               ),
-            const SizedBox(height: 12),
 
-            // Family Data Cards
-            _buildFamilyCards(theme, filteredMembers),
-
-            const SizedBox(height: 20), // Bottom spacing
-          ],
+              const SizedBox(height: 20), // Bottom spacing
+            ],
+          ),
         ),
       ),
     );
@@ -721,6 +880,117 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
 
   void _addFamilyMember() {
     context.go('/add-data-keluarga');
+  }
+
+  Future<void> _saveFamilyUserFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('family_user_saved', true);
+      print('Family user saved flag set to true');
+    } catch (e) {
+      print('Error saving family user flag: $e');
+    }
+  }
+
+  void _saveData(BuildContext context, dynamic theme) {
+    if (_formKey.currentState!.validate()) {
+      // Get current family data from the list
+      final familyList = ref.read(familyDataProvider);
+      
+      // Convert family list to KeluargaData format for the global provider
+      String namaAyah = '';
+      String namaIbu = '';
+      String namaPasangan = '';
+      String namaAnak = '';
+      String pekerjaanAyah = '';
+      String pekerjaanIbu = '';
+      String pekerjaanPasangan = '';
+      
+      for (final member in familyList) {
+        switch (member.hubungan) {
+          case 'AYAH':
+            namaAyah = member.nama;
+            pekerjaanAyah = member.pekerjaan;
+            break;
+          case 'IBU':
+            namaIbu = member.nama;
+            pekerjaanIbu = member.pekerjaan;
+            break;
+          case 'ISTRI':
+          case 'SUAMI':
+            namaPasangan = member.nama;
+            pekerjaanPasangan = member.pekerjaan;
+            break;
+          case 'AK': // Anak
+            if (namaAnak.isEmpty) {
+              namaAnak = member.nama;
+            } else {
+              namaAnak += ', ${member.nama}';
+            }
+            break;
+        }
+      }
+      
+      // Save to global provider
+      final keluargaData = KeluargaData(
+        namaAyah: namaAyah,
+        namaIbu: namaIbu,
+        namaPasangan: namaPasangan,
+        namaAnak: namaAnak,
+        pekerjaanAyah: pekerjaanAyah,
+        pekerjaanIbu: pekerjaanIbu,
+        pekerjaanPasangan: pekerjaanPasangan,
+      );
+      
+      ref.read(keluargaDataProvider.notifier).updateData(keluargaData);
+      
+      // Set flag bahwa user telah menyimpan data keluarga
+      _saveFamilyUserFlag();
+      
+      print('=== SAVED KELUARGA DATA ===');
+      print('Ayah: $namaAyah - $pekerjaanAyah');
+      print('Ibu: $namaIbu - $pekerjaanIbu');
+      print('Pasangan: $namaPasangan - $pekerjaanPasangan');
+      print('Anak: $namaAnak');
+      print('============================');
+
+      // Show immediate feedback with SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Data keluarga berhasil disimpan'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      print('=== SHOWING SUCCESS DIALOG ===');
+      // Show success dialog with delay to ensure SnackBar is visible first
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && context.mounted) {
+          NotificationUtils.showSuccessDialog(
+            context,
+            title: 'Simpan Data Keluarga',
+            message: 'Data keluarga berhasil disimpan.',
+            onPressed: () {
+              print('=== SUCCESS DIALOG BUTTON PRESSED ===');
+              
+              // Safe navigation back to previous page
+              if (Navigator.canPop(context)) {
+                print('Using Navigator.pop');
+                Navigator.pop(context, 'saved');
+              } else {
+                print('Using context.go');
+                context.go('/profile-sections');
+              }
+            },
+          );
+          print('=== SUCCESS DIALOG COMPLETED ===');
+        } else {
+          print('=== CONTEXT NOT MOUNTED, SKIPPING DIALOG ===');
+        }
+      });
+    }
   }
 
   void _viewMemberDetail(dto.FamilyMemberDto member) {

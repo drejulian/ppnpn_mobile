@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/lupa_password_page.dart';
@@ -56,7 +55,8 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPer
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_sections_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/tambah_agenda_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/edit_agenda_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/agenda_model.dart';
@@ -120,6 +120,11 @@ GoRouter router(RouterRef ref) {
         path: '/profile',
         name: Routes.profile.name,
         builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: '/profile-sections',
+        name: Routes.profileSections.name,
+        builder: (context, state) => const ProfileSectionsPage(),
       ),
       GoRoute(
         path: '/edit-profile',
@@ -214,7 +219,24 @@ GoRouter router(RouterRef ref) {
         path: '/edit-riwayat-pekerjaan',
         name: Routes.editRiwayatPekerjaan.name,
         builder: (context, state) {
-          final data = state.extra as WorkHistoryData;
+          final extra = state.extra;
+          WorkHistoryData data;
+          
+          if (extra is WorkHistoryData) {
+            data = extra;
+          } else if (extra is Map<String, String>) {
+            // Convert Map to WorkHistoryData
+            data = WorkHistoryData(
+              id: extra['id'] ?? '',
+              position: extra['position'] ?? '',
+              company: extra['company'] ?? '',
+              startYear: extra['startYear'] ?? '',
+              endYear: extra['endYear'] ?? '',
+            );
+          } else {
+            throw Exception('Invalid data type for edit-riwayat-pekerjaan route');
+          }
+          
           return EditDataPekerjaanPage(data: data);
         },
       ),

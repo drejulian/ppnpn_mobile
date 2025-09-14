@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'providers/profile_data_provider.dart';
 
 class DokumenPage extends ConsumerStatefulWidget {
   const DokumenPage({super.key});
@@ -15,6 +17,93 @@ class DokumenPage extends ConsumerStatefulWidget {
 class _DokumenPageState extends ConsumerState<DokumenPage> {
   final Map<String, File?> _uploadedFiles = {};
   final Map<String, bool> _uploading = {};
+  
+  // Backup data for unsaved changes detection
+  Map<String, dynamic> _originalData = {};
+  bool _dataLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    if (!_dataLoaded) {
+      // Load data from provider when page is loaded
+      final savedData = ref.read(dokumenDataProvider);
+      
+      // Update upload status based on saved data
+      if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
+      if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
+      if (savedData.ijazahUploaded) _uploadedFiles['ijazah'] = File('dummy_ijazah.pdf');
+      if (savedData.transkripUploaded) _uploadedFiles['transkrip'] = File('dummy_transkrip.pdf');
+      if (savedData.cvUploaded) _uploadedFiles['cv'] = File('dummy_cv.pdf');
+      if (savedData.suratLamaranUploaded) _uploadedFiles['surat_lamaran'] = File('dummy_surat_lamaran.pdf');
+      if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
+      if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
+      
+      // Backup original data for change detection
+      _originalData = _getCurrentData();
+      _dataLoaded = true;
+      
+      print('=== DOKUMEN PAGE LOADED ===');
+      print('Original data backed up: $_originalData');
+    }
+  }
+  
+  Map<String, dynamic> _getCurrentData() {
+    final dokumenData = ref.read(dokumenDataProvider);
+    return {
+      'cvUploaded': dokumenData.cvUploaded,
+      'ijazahUploaded': dokumenData.ijazahUploaded,
+      'transkripUploaded': dokumenData.transkripUploaded,
+      'ktpUploaded': dokumenData.ktpUploaded,
+      'kkUploaded': dokumenData.kkUploaded,
+      'suratLamaranUploaded': dokumenData.suratLamaranUploaded,
+      'fotoUploaded': dokumenData.fotoUploaded,
+      'sertifikatUploaded': dokumenData.sertifikatUploaded,
+      'uploadedFilesCount': _uploadedFiles.length,
+    };
+  }
+  
+  bool _hasUnsavedChanges() {
+    final currentData = _getCurrentData();
+    bool hasChanges = false;
+    
+    print('=== CHECKING FOR UNSAVED CHANGES ===');
+    print('Original: $_originalData');
+    print('Current: $currentData');
+    
+    // Check each upload status
+    _originalData.forEach((key, value) {
+      if (currentData[key] != value) {
+        print('$key changed: $value -> ${currentData[key]}');
+        hasChanges = true;
+      }
+    });
+    
+    print('Has unsaved changes: $hasChanges');
+    return hasChanges;
+  }
+  
+  void _restoreOriginalData() {
+    print('=== RESTORING ORIGINAL DATA ===');
+    
+    // Clear current uploads
+    _uploadedFiles.clear();
+    
+    // Restore from original provider data (re-read from provider)
+    final savedData = ref.read(dokumenDataProvider);
+    if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
+    if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
+    if (savedData.ijazahUploaded) _uploadedFiles['ijazah'] = File('dummy_ijazah.pdf');
+    if (savedData.transkripUploaded) _uploadedFiles['transkrip'] = File('dummy_transkrip.pdf');
+    if (savedData.cvUploaded) _uploadedFiles['cv'] = File('dummy_cv.pdf');
+    if (savedData.suratLamaranUploaded) _uploadedFiles['surat_lamaran'] = File('dummy_surat_lamaran.pdf');
+    if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
+    if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
+    
+    setState(() {});
+    print('Data restored successfully');
+  }
 
   final List<DocumentItem> _documents = [
     DocumentItem('ktp', 'KTP (ID Card)', true),
@@ -81,6 +170,8 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       // Simulate upload delay
       await Future.delayed(const Duration(seconds: 2));
 
+      print('=== FILE UPLOADED: $documentId ===');
+
       _showSuccessDialog('File berhasil diupload');
     } catch (e) {
       _showErrorDialog('Gagal mengupload file: $e');
@@ -119,23 +210,24 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     final theme = ref.read(themeProvider);
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Upload Berhasil',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.green[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text(
+          'Upload Berhasil',
+          style: theme.typographyRegular.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.green[700],
           ),
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext); // Just close dialog, don't navigate
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -145,43 +237,145 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Document Uploads',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        if (_hasUnsavedChanges()) {
+          print('=== UNSAVED CHANGES DETECTED ON BACK ===');
+          final shouldLeave = await _showUnsavedChangesDialog();
+          if (shouldLeave == true && context.mounted) {
+            Navigator.pop(context, false);
+          }
+        } else {
+          print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
+          if (context.mounted) {
+            Navigator.pop(context, false);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          title: Text(
+            'Document Uploads',
+            style: theme.typographyRegular.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: theme.primarySwatch,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              if (_hasUnsavedChanges()) {
+                print('=== UNSAVED CHANGES DETECTED ON BACK BUTTON ===');
+                final shouldLeave = await _showUnsavedChangesDialog();
+                if (shouldLeave == true && context.mounted) {
+                  Navigator.pop(context, false);
+                }
+              } else {
+                print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
+                Navigator.pop(context, false);
+              }
+            },
           ),
         ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoSection(theme),
+              const SizedBox(height: 20),
+              _buildDocumentSection(theme),
+              const SizedBox(height: 30),
+              
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    print('=== SAVE BUTTON CLICKED ===');
+                    _saveData(context, theme);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primarySwatch,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'SIMPAN',
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
-          vertical: 16.0,
+    );
+  }
+  
+  Future<bool?> _showUnsavedChangesDialog() async {
+    final theme = ref.read(themeProvider);
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Perubahan Belum Disimpan',
+          style: theme.typographyRegular.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.orange[700],
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoSection(theme),
-            const SizedBox(height: 20),
-            _buildDocumentSection(theme),
-          ],
+        content: Text(
+          'Anda memiliki perubahan yang belum disimpan. Apa yang ingin Anda lakukan?',
+          style: theme.typographyRegular.bodyMedium,
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Batal',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              _restoreOriginalData();
+              Navigator.pop(context, true);
+            },
+            child: Text(
+              'Buang Perubahan',
+              style: TextStyle(color: Colors.red[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, false);
+              _saveData(context, theme);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primarySwatch,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Simpan'),
+          ),
+        ],
       ),
     );
   }
@@ -436,6 +630,76 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
         ],
       ),
     );
+  }
+
+  void _saveData(BuildContext context, dynamic theme) {
+    print('=== CALLING _saveData ===');
+    
+    // Save current upload status to provider
+    final currentData = ref.read(dokumenDataProvider);
+    DokumenData newData = currentData.copyWith(
+      cvUploaded: _uploadedFiles.containsKey('cv'),
+      ijazahUploaded: _uploadedFiles.containsKey('ijazah'),
+      transkripUploaded: _uploadedFiles.containsKey('transkrip'),
+      ktpUploaded: _uploadedFiles.containsKey('ktp'),
+      kkUploaded: _uploadedFiles.containsKey('kk'),
+      suratLamaranUploaded: _uploadedFiles.containsKey('surat_lamaran'),
+      fotoUploaded: _uploadedFiles.containsKey('foto'),
+      sertifikatUploaded: _uploadedFiles.containsKey('sertifikat'),
+    );
+    
+    ref.read(dokumenDataProvider.notifier).updateData(newData);
+    
+    print('=== SAVED DOKUMEN DATA ===');
+    print('CV: ${newData.cvUploaded}');
+    print('Ijazah: ${newData.ijazahUploaded}');
+    print('Transkrip: ${newData.transkripUploaded}');
+    print('KTP: ${newData.ktpUploaded}');
+    print('KK: ${newData.kkUploaded}');
+    print('Surat Lamaran: ${newData.suratLamaranUploaded}');
+    print('Foto: ${newData.fotoUploaded}');
+    print('Sertifikat: ${newData.sertifikatUploaded}');
+    print('==========================');
+
+    // Show immediate feedback with SnackBar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ Data dokumen berhasil disimpan'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    print('=== SHOWING SUCCESS DIALOG ===');
+    // Show success dialog with delay to ensure SnackBar is visible first
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && context.mounted) {
+        NotificationUtils.showSuccessDialog(
+          context,
+          title: 'Simpan Data Dokumen',
+          message: 'Data dokumen berhasil disimpan.',
+          onPressed: () {
+            print('=== SUCCESS DIALOG BUTTON PRESSED ===');
+            
+            // Update original data to clear unsaved changes flag
+            _originalData = _getCurrentData();
+            
+            // Safe navigation back to previous page
+            if (Navigator.canPop(context)) {
+              print('Using Navigator.pop');
+              Navigator.pop(context, 'saved');
+            } else {
+              print('Using context.go to profile-sections');
+              context.go('/profile-sections');
+            }
+          },
+        );
+        print('=== SUCCESS DIALOG COMPLETED ===');
+      } else {
+        print('=== CONTEXT NOT MOUNTED, SKIPPING DIALOG ===');
+      }
+    });
   }
 }
 
