@@ -1249,7 +1249,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         Icons.event_busy,
         Colors.orange,
         onTap: () {
-          context.pushNamed(Routes.cuti.name);
+          context.pushNamed(Routes.DaftarCutiPage.name);
         },
       ),
        MenuItemData('izin', Icons.assignment, Colors.blue,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 
 /// Field types for form card components
@@ -1348,6 +1349,639 @@ class AppStatusChip extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A reusable card component for displaying transaction-like items
+/// (izin, reimburse, cuti, etc.) with consistent design
+class TransactionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final DateTime date;
+  final String status;
+  final Color statusColor;
+  final IconData iconData;
+  final List<TransactionChip> chips;
+  final List<TransactionAction> actions;
+  final VoidCallback? onTap;
+
+  const TransactionCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.date,
+    required this.status,
+    required this.statusColor,
+    required this.iconData,
+    required this.chips,
+    required this.actions,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return AppCard(
+      onTap: onTap,
+      leftAccentColor: statusColor,
+      gradient: LinearGradient(
+        colors: [Colors.white, Colors.grey[50]!],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(iconData, color: statusColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle.isNotEmpty 
+                        ? subtitle 
+                        : DateFormat('dd MMMM yyyy', 'id_ID').format(date),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStatusChip(status, statusColor, theme),
+            ],
+          ),
+
+          // Chips Section
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: chips.map((chip) => _buildPillChip(
+                icon: chip.icon,
+                label: chip.label,
+                theme: theme,
+              )).toList(),
+            ),
+          ],
+
+          // Actions Section
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ...actions.map((action) => IconButton(
+                  tooltip: action.tooltip,
+                  icon: Icon(
+                    action.icon,
+                    color: action.isEnabled ? action.color : Colors.grey,
+                  ),
+                  onPressed: action.isEnabled ? action.onPressed : null,
+                )).toList(),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String text, Color color, ThemeData theme) {
+    IconData icon;
+    switch (text) {
+      case 'Disetujui':
+        icon = Icons.check_circle;
+        break;
+      case 'Ditolak':
+        icon = Icons.cancel;
+        break;
+      case 'Menunggu':
+      case 'Menunggu Persetujuan':
+        icon = Icons.hourglass_bottom;
+        break;
+      default:
+        icon = Icons.info;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillChip({
+    required IconData icon,
+    required String label,
+    required ThemeData theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.primaryColor),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Data class for chip items
+class TransactionChip {
+  final IconData icon;
+  final String label;
+
+  const TransactionChip({
+    required this.icon,
+    required this.label,
+  });
+}
+
+/// Data class for action buttons
+class TransactionAction {
+  final String type; // 'edit', 'delete', 'download', etc.
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final bool isEnabled;
+
+  const TransactionAction({
+    required this.type,
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    this.onPressed,
+    this.isEnabled = true,
+  });
+
+  /// Factory constructor for edit action
+  factory TransactionAction.edit({
+    required VoidCallback? onPressed,
+    bool isEnabled = true,
+  }) {
+    return TransactionAction(
+      type: 'edit',
+      icon: Icons.edit,
+      color: isEnabled ? Colors.blue : Colors.grey,
+      tooltip: isEnabled ? 'Edit' : 'Tidak dapat diedit',
+      onPressed: onPressed,
+      isEnabled: isEnabled,
+    );
+  }
+
+  /// Factory constructor for delete action
+  factory TransactionAction.delete({
+    required VoidCallback? onPressed,
+  }) {
+    return TransactionAction(
+      type: 'delete',
+      icon: Icons.delete,
+      color: Colors.redAccent,
+      tooltip: 'Hapus',
+      onPressed: onPressed,
+    );
+  }
+
+  /// Factory constructor for download action
+  factory TransactionAction.download({
+    required VoidCallback? onPressed,
+  }) {
+    return TransactionAction(
+      type: 'download',
+      icon: Icons.download,
+      color: Colors.green,
+      tooltip: 'Download Bukti',
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// Helper class for creating common transaction cards
+class TransactionCardHelper {
+  /// Create card for Izin (Leave)
+  static TransactionCard izin({
+    required Map<String, dynamic> data,
+    VoidCallback? onEdit,
+    VoidCallback? onDownload,
+    VoidCallback? onDetail,
+    bool showEdit = true,
+    bool showDownload = true,
+    bool showDetail = true,
+  }) {
+    // Parse data from map
+    final type = data['type']?.toString() ?? 'Tidak diketahui';
+    final status = data['status']?.toString() ?? 'Menunggu Persetujuan';
+    final duration = data['duration']?.toString() ?? '';
+    final reason = data['reason']?.toString() ?? '';
+    final fileName = data['fileName']?.toString();
+    
+    // Parse date
+    DateTime date = DateTime.now();
+    if (data['date'] != null) {
+      if (data['date'] is DateTime) {
+        date = data['date'] as DateTime;
+      } else {
+        try {
+          date = DateTime.parse(data['date'].toString());
+        } catch (e) {
+          date = DateTime.now();
+        }
+      }
+    }
+    
+    // Get status color
+    Color statusColor = Colors.orange;
+    switch (status) {
+      case 'Disetujui':
+        statusColor = Colors.green;
+        break;
+      case 'Ditolak':
+        statusColor = Colors.red;
+        break;
+      case 'Menunggu Persetujuan':
+      default:
+        statusColor = Colors.orange;
+    }
+
+    return TransactionCard(
+      title: type,
+      subtitle: '',
+      date: date,
+      status: status,
+      statusColor: statusColor,
+      iconData: Icons.event_busy,
+      chips: [
+        TransactionChip(
+          icon: Icons.calendar_today,
+          label: DateFormat('dd MMM yyyy', 'id_ID').format(date),
+        ),
+        TransactionChip(
+          icon: Icons.timelapse,
+          label: duration,
+        ),
+        TransactionChip(
+          icon: Icons.notes,
+          label: reason,
+        ),
+        if (fileName != null)
+          TransactionChip(
+            icon: Icons.attach_file,
+            label: fileName,
+          ),
+      ],
+      actions: [
+        if (showEdit && onEdit != null)
+          TransactionAction.edit(onPressed: onEdit),
+        if (showDownload && onDownload != null)
+          TransactionAction.download(onPressed: onDownload),
+        if (showDetail && onDetail != null)
+          TransactionAction(
+            type: 'detail',
+            icon: Icons.visibility,
+            color: Colors.grey[600]!,
+            tooltip: 'Detail',
+            onPressed: onDetail,
+          ),
+      ],
+    );
+  }
+
+  /// Create card for Reimburse
+  static TransactionCard reimburse({
+    required Map<String, dynamic> data,
+    VoidCallback? onEdit,
+    VoidCallback? onDownload,
+    VoidCallback? onDetail,
+    bool showEdit = true,
+    bool showDownload = true,
+    bool showDetail = true,
+  }) {
+    // Parse data from map
+    final category = data['category']?.toString() ?? 'Tidak diketahui';
+    final status = data['status']?.toString() ?? 'Menunggu Persetujuan';
+    final description = data['description']?.toString();
+    final fileName = data['fileName']?.toString();
+    
+    // Parse date
+    DateTime date = DateTime.now();
+    if (data['date'] != null) {
+      if (data['date'] is DateTime) {
+        date = data['date'] as DateTime;
+      } else {
+        try {
+          date = DateTime.parse(data['date'].toString());
+        } catch (e) {
+          date = DateTime.now();
+        }
+      }
+    }
+    
+    // Format amount
+    String formattedAmount = '';
+    if (data['amount'] != null) {
+      final amount = data['amount'];
+      if (amount is num) {
+        formattedAmount = NumberFormat.currency(
+          locale: 'id_ID',
+          symbol: 'Rp ',
+          decimalDigits: 0,
+        ).format(amount);
+      } else {
+        formattedAmount = amount.toString();
+      }
+    }
+    
+    // Get status color
+    Color statusColor = Colors.orange;
+    switch (status) {
+      case 'Disetujui':
+        statusColor = Colors.green;
+        break;
+      case 'Ditolak':
+        statusColor = Colors.red;
+        break;
+      case 'Menunggu Persetujuan':
+      default:
+        statusColor = Colors.orange;
+    }
+
+    return TransactionCard(
+      title: category,
+      subtitle: '',
+      date: date,
+      status: status,
+      statusColor: statusColor,
+      iconData: Icons.receipt_long,
+      chips: [
+        TransactionChip(
+          icon: Icons.monetization_on,
+          label: formattedAmount,
+        ),
+        TransactionChip(
+          icon: Icons.calendar_today,
+          label: DateFormat('dd MMM yyyy', 'id_ID').format(date),
+        ),
+        if (description != null && description.isNotEmpty)
+          TransactionChip(
+            icon: Icons.description,
+            label: description,
+          ),
+        if (fileName != null)
+          TransactionChip(
+            icon: Icons.attach_file,
+            label: fileName,
+          ),
+      ],
+      actions: [
+        if (showEdit && onEdit != null)
+          TransactionAction.edit(onPressed: onEdit),
+        if (showDownload && onDownload != null)
+          TransactionAction.download(onPressed: onDownload),
+        if (showDetail && onDetail != null)
+          TransactionAction(
+            type: 'detail',
+            icon: Icons.visibility,
+            color: Colors.grey[600]!,
+            tooltip: 'Detail',
+            onPressed: onDetail,
+          ),
+      ],
+    );
+  }
+
+  /// Create card for Cuti (Leave)
+  static TransactionCard cuti({
+    required Map<String, dynamic> data,
+    VoidCallback? onEdit,
+    VoidCallback? onDownload,
+    VoidCallback? onDetail,
+    bool showEdit = true,
+    bool showDownload = true,
+    bool showDetail = true,
+  }) {
+    // Parse data from map
+    final type = data['type']?.toString() ?? 'Tidak diketahui';
+    final status = data['status']?.toString() ?? 'Menunggu Persetujuan';
+    final duration = data['duration']?.toString() ?? '';
+    final reason = data['reason']?.toString() ?? '';
+    final fileName = data['fileName']?.toString();
+    
+    // Parse date
+    DateTime date = DateTime.now();
+    if (data['date'] != null) {
+      if (data['date'] is DateTime) {
+        date = data['date'] as DateTime;
+      } else {
+        try {
+          date = DateTime.parse(data['date'].toString());
+        } catch (e) {
+          date = DateTime.now();
+        }
+      }
+    }
+    
+    // Get status color
+    Color statusColor = Colors.orange;
+    switch (status) {
+      case 'Disetujui':
+        statusColor = Colors.green;
+        break;
+      case 'Ditolak':
+        statusColor = Colors.red;
+        break;
+      case 'Menunggu Persetujuan':
+      default:
+        statusColor = Colors.orange;
+    }
+
+    return TransactionCard(
+      title: type,
+      subtitle: '',
+      date: date,
+      status: status,
+      statusColor: statusColor,
+      iconData: Icons.event_busy,
+      chips: [
+        TransactionChip(
+          icon: Icons.calendar_today,
+          label: DateFormat('dd MMM yyyy', 'id_ID').format(date),
+        ),
+        TransactionChip(
+          icon: Icons.timelapse,
+          label: duration,
+        ),
+        TransactionChip(
+          icon: Icons.notes,
+          label: reason,
+        ),
+        if (fileName != null)
+          TransactionChip(
+            icon: Icons.attach_file,
+            label: fileName,
+          ),
+      ],
+      actions: [
+        if (showEdit && onEdit != null)
+          TransactionAction.edit(onPressed: onEdit),
+        if (showDownload && onDownload != null)
+          TransactionAction.download(onPressed: onDownload),
+        if (showDetail && onDetail != null)
+          TransactionAction(
+            type: 'detail',
+            icon: Icons.visibility,
+            color: Colors.grey[600]!,
+            tooltip: 'Detail',
+            onPressed: onDetail,
+          ),
+      ],
+    );
+  }
+
+  /// Create card for Lembur (Overtime)
+  static TransactionCard lembur({
+    required Map<String, dynamic> data,
+    VoidCallback? onEdit,
+    VoidCallback? onDownload,
+    VoidCallback? onDetail,
+    bool showEdit = true,
+    bool showDownload = true,
+    bool showDetail = true,
+  }) {
+    // Parse data from map
+    final type = data['type']?.toString() ?? 'Tidak diketahui';
+    final status = data['status']?.toString() ?? 'Menunggu Persetujuan';
+    final duration = data['duration']?.toString() ?? '';
+    final reason = data['reason']?.toString() ?? '';
+    final fileName = data['fileName']?.toString();
+    
+    // Parse date
+    DateTime date = DateTime.now();
+    if (data['date'] != null) {
+      if (data['date'] is DateTime) {
+        date = data['date'] as DateTime;
+      } else {
+        try {
+          date = DateTime.parse(data['date'].toString());
+        } catch (e) {
+          date = DateTime.now();
+        }
+      }
+    }
+    
+    // Get status color
+    Color statusColor = Colors.orange;
+    switch (status) {
+      case 'Disetujui':
+        statusColor = Colors.green;
+        break;
+      case 'Ditolak':
+        statusColor = Colors.red;
+        break;
+      case 'Menunggu Persetujuan':
+      default:
+        statusColor = Colors.orange;
+    }
+
+    return TransactionCard(
+      title: type,
+      subtitle: '',
+      date: date,
+      status: status,
+      statusColor: statusColor,
+      iconData: Icons.schedule,
+      chips: [
+        TransactionChip(
+          icon: Icons.calendar_today,
+          label: DateFormat('dd MMM yyyy', 'id_ID').format(date),
+        ),
+        TransactionChip(
+          icon: Icons.timelapse,
+          label: duration,
+        ),
+        TransactionChip(
+          icon: Icons.notes,
+          label: reason,
+        ),
+        if (fileName != null)
+          TransactionChip(
+            icon: Icons.attach_file,
+            label: fileName,
+          ),
+      ],
+      actions: [
+        if (showEdit && onEdit != null)
+          TransactionAction.edit(onPressed: onEdit),
+        if (showDownload && onDownload != null)
+          TransactionAction.download(onPressed: onDownload),
+        if (showDetail && onDetail != null)
+          TransactionAction(
+            type: 'detail',
+            icon: Icons.visibility,
+            color: Colors.grey[600]!,
+            tooltip: 'Detail',
+            onPressed: onDetail,
+          ),
+      ],
     );
   }
 }

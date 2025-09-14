@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
+import 'package:ppnpm_dpr/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/lupa_password_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/data_lamaran_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/dokumen_page.dart';
@@ -19,13 +19,19 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/edit_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/edit_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/tambah_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/edit_reimburse_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/tambah_reimburse_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/daftar_agenda.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/detail_agenda_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/daftar_medsos.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/edit_medsos.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/tambah_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/reimburse.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/izinpage.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/daftar_reimburse_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/daftar_izin_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/daftar_pengajuan_BPJS.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/data_bpjs_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
@@ -46,9 +52,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_pribadi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_tata_naskah.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/daftar_pengajuan_kunker_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/tambah_cuti_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/edit_cuti_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/daftar_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/tambah_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
@@ -62,6 +66,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgend
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/agenda_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
+import '../features/auth/presentation/pages/welcome_page.dart';
 import 'package:ppnpm_dpr/common/widgets/nav_bar.dart';
 import 'routes.dart';
 
@@ -97,14 +102,29 @@ GoRouter router(RouterRef ref) {
         },
       ),
       GoRoute(
+        path: '/welcome',
+        name: Routes.welcome.name,
+        builder: (context, state) => const WelcomePage(),
+      ),
+      GoRoute(
         path: '/login',
         name: Routes.login.name,
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
+        path: '/sign-up',
+        name: Routes.signUp.name,
+        builder: (context, state) => const SignUpPage(),
+      ),
+      GoRoute(
         path: '/lupa-password',
         name: Routes.lupaPassword.name,
         builder: (context, state) => const LupaPasswordPage(),
+      ),
+      GoRoute(
+        path: '/guest',
+        name: Routes.guest.name,
+        builder: (_, __) => const MainLayout(),
       ),
       GoRoute(
         path: '/home',
@@ -305,13 +325,42 @@ GoRouter router(RouterRef ref) {
       GoRoute(
         path: '/izin',
         name: Routes.izin.name,
-        builder: (context, state) => const IzinPage()
+        builder: (context, state) => const DaftarIzinPage(),
       ),
+      GoRoute(
+        path: '/tambah-izin',
+        name: Routes.tambahIzin.name,
+        builder: (context, state) => const TambahIzinPage(),
+      ),
+      GoRoute(
+        path: '/edit-izin',
+        name: Routes.editIzin.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditIzinPage(data: data);
+        },
+      ),
+
+
       GoRoute(
         path: '/reimburse',
         name: Routes.reimbursePage.name,
-        builder: (context, state) => const ReimbursePage()
+        builder: (context, state) => const DaftarReimbursePage(),
       ),
+      GoRoute(
+        path: '/tambah-reimburse',
+        name: Routes.tambahReimburse.name,
+        builder: (context, state) => const TambahReimbursePage(),
+      ),
+      GoRoute(
+        path: '/edit-reimburse',
+        name: Routes.editReimburse.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditReimbursePage(data: data);
+        },
+      ),
+
        GoRoute(
         path: '/ppa',
         name: Routes.ppa.name,
@@ -354,16 +403,16 @@ GoRouter router(RouterRef ref) {
       // Cuti
       GoRoute(
         path: '/cuti',
-        name: Routes.cuti.name,
+        name: Routes.DaftarCutiPage.name,
         builder: (context, state) => const DaftarCutiPage(),
       ),
       GoRoute(
-        path: '/tambahCuti',
+        path: '/tambah-cuti',
         name: Routes.tambahCuti.name,
         builder: (context, state) => const TambahCutiPage(),
       ),
       GoRoute(
-        path: '/editCuti',
+        path: '/edit-cuti',
         name: Routes.editCuti.name,
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>? ?? {};
@@ -377,12 +426,12 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const DaftarLemburPage(),
       ),
       GoRoute(
-        path: '/tambahLembur',
+        path: '/tambah-lembur',
         name: Routes.tambahLembur.name,
         builder: (context, state) => const TambahLemburPage(),
       ),
       GoRoute(
-        path: '/editLembur',
+        path: '/edit-lembur',
         name: Routes.editLembur.name,
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>? ?? {};

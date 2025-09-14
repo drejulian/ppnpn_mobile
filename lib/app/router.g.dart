@@ -6,7 +6,7 @@ part of 'router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$routerHash() => r'6dfa7e6be13b891c34ec2201fc9b203d337c18a9';
+String _$routerHash() => r'cb82fb15fca5cd2749b7cf68097250ce8ff60060';
 
 /// See also [router].
 @ProviderFor(router)
@@ -20,7 +20,7 @@ final routerProvider = Provider<GoRouter>.internal(
 );
 
 typedef RouterRef = ProviderRef<GoRouter>;
-String _$initialRouteHash() => r'd259dc8ed74102d24c446a7346bb02f4949423b3';
+String _$initialRouteHash() => r'09575d2b8730747657f350ae37f9dc7487370457';
 
 /// See also [InitialRoute].
 @ProviderFor(InitialRoute)
