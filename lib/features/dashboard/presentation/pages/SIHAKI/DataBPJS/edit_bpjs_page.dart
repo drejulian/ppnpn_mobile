@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_pengajuan_bpjs.dart' show BPJSData, bpjsDataProvider;
+import 'daftar_pengajuan_BPJS.dart' show BPJSData, bpjsDataProvider;
 
 class EditBpjsPage extends ConsumerStatefulWidget {
   final BPJSData bpjsItem;
