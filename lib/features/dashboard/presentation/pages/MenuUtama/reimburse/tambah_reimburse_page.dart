@@ -153,11 +153,13 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                       if (value == null || value.isEmpty) {
                         return 'Masukkan jumlah pengeluaran';
                       }
-                      final numericValue = value.replaceAll('.', '');
-                      if (double.tryParse(numericValue) == null) {
+                      // Remove all non-numeric characters except decimal point
+                      final numericValue = value.replaceAll(RegExp(r'[^0-9.]'), '');
+                      if (numericValue.isEmpty) {
                         return 'Masukkan angka yang valid';
                       }
-                      if (double.parse(numericValue) <= 0) {
+                      final amount = double.tryParse(numericValue);
+                      if (amount == null || amount <= 0) {
                         return 'Jumlah harus lebih dari 0';
                       }
                       return null;
@@ -300,31 +302,69 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                   onPressed: () {
                     if (!_formKey.currentState!.validate()) return;
 
-                    // Generate ID
-                    final id = 'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-                    
-                    // Create new reimburse data
-                    final newReimburse = {
-                      'id': id,
-                      'category': _kategoriCtrl.text,
-                      'amount': double.parse(_jumlahCtrl.text.replaceAll('.', '')),
-                      'description': _deskripsiCtrl.text,
-                      'date': _selectedDate!,
-                      'status': 'Menunggu Persetujuan',
-                      'fileName': _selectedFile?.name,
-                    };
+                    try {
+                      // Generate ID
+                      final id = 'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+                      
+                      // Parse amount - handle both formatted and unformatted input
+                      String amountText = _jumlahCtrl.text.trim();
+                      if (amountText.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Jumlah harus diisi'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Remove all non-numeric characters except decimal point
+                      final numericValue = amountText.replaceAll(RegExp(r'[^0-9.]'), '');
+                      final amount = double.tryParse(numericValue);
+                      
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Masukkan jumlah yang valid'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Create new reimburse data
+                      final newReimburse = {
+                        'id': id,
+                        'category': _kategoriCtrl.text,
+                        'amount': amount,
+                        'description': _deskripsiCtrl.text,
+                        'date': _selectedDate ?? DateTime.now(),
+                        'status': 'Menunggu Persetujuan',
+                        'fileName': _selectedFile?.name,
+                      };
 
-                    // Add to provider
-                    ref.read(reimburseProvider.notifier).addReimburse(newReimburse);
+                      // Add to provider
+                      ref.read(reimburseProvider.notifier).addReimburse(newReimburse);
+                      
+                      // Debug: Print the new reimburse data
+                      print('New reimburse added: $newReimburse');
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pengajuan reimburse berhasil dikirim'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pengajuan reimburse berhasil dikirim'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
 
-                    context.pop();
+                      context.pop();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primarySwatch,

@@ -38,7 +38,10 @@ class ReimburseNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       ]);
 
   void addReimburse(Map<String, dynamic> reimburse) {
+    print('Adding reimburse to state: $reimburse');
+    print('Current state length before: ${state.length}');
     state = [...state, reimburse];
+    print('Current state length after: ${state.length}');
   }
 
   void updateReimburse(int index, Map<String, dynamic> updatedReimburse) {
@@ -110,12 +113,13 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     );
 
     // Data fields
-    final amount = reimburse['amount'] as int? ?? 0;
+    final amount = reimburse['amount'];
+    final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
     final formattedAmount = NumberFormat.currency(
       locale: 'id',
       symbol: 'Rp ',
       decimalDigits: 0,
-    ).format(amount);
+    ).format(numericAmount);
 
     final dataFields = [
       SIHAKIDialogField(
@@ -283,6 +287,10 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     final theme = ref.watch(themeProvider);
     final filteredList = ref.watch(filteredReimburseProvider);
     final statusFilter = ref.watch(reimburseStatusFilterProvider);
+    
+    // Debug: Print filtered list
+    print('Filtered reimburse list length: ${filteredList.length}');
+    print('Status filter: $statusFilter');
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -400,12 +408,13 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
                     itemBuilder: (context, index) {
                       final reimburse = filteredList[index];
                       final statusColor = _getStatusColor(reimburse['status']);
-                      final amount = reimburse['amount'] as int? ?? 0;
+                      final amount = reimburse['amount'];
+                      final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
                       final formattedAmount = NumberFormat.currency(
                         locale: 'id_ID',
                         symbol: 'Rp ',
                         decimalDigits: 0,
-                      ).format(amount);
+                      ).format(numericAmount);
                       
                       return AppListCard(
                         title: reimburse['category'] ?? 'N/A',
