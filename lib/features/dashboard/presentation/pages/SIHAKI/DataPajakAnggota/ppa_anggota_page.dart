@@ -136,7 +136,7 @@ class _BuktiPotongPajakA2PageState
     final paginatedData = _getPaginatedData(filteredData);
     final totalPages = (filteredData.length / _itemsPerPage).ceil();
 
-    // Check if there are active filters
+
     final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
@@ -163,7 +163,7 @@ class _BuktiPotongPajakA2PageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SIHAKI Header
+   
             SIHAKIPageHeader(
               title: 'PPA Anggota',
               subtitle: 'Bukti Potong Pajak A2',
@@ -205,7 +205,7 @@ class _BuktiPotongPajakA2PageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-            // Search + Filter using AppFilterBar
+        
             AppFilterBar(
               controller: searchController,
               labelText: 'Pencarian PPA Anggota',
@@ -444,7 +444,7 @@ class _BuktiPotongPajakA2PageState
   }
 
   String _formatCurrency(String amount) {
-    // Remove existing dots and parse the number
+ 
     final cleanAmount = amount.replaceAll('.', '');
     final num = int.tryParse(cleanAmount) ?? 0;
     return num.toString().replaceAllMapped(

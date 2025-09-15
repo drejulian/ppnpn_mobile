@@ -108,7 +108,7 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
   void _submitForm() {
     if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
       final newCuti = {
-        // Format baru sesuai dengan TransactionCardHelper
+      
         'id': _generateId(),
         'type': _jenisCtrl.text,
         'date': _awalDate!,
@@ -118,7 +118,7 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
         'statusColor': _getStatusColor('Menunggu Persetujuan'),
         'fileName': _selectedFile?.name,
         
-        // Format lama untuk backward compatibility
+
         'jenis': _jenisCtrl.text,
         'tanggal_awal': _awalCtrl.text,
         'tanggal_akhir': _akhirCtrl.text,

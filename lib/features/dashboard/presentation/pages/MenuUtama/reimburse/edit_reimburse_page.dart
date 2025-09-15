@@ -21,13 +21,13 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
   late final TextEditingController _tanggalCtrl;
   late final TextEditingController _jumlahCtrl;
   late final TextEditingController _deskripsiCtrl;
-  
+
   DateTime? _selectedDate;
   PlatformFile? _selectedFile;
-  
+
   final List<String> _kategoriOptions = [
     'Transport',
-    'Makan', 
+    'Makan',
     'Hotel',
     'Komunikasi',
     'Lainnya',
@@ -65,12 +65,11 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Map kategori dari data ke opsi yang tersedia
     String initialCategory = widget.data['category'] ?? '';
-    // Jika kategori tidak ada dalam opsi, gunakan kategori pertama sebagai default
-    if (!_kategoriOptions.contains(initialCategory) && initialCategory.isNotEmpty) {
-      // Coba mapping beberapa variasi umum
+    if (!_kategoriOptions.contains(initialCategory) &&
+        initialCategory.isNotEmpty) {
       switch (initialCategory.toLowerCase()) {
         case 'transportasi':
           initialCategory = 'Transport';
@@ -79,11 +78,11 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
           initialCategory = 'Hotel';
           break;
         default:
-          initialCategory = ''; // Biarkan kosong agar user memilih
+          initialCategory = '';
       }
     }
     _kategoriCtrl = TextEditingController(text: initialCategory);
-    
+
     // Parse date
     if (widget.data['date'] != null) {
       if (widget.data['date'] is DateTime) {
@@ -92,12 +91,14 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
           text: DateFormat('dd-MM-yyyy').format(_selectedDate!),
         );
       } else {
-        _tanggalCtrl = TextEditingController(text: widget.data['date'].toString());
+        _tanggalCtrl = TextEditingController(
+          text: widget.data['date'].toString(),
+        );
       }
     } else {
       _tanggalCtrl = TextEditingController();
     }
-    
+
     // Parse amount - handle both int and double
     final amount = widget.data['amount'];
     if (amount != null) {
@@ -111,15 +112,14 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
     } else {
       _jumlahCtrl = TextEditingController();
     }
-    
-    _deskripsiCtrl = TextEditingController(text: widget.data['description'] ?? '');
-    
+
+    _deskripsiCtrl = TextEditingController(
+      text: widget.data['description'] ?? '',
+    );
+
     // Handle file
     if (widget.data['fileName'] != null) {
-      _selectedFile = PlatformFile(
-        name: widget.data['fileName'],
-        size: 0,
-      );
+      _selectedFile = PlatformFile(name: widget.data['fileName'], size: 0);
     }
   }
 
@@ -135,9 +135,10 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final String status = (widget.data['status'] ?? 'Menunggu Persetujuan') as String;
+    final String status =
+        (widget.data['status'] ?? 'Menunggu Persetujuan') as String;
     final bool isLocked = status == 'Disetujui';
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -172,11 +173,15 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _statusChip('Status: $status', _statusColor(status), theme),
+                      _statusChip(
+                        'Status: $status',
+                        _statusColor(status),
+                        theme,
+                      ),
                     ],
                   ),
                 ),
-              
+
               if (isLocked)
                 Container(
                   width: double.infinity,
@@ -214,8 +219,16 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                     type: FormFieldType.dropdown,
                     isRequired: true,
                     options: _kategoriOptions,
-                    value: _kategoriOptions.contains(_kategoriCtrl.text) ? _kategoriCtrl.text : null,
-                    onChanged: isLocked ? null : (value) => setState(() => _kategoriCtrl.text = value ?? ''),
+                    value:
+                        _kategoriOptions.contains(_kategoriCtrl.text)
+                            ? _kategoriCtrl.text
+                            : null,
+                    onChanged:
+                        isLocked
+                            ? null
+                            : (value) => setState(
+                              () => _kategoriCtrl.text = value ?? '',
+                            ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Pilih kategori reimburse';
@@ -233,7 +246,9 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                     suffixIcon: Icons.calendar_today,
                     onTap: isLocked ? null : _pickDate,
                     validator: (value) {
-                      if (value == null || value.isEmpty || _selectedDate == null) {
+                      if (value == null ||
+                          value.isEmpty ||
+                          _selectedDate == null) {
                         return 'Pilih tanggal pengeluaran';
                       }
                       return null;
@@ -276,8 +291,7 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                 ],
               ),
               const SizedBox(height: 16),
-              
-              // File Upload Section (matching edit_izin_page style)
+
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -327,7 +341,10 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: isLocked ? Colors.grey[300]! : Colors.grey[300]!,
+                            color:
+                                isLocked
+                                    ? Colors.grey[300]!
+                                    : Colors.grey[300]!,
                             style: BorderStyle.solid,
                             width: 1.0,
                           ),
@@ -338,7 +355,10 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                           children: [
                             Icon(
                               Icons.attach_file,
-                              color: isLocked ? Colors.grey[400] : theme.primarySwatch,
+                              color:
+                                  isLocked
+                                      ? Colors.grey[400]
+                                      : theme.primarySwatch,
                               size: 24,
                             ),
                             const SizedBox(width: 12),
@@ -347,29 +367,50 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _selectedFile?.name ?? widget.data['fileName'] ?? 'Upload file pendukung',
-                                    style: theme.typographyRegular.bodyMedium.copyWith(
-                                      color: (_selectedFile != null || widget.data['fileName'] != null)
-                                          ? (isLocked ? Colors.grey[600] : Colors.grey[800])
-                                          : (isLocked ? Colors.grey[400] : Colors.grey[600]),
-                                      fontWeight: (_selectedFile != null || widget.data['fileName'] != null)
-                                          ? FontWeight.w600 
-                                          : FontWeight.normal,
-                                    ),
+                                    _selectedFile?.name ??
+                                        widget.data['fileName'] ??
+                                        'Upload file pendukung',
+                                    style: theme.typographyRegular.bodyMedium
+                                        .copyWith(
+                                          color:
+                                              (_selectedFile != null ||
+                                                      widget.data['fileName'] !=
+                                                          null)
+                                                  ? (isLocked
+                                                      ? Colors.grey[600]
+                                                      : Colors.grey[800])
+                                                  : (isLocked
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[600]),
+                                          fontWeight:
+                                              (_selectedFile != null ||
+                                                      widget.data['fileName'] !=
+                                                          null)
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
+                                        ),
                                   ),
-                                  if (_selectedFile == null && widget.data['fileName'] == null)
+                                  if (_selectedFile == null &&
+                                      widget.data['fileName'] == null)
                                     Text(
                                       'Format: PDF, JPG, PNG (Max 5MB)',
-                                      style: theme.typographyRegular.bodySmall.copyWith(
-                                        color: isLocked ? Colors.grey[400] : Colors.grey[500],
-                                      ),
+                                      style: theme.typographyRegular.bodySmall
+                                          .copyWith(
+                                            color:
+                                                isLocked
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[500],
+                                          ),
                                     ),
                                 ],
                               ),
                             ),
                             if (_selectedFile != null && !isLocked)
                               IconButton(
-                                icon: const Icon(Icons.clear, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _selectedFile = null;
@@ -400,11 +441,14 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                       isLocked
                           ? null
                           : () {
-                            if (!_formKey.currentState!.validate() || _selectedDate == null) {
+                            if (!_formKey.currentState!.validate() ||
+                                _selectedDate == null) {
                               if (_selectedDate == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Pilih tanggal pengeluaran terlebih dahulu'),
+                                    content: Text(
+                                      'Pilih tanggal pengeluaran terlebih dahulu',
+                                    ),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -412,28 +456,39 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                               return;
                             }
                             final updatedReimburse = {
-                              'id': widget.data['id'], // Keep the original ID
+                              'id': widget.data['id'],
                               'category': _kategoriCtrl.text,
                               'date': _selectedDate!,
-                              'amount': double.parse(_jumlahCtrl.text).toInt(), // Convert to int to match data structure
+                              'amount': double.parse(_jumlahCtrl.text).toInt(),
                               'description': _deskripsiCtrl.text,
-                              'status': 'Menunggu Persetujuan', // Reset status
+                              'status': 'Menunggu Persetujuan',
                               'fileName': _selectedFile?.name,
                             };
-                            
-                            final reimburseList = ref.read(reimburseProvider.notifier);
-                            final index = ref.read(reimburseProvider).indexWhere((item) => item['id'] == widget.data['id']);
+
+                            final reimburseList = ref.read(
+                              reimburseProvider.notifier,
+                            );
+                            final index = ref
+                                .read(reimburseProvider)
+                                .indexWhere(
+                                  (item) => item['id'] == widget.data['id'],
+                                );
                             if (index != -1) {
-                              reimburseList.updateReimburse(index, updatedReimburse);
+                              reimburseList.updateReimburse(
+                                index,
+                                updatedReimburse,
+                              );
                             }
-                            
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Pengajuan reimburse berhasil diperbarui'),
+                                content: Text(
+                                  'Pengajuan reimburse berhasil diperbarui',
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
-                            
+
                             context.pop();
                           },
                   child: Text(

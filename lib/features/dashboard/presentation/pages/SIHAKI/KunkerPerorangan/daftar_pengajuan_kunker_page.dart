@@ -185,7 +185,7 @@ class _DaftarPengajuanKunkerPageState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
+    
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Pengajuan Kunker',
@@ -197,7 +197,7 @@ class _DaftarPengajuanKunkerPageState
             ),
             const SizedBox(height: 16),
 
-            // Add Button with modern styling
+         
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -241,7 +241,7 @@ class _DaftarPengajuanKunkerPageState
             ),
             const SizedBox(height: 20),
 
-            // Header with data count
+
             Row(
               children: [
                 Container(
@@ -594,7 +594,7 @@ class _DaftarPengajuanKunkerPageState
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  // Helper Methods untuk Dialog SIHAKI
+
   void _downloadBuktiTransfer(Map<String, dynamic> kunker) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

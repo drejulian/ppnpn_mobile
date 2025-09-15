@@ -23,7 +23,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with existing data if editing, otherwise empty
+ 
     _positionController = TextEditingController(
       text: widget.workHistoryToEdit?.position ?? '',
     );
@@ -55,9 +55,9 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
       final String endYear = _endYearController.text;
 
       if (widget.workHistoryToEdit == null) {
-        // Add new work history data - ONLY return data, don't update providers
+  
         final newWorkHistory = WorkHistoryData(
-          id: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
           position: position,
           company: company,
           startYear: startYear,
@@ -70,16 +70,13 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Return data to parent page - CRITICAL: Ensure no isDummy flag
         final resultData = {
           'id': newWorkHistory.id,
           'position': newWorkHistory.position,
           'company': newWorkHistory.company,
           'startYear': newWorkHistory.startYear,
           'endYear': newWorkHistory.endYear,
-          // CRITICAL: Explicitly ensure isDummy is NOT set or is false
-          // Don't set isDummy at all since absence = false
+        
         };
         
         print('=== RETURNING ADD DATA TO PARENT ===');
@@ -100,7 +97,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
         
         Navigator.pop(context, returnPayload);
       } else {
-        // Edit existing work history data - ONLY return data, don't update providers
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Data riwayat pekerjaan berhasil diperbarui!'),
@@ -108,15 +105,13 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
           ),
         );
         
-        // Return data to parent page - CRITICAL: Ensure no isDummy flag  
         final resultData = {
           'id': widget.workHistoryToEdit!.id,
           'position': position,
           'company': company,
           'startYear': startYear,
           'endYear': endYear,
-          // CRITICAL: Explicitly ensure isDummy is NOT set or is false
-          // Don't set isDummy at all since absence = false
+   
         };
         
         print('=== RETURNING EDIT DATA TO PARENT ===');
@@ -138,7 +133,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
         Navigator.pop(context, editPayload);
         return;
       }
-      // Don't call context.go here since we're using Navigator.pop with result
+   
     }
   }
 
@@ -280,7 +275,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
     );
   }
 
-  // Kunker-style card container with gradient header
+
   Widget _buildCard(
     dynamic theme, {
     required String title,
@@ -333,7 +328,7 @@ class _WorkHistoryFormPageState extends ConsumerState<AddWorkHistoryPage> {
     );
   }
 
-  // Kunker-style field with left icon and "Wajib diisi" indicator
+ 
   Widget _buildFieldWithIcon(
     String label,
     TextEditingController controller,

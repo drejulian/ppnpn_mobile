@@ -40,7 +40,6 @@ class _DataDokumenAnggotaPageState
     _fileSizes.addAll(_persistentFileSizes);
     _changeLogs.addAll(_persistentChangeLogs);
 
-    // Load saved member name
     if (_persistentMemberName.isNotEmpty) {
       _memberNameController.text = _persistentMemberName;
     }
@@ -163,7 +162,6 @@ class _DataDokumenAnggotaPageState
     dynamic theme,
   ) async {
     if (_formKey.currentState!.validate()) {
-      // Validasi nama anggota wajib diisi jika dalam mode editing
       if (_isEditing && _memberNameController.text.trim().isEmpty) {
         _showErrorDialog('Nama anggota wajib diisi.');
         return;
@@ -313,7 +311,6 @@ class _DataDokumenAnggotaPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Info Section with SIHAKI component
               SIHAKIDataCard(
                 title: 'Informasi Penting',
                 subtitle: 'Petunjuk Upload Dokumen Anggota',
@@ -338,7 +335,6 @@ class _DataDokumenAnggotaPageState
               ),
               const SizedBox(height: 20),
 
-              // Member Name Card using AppFormCard
               AppFormCard(
                 title: 'Data Pribadi Anggota',
                 titleIcon: Icons.person_outline,
@@ -402,7 +398,6 @@ class _DataDokumenAnggotaPageState
               ),
               const SizedBox(height: 16),
 
-              // Document List with modern styling
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(

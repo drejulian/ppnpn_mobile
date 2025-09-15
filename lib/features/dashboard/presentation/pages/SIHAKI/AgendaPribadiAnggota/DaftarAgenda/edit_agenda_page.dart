@@ -118,7 +118,7 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                     ),
                     hintText: 'ID Agenda',
                     type: FormFieldType.text,
-                    enabled: false, // ID tidak bisa diedit
+                    enabled: false,
                     isRequired: false,
                   ),
                   FormFieldConfig(
@@ -223,14 +223,12 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                   print('📋 Updated agenda data: $updatedAgenda');
                   print('🆔 Using ID: $agendaId');
 
-                  // Update using ID (like cuti system)
                   ref
                       .read(agendaDataProvider.notifier)
                       .updateAgenda(agendaId, updatedAgenda);
 
                   print('✅ Update call completed');
 
-                  // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Agenda berhasil diperbarui'),
@@ -239,7 +237,7 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                   );
 
                   print('🏠 Navigating back...');
-                  // Navigate back
+
                   context.pop();
                 },
                 saveButtonText: 'SIMPAN PERUBAHAN',

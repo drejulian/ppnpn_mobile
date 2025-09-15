@@ -26,23 +26,20 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
       TextEditingController();
   final TextEditingController _jumlahAnakController = TextEditingController();
 
-  // Dropdown values
   String _selectedStatusPTKP = 'Kawin (K)';
 
-  // Dropdown options
   final List<String> _statusPTKPOptions = ['Tidak Kawin (TK)', 'Kawin (K)'];
 
   @override
   void initState() {
     super.initState();
-    // Data akan diload dari provider di didChangeDependencies
+
   }
 
-  // Check if there are unsaved changes
+
   bool _hasUnsavedChanges() {
     final savedData = ref.read(honorariumDataProvider);
     
-    // Default values yang diset di controller
     final defaultKK = '1111111111111111';
     final defaultKTP = '0603200310820003';
     final defaultNamaKTP = 'AIRLANGGA EKA WARDHANA 01';
@@ -66,7 +63,7 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
     final expectedJumlahAnak = savedData.jumlahAnak.isNotEmpty ? savedData.jumlahAnak : defaultJumlahAnak;
     final expectedStatusPTKP = savedData.statusPTKP.isNotEmpty ? savedData.statusPTKP : defaultStatusPTKP;
     
-    // Debug print untuk melihat perbandingan data
+
     print('=== CHECKING HONORARIUM UNSAVED CHANGES ===');
     print('Controller KK: "${_kartuKeluargaController.text}" vs Expected: "$expectedKK"');
     print('Controller KTP: "${_ktpController.text}" vs Expected: "$expectedKTP"');
@@ -113,10 +110,9 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Load data from provider when page is loaded
+
     final savedData = ref.read(honorariumDataProvider);
     
-    // Only set data if controllers are empty (not already set)
     if (_kartuKeluargaController.text.isEmpty) {
       _kartuKeluargaController.text = savedData.kartuKeluarga.isNotEmpty 
         ? savedData.kartuKeluarga 
@@ -187,7 +183,6 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
 
-    // Real-time Indonesian time (UTC+7)
     DateTime.now().toUtc().add(const Duration(hours: 7));
 
     return Scaffold(
@@ -206,15 +201,13 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () async {
-            // Check if there are unsaved changes
+
             if (_hasUnsavedChanges()) {
               final shouldLeave = await _showUnsavedChangesDialog(context, theme);
               if (shouldLeave) {
                 Navigator.pop(context, false);
               }
-              // Jika user memilih batal, tidak melakukan apa-apa (tetap di halaman)
             } else {
-              // Tidak ada perubahan, langsung keluar tanpa dialog
               Navigator.pop(context, false);
             }
           },
@@ -228,10 +221,10 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Form Data Honorarium
+            
             _buildFormDataHonorarium(theme),
 
-            const SizedBox(height: 20), // Bottom spacing
+            const SizedBox(height: 20),
           ],
         ),
       ),

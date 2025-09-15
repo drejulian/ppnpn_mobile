@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Notification provider for managing unread notification count
-final notificationProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  return NotificationNotifier();
-});
+final notificationProvider =
+    StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
+      return NotificationNotifier();
+    });
 
 class NotificationState {
   final int unreadCount;
@@ -30,18 +31,22 @@ class NotificationState {
 }
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
-  NotificationNotifier() : super(NotificationState(
-    unreadCount: 4,
-    unreadNotifications: _getInitialUnreadNotifications(),
-    readNotifications: _getInitialReadNotifications(),
-  ));
+  NotificationNotifier()
+    : super(
+        NotificationState(
+          unreadCount: 4,
+          unreadNotifications: _getInitialUnreadNotifications(),
+          readNotifications: _getInitialReadNotifications(),
+        ),
+      );
 
   static List<Map<String, dynamic>> _getInitialUnreadNotifications() {
     return [
       {
         'id': '1',
         'title': 'Pengajuan Cuti Anda Disetujui',
-        'subtitle': 'Cuti tanggal 15-17 September 2025 telah disetujui oleh atasan.',
+        'subtitle':
+            'Cuti tanggal 15-17 September 2025 telah disetujui oleh atasan.',
         'time': '1h ago',
         'hasRedDot': true,
         'icon': 'check_circle',
@@ -59,7 +64,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       {
         'id': '3',
         'title': 'Pengajuan Lembur Ditolak',
-        'subtitle': 'Lembur tanggal 10 September 2025 tidak dapat disetujui. Silakan hubungi HRD untuk informasi lebih lanjut.',
+        'subtitle':
+            'Lembur tanggal 10 September 2025 tidak dapat disetujui. Silakan hubungi HRD untuk informasi lebih lanjut.',
         'time': '3h ago',
         'hasRedDot': true,
         'icon': 'cancel',
@@ -68,7 +74,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       {
         'id': '4',
         'title': 'Pengajuan Reimburse Disetujui',
-        'subtitle': 'Reimburse transport Rp 150.000 telah disetujui dan akan segera diproses.',
+        'subtitle':
+            'Reimburse transport Rp 150.000 telah disetujui dan akan segera diproses.',
         'time': '4h ago',
         'hasRedDot': true,
         'icon': 'attach_money',
@@ -82,7 +89,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       {
         'id': '5',
         'title': 'Reminder: Meeting Tim Marketing',
-        'subtitle': 'Meeting akan dimulai dalam 30 menit di ruang meeting lantai 3.',
+        'subtitle':
+            'Meeting akan dimulai dalam 30 menit di ruang meeting lantai 3.',
         'time': 'Yesterday',
         'hasRedDot': false,
         'icon': 'event',
@@ -101,25 +109,29 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   void markAsRead(String notificationId) {
-    final unreadNotifications = List<Map<String, dynamic>>.from(state.unreadNotifications);
-    final readNotifications = List<Map<String, dynamic>>.from(state.readNotifications);
-    
+    final unreadNotifications = List<Map<String, dynamic>>.from(
+      state.unreadNotifications,
+    );
+    final readNotifications = List<Map<String, dynamic>>.from(
+      state.readNotifications,
+    );
+
     // Find notification in unread list
     final notificationIndex = unreadNotifications.indexWhere(
       (notification) => notification['id'] == notificationId,
     );
-    
+
     if (notificationIndex != -1) {
       // Get the notification
       final notification = unreadNotifications[notificationIndex];
-      
+
       // Update notification status
       notification['hasRedDot'] = false;
-      
+
       // Move from unread to read
       unreadNotifications.removeAt(notificationIndex);
       readNotifications.insert(0, notification); // Add to top of read list
-      
+
       // Update state
       state = state.copyWith(
         unreadCount: unreadNotifications.length,
@@ -130,9 +142,11 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   void addNotification(Map<String, dynamic> notification) {
-    final unreadNotifications = List<Map<String, dynamic>>.from(state.unreadNotifications);
+    final unreadNotifications = List<Map<String, dynamic>>.from(
+      state.unreadNotifications,
+    );
     unreadNotifications.insert(0, notification);
-    
+
     state = state.copyWith(
       unreadCount: unreadNotifications.length,
       unreadNotifications: unreadNotifications,

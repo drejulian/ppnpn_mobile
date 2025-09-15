@@ -17,7 +17,7 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
           'status': 'Menunggu Persetujuan',
           'statusColor': Colors.orange,
           'fileName': null,
-          // Keep old format for backward compatibility
+
           'jenis': 'Cuti Tahunan',
           'tanggal_awal': '12-08-2025',
           'tanggal_akhir': '14-08-2025',
@@ -32,7 +32,7 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
           'status': 'Disetujui',
           'statusColor': Colors.green,
           'fileName': null,
-          // Keep old format for backward compatibility
+      
           'jenis': 'Cuti Sakit',
           'tanggal_awal': '02-07-2025',
           'tanggal_akhir': '04-07-2025',
@@ -40,7 +40,7 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
         },
       ]);
 
-  // Validasi data cuti sebelum menambahkan
+
   String? _validateCutiData(Map<String, dynamic> data) {
     if (data['id'] == null || data['id'].toString().isEmpty) {
       return 'ID cuti wajib diisi';
@@ -60,19 +60,19 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (data['status'] == null || data['status'].toString().isEmpty) {
       return 'Status cuti wajib diisi';
     }
-    // Validasi format tanggal untuk backward compatibility
+
     if (data['tanggal_awal'] == null || data['tanggal_awal'].toString().isEmpty) {
       return 'Tanggal awal wajib diisi';
     }
     if (data['tanggal_akhir'] == null || data['tanggal_akhir'].toString().isEmpty) {
       return 'Tanggal akhir wajib diisi';
     }
-    return null; // Valid
+    return null;
   }
 
-  // Validasi data untuk update - lebih fleksibel
+
   String? _validateUpdateData(Map<String, dynamic> data) {
-    // Hanya validasi field yang ada dan tidak kosong
+
     if (data.containsKey('type') && (data['type'] == null || data['type'].toString().isEmpty)) {
       return 'Jenis cuti tidak boleh kosong';
     }
@@ -85,7 +85,7 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (data.containsKey('alasan') && (data['alasan'] == null || data['alasan'].toString().isEmpty)) {
       return 'Alasan cuti tidak boleh kosong';
     }
-    return null; // Valid
+    return null;
   }
 
   void add(Map<String, dynamic> row) {
@@ -99,24 +99,24 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   void removeAt(int index) => state = [...state]..removeAt(index);
   
   void update(String id, Map<String, dynamic> updated) {
-    print('Attempting to update cuti with id: $id and data: $updated'); // Debug log
+    print('Attempting to update cuti with id: $id and data: $updated');
     final validationError = _validateUpdateData(updated);
     if (validationError != null) {
-      print('Validation error: $validationError'); // Debug log
+      print('Validation error: $validationError');
       throw Exception('Validasi gagal: $validationError');
     }
     
     final i = state.indexWhere((e) => e['id'] == id);
     if (i == -1) {
-      print('Cuti with id $id not found'); // Debug log
+      print('Cuti with id $id not found');
       return;
     }
     
-    print('Found cuti at index $i, updating...'); // Debug log
+    print('Found cuti at index $i, updating...');
     final list = [...state];
     list[i] = {...state[i], ...updated};
     state = list;
-    print('Cuti updated successfully'); // Debug log
+    print('Cuti updated successfully');
   }
 }
 
@@ -136,7 +136,7 @@ final filteredCutiProvider = Provider<List<Map<String, dynamic>>>((ref) {
         (e['type']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['reason']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['id']?.toString().toLowerCase().contains(q) ?? false) ||
-        // Also search in old format for backward compatibility
+      
         (e['jenis']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['alasan']?.toString().toLowerCase().contains(q) ?? false);
     final matchesStatus = status == 'Semua' || e['status'] == status;

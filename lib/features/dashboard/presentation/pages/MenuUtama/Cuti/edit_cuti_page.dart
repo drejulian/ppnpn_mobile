@@ -54,11 +54,11 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
     if (_awalDate == null || _akhirDate == null) {
       return '';
     }
-    
+
     final difference = _akhirDate!.difference(_awalDate!).inDays + 1;
     final awalFormatted = DateFormat('dd MMM').format(_awalDate!);
     final akhirFormatted = DateFormat('dd MMM').format(_akhirDate!);
-    
+
     return '$difference hari ($awalFormatted - $akhirFormatted)';
   }
 
@@ -78,10 +78,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStartDate
-          ? (_awalDate ?? now)
-          : (_akhirDate ?? _awalDate ?? now),
-      firstDate: DateTime(now.year - 1), // Allow past dates for editing
+      initialDate:
+          isStartDate ? (_awalDate ?? now) : (_akhirDate ?? _awalDate ?? now),
+      firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 1),
     );
     if (picked != null) {
@@ -120,11 +119,11 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize controllers with data from both new and old format
-    _jenisCtrl = TextEditingController(text: widget.data['type'] ?? widget.data['jenis'] ?? '');
-    
-    // Handle date initialization - prefer new format (date), fallback to old format (tanggal_awal)
+
+    _jenisCtrl = TextEditingController(
+      text: widget.data['type'] ?? widget.data['jenis'] ?? '',
+    );
+
     final dateData = widget.data['date'];
     if (dateData != null && dateData is DateTime) {
       _awalDate = dateData;
@@ -138,8 +137,7 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
         _awalCtrl = TextEditingController();
       }
     }
-    
-    // Handle end date from old format
+
     final tanggalAkhir = widget.data['tanggal_akhir'];
     if (tanggalAkhir != null && tanggalAkhir.toString().isNotEmpty) {
       _akhirDate = _parseDate(tanggalAkhir.toString());
@@ -147,15 +145,13 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
     } else {
       _akhirCtrl = TextEditingController();
     }
-    
-    // Initialize reason - prefer new format, fallback to old format
-    _alasanCtrl = TextEditingController(text: widget.data['reason'] ?? widget.data['alasan'] ?? '');
-    
-    // Handle file if exists
+
+    _alasanCtrl = TextEditingController(
+      text: widget.data['reason'] ?? widget.data['alasan'] ?? '',
+    );
+
     final fileName = widget.data['fileName'];
-    if (fileName != null) {
-      // Note: We can't recreate PlatformFile from just filename, so we'll show the name but won't have the actual file
-    }
+    if (fileName != null) {}
   }
 
   @override
@@ -172,7 +168,7 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
     final theme = ref.watch(themeProvider);
     final String status = (widget.data['status'] ?? 'Menunggu') as String;
     final bool isLocked = status == 'Disetujui';
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -195,7 +191,6 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
             key: _formKey,
             child: Column(
               children: [
-                // Status chip on top
                 if (status != 'Menunggu Persetujuan')
                   Container(
                     width: double.infinity,
@@ -204,11 +199,15 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _statusChip('Status: $status', _getStatusColor(status), theme),
+                        _statusChip(
+                          'Status: $status',
+                          _getStatusColor(status),
+                          theme,
+                        ),
                       ],
                     ),
                   ),
-                
+
                 if (isLocked)
                   Container(
                     width: double.infinity,
@@ -246,8 +245,15 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       type: FormFieldType.dropdown,
                       isRequired: true,
                       options: _jenisOptions,
-                      value: _jenisOptions.contains(_jenisCtrl.text) ? _jenisCtrl.text : null,
-                      onChanged: isLocked ? null : (value) => setState(() => _jenisCtrl.text = value ?? ''),
+                      value:
+                          _jenisOptions.contains(_jenisCtrl.text)
+                              ? _jenisCtrl.text
+                              : null,
+                      onChanged:
+                          isLocked
+                              ? null
+                              : (value) =>
+                                  setState(() => _jenisCtrl.text = value ?? ''),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Pilih jenis cuti';
@@ -265,7 +271,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: isLocked ? null : () => _pickDate(true),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _awalDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _awalDate == null) {
                           return 'Pilih tanggal mulai cuti';
                         }
                         return null;
@@ -281,7 +289,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: isLocked ? null : () => _pickDate(false),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _akhirDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _akhirDate == null) {
                           return 'Pilih tanggal selesai cuti';
                         }
                         if (_awalDate != null && _akhirDate != null) {
@@ -309,9 +319,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // File Upload Section
                 Container(
                   width: double.infinity,
@@ -362,7 +372,10 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: isLocked ? Colors.grey[300]! : Colors.grey[300]!,
+                              color:
+                                  isLocked
+                                      ? Colors.grey[300]!
+                                      : Colors.grey[300]!,
                               style: BorderStyle.solid,
                               width: 1.0,
                             ),
@@ -373,7 +386,10 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                             children: [
                               Icon(
                                 Icons.attach_file,
-                                color: isLocked ? Colors.grey[400] : theme.primarySwatch,
+                                color:
+                                    isLocked
+                                        ? Colors.grey[400]
+                                        : theme.primarySwatch,
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
@@ -382,29 +398,50 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile?.name ?? widget.data['fileName'] ?? 'Upload file pendukung',
-                                      style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: (_selectedFile != null || widget.data['fileName'] != null)
-                                            ? (isLocked ? Colors.grey[600] : Colors.grey[800])
-                                            : (isLocked ? Colors.grey[400] : Colors.grey[600]),
-                                        fontWeight: (_selectedFile != null || widget.data['fileName'] != null)
-                                            ? FontWeight.w600 
-                                            : FontWeight.normal,
-                                      ),
+                                      _selectedFile?.name ??
+                                          widget.data['fileName'] ??
+                                          'Upload file pendukung',
+                                      style: theme.typographyRegular.bodyMedium
+                                          .copyWith(
+                                            color:
+                                                (_selectedFile != null ||
+                                                        widget.data['fileName'] !=
+                                                            null)
+                                                    ? (isLocked
+                                                        ? Colors.grey[600]
+                                                        : Colors.grey[800])
+                                                    : (isLocked
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[600]),
+                                            fontWeight:
+                                                (_selectedFile != null ||
+                                                        widget.data['fileName'] !=
+                                                            null)
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                          ),
                                     ),
-                                    if (_selectedFile == null && widget.data['fileName'] == null)
+                                    if (_selectedFile == null &&
+                                        widget.data['fileName'] == null)
                                       Text(
                                         'Format: PDF, JPG, PNG (Max 5MB)',
-                                        style: theme.typographyRegular.bodySmall.copyWith(
-                                          color: isLocked ? Colors.grey[400] : Colors.grey[500],
-                                        ),
+                                        style: theme.typographyRegular.bodySmall
+                                            .copyWith(
+                                              color:
+                                                  isLocked
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[500],
+                                            ),
                                       ),
                                   ],
                                 ),
                               ),
                               if (_selectedFile != null && !isLocked)
                                 IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedFile = null;
@@ -418,9 +455,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
@@ -434,18 +471,26 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: isLocked ? null : () {
-                      if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
-                        _submitForm();
-                      } else if (_awalDate == null || _akhirDate == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
+                    onPressed:
+                        isLocked
+                            ? null
+                            : () {
+                              if (_formKey.currentState!.validate() &&
+                                  _awalDate != null &&
+                                  _akhirDate != null) {
+                                _submitForm();
+                              } else if (_awalDate == null ||
+                                  _akhirDate == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Pilih tanggal mulai dan selesai cuti terlebih dahulu',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
                     child: Text(
                       'SIMPAN PERUBAHAN',
                       style: theme.typographyRegular.bodyMedium.copyWith(
@@ -464,7 +509,9 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
   }
 
   void _submitForm() {
-    if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
+    if (_formKey.currentState!.validate() &&
+        _awalDate != null &&
+        _akhirDate != null) {
       final cutiId = widget.data['id'];
       if (cutiId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -486,8 +533,7 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
         'status': currentStatus,
         'statusColor': _getStatusColor(currentStatus),
         'fileName': _selectedFile?.name ?? widget.data['fileName'],
-        
-        // Format lama untuk backward compatibility
+
         'jenis': _jenisCtrl.text,
         'tanggal_awal': _awalCtrl.text,
         'tanggal_akhir': _akhirCtrl.text,

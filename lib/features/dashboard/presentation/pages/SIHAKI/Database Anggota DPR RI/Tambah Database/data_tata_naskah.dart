@@ -17,14 +17,13 @@ class DataTataNaskahPage extends ConsumerStatefulWidget {
 class _DataTataNaskahPageState extends ConsumerState<DataTataNaskahPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Upload file variables
+  // Upload file
   final Map<String, File?> _uploadedFiles = {};
   final Map<String, bool> _uploading = {};
   final Map<String, String> _fileTypes = {};
   final Map<String, String> _fileSizes = {};
   final Map<String, String> _changeLogs = {};
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
   static final Map<String, File?> _persistentFiles = {};
   static final Map<String, String> _persistentFileTypes = {};
   static final Map<String, String> _persistentFileSizes = {};
@@ -132,7 +131,6 @@ class _DataTataNaskahPageState extends ConsumerState<DataTataNaskahPage> {
     });
 
     try {
-      // Simulasi upload dengan delay
       await Future.delayed(const Duration(seconds: 2));
 
       final now = DateTime.now();
@@ -205,7 +203,6 @@ class _DataTataNaskahPageState extends ConsumerState<DataTataNaskahPage> {
     dynamic theme,
   ) async {
     if (_formKey.currentState!.validate()) {
-      // Save uploaded files
       _persistentFiles.addAll(_uploadedFiles);
       _persistentFileTypes.addAll(_fileTypes);
       _persistentFileSizes.addAll(_fileSizes);

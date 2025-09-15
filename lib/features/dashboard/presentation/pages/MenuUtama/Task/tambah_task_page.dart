@@ -439,9 +439,9 @@ class _TambahTaskPageState extends ConsumerState<TambahTaskPage> {
         dueDate: _selectedDate,
         priority: _selectedPriority,
         status: _selectedStatus,
-        assignees: [], // Empty list as we don't use assignees
-        commentsCount: 0, // Default value
-        filesCount: 0, // Default value
+        assignees: [], 
+        commentsCount: 0,
+        filesCount: 0,
         priorityColor: _getPriorityColor(_selectedPriority),
         statusColor: _getStatusColor(_selectedStatus),
       );

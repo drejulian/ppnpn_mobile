@@ -92,7 +92,6 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Load data from provider if available (will override static data) - only once
     _loadDataFromProviderOnce();
   }
 
@@ -104,7 +103,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     final pribadiData = ref.read(pribadiDataProvider);
     
     if (pribadiData.email.isNotEmpty || pribadiData.handphone.isNotEmpty) {
-      // Data exists in provider, use it instead of static data
+
       _tempatLahirController.text = pribadiData.tempatLahir;
       _tanggalLahirController.text = pribadiData.tanggalLahir;
       _addressController.text = pribadiData.address;
@@ -183,7 +182,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     final referenceJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
     final referenceStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
     
-    // Debug print untuk melihat perbandingan data
+
     print('=== CHECKING PRIBADI UNSAVED CHANGES ===');
     print('Status Perkawinan: "$_selectedStatusPerkawinan" vs Expected: "$referenceStatusPerkawinan"');
     print('Agama: "$_selectedAgama" vs Expected: "$referenceAgama"');
@@ -264,9 +263,8 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
               if (shouldLeave) {
                 Navigator.pop(context, false);
               }
-              // Jika user memilih batal, tidak melakukan apa-apa (tetap di halaman)
+
             } else {
-              // Tidak ada perubahan, langsung keluar tanpa dialog
               Navigator.pop(context, false);
             }
           },
@@ -285,7 +283,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
               // Form Data Pribadi
               _buildFormDataPribadi(theme),
 
-              const SizedBox(height: 20), // Bottom spacing
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -1326,7 +1324,7 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
         context,
         title: 'Simpan Data Pribadi',
         message: 'Data pribadi berhasil disimpan.',
-        onPressed: () => Navigator.pop(context, 'saved'), // Return 'saved' to indicate data was saved
+        onPressed: () => Navigator.pop(context, 'saved'),
       );
     }
   }

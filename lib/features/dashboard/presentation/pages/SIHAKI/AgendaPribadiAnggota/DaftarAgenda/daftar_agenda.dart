@@ -160,7 +160,7 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
+         
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Agenda',
@@ -172,7 +172,7 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
             ),
             const SizedBox(height: 16),
 
-            // Add Button with modern styling
+     
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -397,7 +397,6 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
     );
   }
 
-  // Helper Methods untuk Dialog SIHAKI
   void _confirmDelete(Map<String, dynamic> agenda) {
     SIHAKIConfirmationDialog.show(
       context,
@@ -437,7 +436,7 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
         SIHAKIDialogField(label: 'Acara', value: agenda['acara']),
         SIHAKIDialogField(label: 'Tanggal', value: agenda['tanggal']),
         SIHAKIDialogField(label: 'Waktu', value: agenda['waktu']),
-        SIHAKIDialogField(label: '', value: ''), // Spacer
+        SIHAKIDialogField(label: '', value: ''),
         SIHAKIDialogField(label: 'Deskripsi', value: agenda['deskripsi']),
       ],
       actions: [

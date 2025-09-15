@@ -67,9 +67,11 @@ final filteredReimburseProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final status = ref.watch(reimburseStatusFilterProvider);
 
   return list.where((item) {
-    final matchesQuery = query.isEmpty ||
+    final matchesQuery =
+        query.isEmpty ||
         (item['category']?.toString().toLowerCase().contains(query) ?? false) ||
-        (item['description']?.toString().toLowerCase().contains(query) ?? false) ||
+        (item['description']?.toString().toLowerCase().contains(query) ??
+            false) ||
         (item['id']?.toString().toLowerCase().contains(query) ?? false);
     final matchesStatus = status == 'Semua' || item['status'] == status;
     return matchesQuery && matchesStatus;
@@ -80,7 +82,8 @@ class DaftarReimbursePage extends ConsumerStatefulWidget {
   const DaftarReimbursePage({super.key});
 
   @override
-  ConsumerState<DaftarReimbursePage> createState() => _DaftarReimbursePageState();
+  ConsumerState<DaftarReimbursePage> createState() =>
+      _DaftarReimbursePageState();
 }
 
 class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
@@ -96,12 +99,17 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     final theme = ref.read(themeProvider);
     final statusColor = _getStatusColor(reimburse['status']);
     final canEdit = _canEdit(reimburse);
-    
+
     // Validasi kelengkapan data
     final List<String> missingFields = [];
-    if (reimburse['id'] == null || reimburse['id'].toString().isEmpty) missingFields.add('ID');
-    if (reimburse['category'] == null || reimburse['category'].toString().isEmpty) missingFields.add('Kategori');
-    if (reimburse['description'] == null || reimburse['description'].toString().isEmpty) missingFields.add('Deskripsi');
+    if (reimburse['id'] == null || reimburse['id'].toString().isEmpty)
+      missingFields.add('ID');
+    if (reimburse['category'] == null ||
+        reimburse['category'].toString().isEmpty)
+      missingFields.add('Kategori');
+    if (reimburse['description'] == null ||
+        reimburse['description'].toString().isEmpty)
+      missingFields.add('Deskripsi');
     if (reimburse['amount'] == null) missingFields.add('Jumlah');
 
     // Status field untuk header
@@ -114,7 +122,8 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
 
     // Data fields
     final amount = reimburse['amount'];
-    final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
+    final numericAmount =
+        amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
     final formattedAmount = NumberFormat.currency(
       locale: 'id',
       symbol: 'Rp ',
@@ -122,21 +131,18 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     ).format(numericAmount);
 
     final dataFields = [
-      SIHAKIDialogField(
-        label: 'ID Reimburse',
-        value: reimburse['id'] ?? 'N/A',
-      ),
+      SIHAKIDialogField(label: 'ID Reimburse', value: reimburse['id'] ?? 'N/A'),
       SIHAKIDialogField(
         label: 'Kategori',
         value: reimburse['category'] ?? 'N/A',
       ),
-      SIHAKIDialogField(
-        label: 'Jumlah',
-        value: formattedAmount,
-      ),
+      SIHAKIDialogField(label: 'Jumlah', value: formattedAmount),
       SIHAKIDialogField(
         label: 'Tanggal',
-        value: DateFormat('dd MMMM yyyy', 'id_ID').format(reimburse['date'] as DateTime? ?? DateTime.now()),
+        value: DateFormat(
+          'dd MMMM yyyy',
+          'id_ID',
+        ).format(reimburse['date'] as DateTime? ?? DateTime.now()),
       ),
       SIHAKIDialogField(
         label: 'Deskripsi',
@@ -154,7 +160,7 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
 
     // Actions
     final actions = <SIHAKIDialogAction>[];
-    
+
     if (canEdit) {
       actions.addAll([
         SIHAKIDialogAction(
@@ -263,7 +269,9 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
       isDestructive: true,
       onConfirm: () {
         final reimburseList = ref.read(reimburseProvider.notifier);
-        final index = ref.read(reimburseProvider).indexWhere((item) => item['id'] == reimburse['id']);
+        final index = ref
+            .read(reimburseProvider)
+            .indexWhere((item) => item['id'] == reimburse['id']);
         if (index != -1) {
           reimburseList.removeAt(index);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -287,8 +295,8 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     final theme = ref.watch(themeProvider);
     final filteredList = ref.watch(filteredReimburseProvider);
     final statusFilter = ref.watch(reimburseStatusFilterProvider);
-    
-    // Debug: Print filtered list
+
+    // Print filtered list
     print('Filtered reimburse list length: ${filteredList.length}');
     print('Status filter: $statusFilter');
 
@@ -321,11 +329,15 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
                   hintText: 'Masukkan ID, kategori, atau deskripsi reimburse',
                   headerTitle: 'Pencarian & Filter',
                   hasActiveFilters: statusFilter != 'Semua',
-                  onChanged: (value) => ref.read(reimburseSearchProvider.notifier).state = value,
+                  onChanged:
+                      (value) =>
+                          ref.read(reimburseSearchProvider.notifier).state =
+                              value,
                   onReset: () {
                     _searchController.clear();
                     ref.read(reimburseSearchProvider.notifier).state = '';
-                    ref.read(reimburseStatusFilterProvider.notifier).state = 'Semua';
+                    ref.read(reimburseStatusFilterProvider.notifier).state =
+                        'Semua';
                   },
                   filterSection: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,15 +352,31 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
-                        children: ['Semua', 'Menunggu Persetujuan', 'Disetujui', 'Ditolak']
-                            .map((statusOption) => FilterChip(
-                                  label: Text(statusOption),
-                                  selected: statusFilter == statusOption,
-                                  onSelected: (_) => ref.read(reimburseStatusFilterProvider.notifier).state = statusOption,
-                                  selectedColor: theme.primarySwatch.withValues(alpha: 0.2),
-                                  checkmarkColor: theme.primarySwatch,
-                                ))
-                            .toList(),
+                        children:
+                            [
+                                  'Semua',
+                                  'Menunggu Persetujuan',
+                                  'Disetujui',
+                                  'Ditolak',
+                                ]
+                                .map(
+                                  (statusOption) => FilterChip(
+                                    label: Text(statusOption),
+                                    selected: statusFilter == statusOption,
+                                    onSelected:
+                                        (_) =>
+                                            ref
+                                                .read(
+                                                  reimburseStatusFilterProvider
+                                                      .notifier,
+                                                )
+                                                .state = statusOption,
+                                    selectedColor: theme.primarySwatch
+                                        .withValues(alpha: 0.2),
+                                    checkmarkColor: theme.primarySwatch,
+                                  ),
+                                )
+                                .toList(),
                       ),
                     ],
                   ),
@@ -356,7 +384,7 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
               ],
             ),
           ),
-          
+
           // Tambah Reimburse button
           Container(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -385,82 +413,98 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
               ),
             ),
           ),
-          
+
           // List Section
           Expanded(
-            child: filteredList.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long, size: 48, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Tidak ada data reimburse',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      final reimburse = filteredList[index];
-                      final statusColor = _getStatusColor(reimburse['status']);
-                      final amount = reimburse['amount'];
-                      final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
-                      final formattedAmount = NumberFormat.currency(
-                        locale: 'id_ID',
-                        symbol: 'Rp ',
-                        decimalDigits: 0,
-                      ).format(numericAmount);
-                      
-                      return AppListCard(
-                        title: reimburse['category'] ?? 'N/A',
-                        subtitle: reimburse['id'] ?? 'N/A',
-                        leading: CircleAvatar(
-                          backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                          child: Icon(
-                            Icons.receipt,
-                            color: theme.primarySwatch,
-                            size: 20,
+            child:
+                filteredList.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            size: 48,
+                            color: Colors.grey[400],
                           ),
-                        ),
-                        trailing: AppStatusChip(
-                          label: reimburse['status'] ?? 'N/A',
-                          color: statusColor,
-                        ),
-                        chips: [
-                          AppPillChip(
-                            icon: Icons.attach_money,
-                            label: formattedAmount,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak ada data reimburse',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
                           ),
-                          AppPillChip(
-                            icon: Icons.description,
-                            label: reimburse['description'] ?? 'N/A',
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final reimburse = filteredList[index];
+                        final statusColor = _getStatusColor(
+                          reimburse['status'],
+                        );
+                        final amount = reimburse['amount'];
+                        final numericAmount =
+                            amount is int
+                                ? amount.toDouble()
+                                : (amount as double? ?? 0.0);
+                        final formattedAmount = NumberFormat.currency(
+                          locale: 'id_ID',
+                          symbol: 'Rp ',
+                          decimalDigits: 0,
+                        ).format(numericAmount);
+
+                        return AppListCard(
+                          title: reimburse['category'] ?? 'N/A',
+                          subtitle: reimburse['id'] ?? 'N/A',
+                          leading: CircleAvatar(
+                            backgroundColor: theme.primarySwatch.withOpacity(
+                              0.1,
+                            ),
+                            child: Icon(
+                              Icons.receipt,
+                              color: theme.primarySwatch,
+                              size: 20,
+                            ),
                           ),
-                          if (reimburse['fileName'] != null)
+                          trailing: AppStatusChip(
+                            label: reimburse['status'] ?? 'N/A',
+                            color: statusColor,
+                          ),
+                          chips: [
                             AppPillChip(
-                              icon: Icons.attach_file,
-                              label: reimburse['fileName'],
+                              icon: Icons.attach_money,
+                              label: formattedAmount,
                             ),
-                        ],
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.visibility, size: 20),
-                            onPressed: () => _showDetailDialog(reimburse),
-                            tooltip: 'Lihat Detail',
-                            style: IconButton.styleFrom(
-                              backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                              foregroundColor: theme.primarySwatch,
+                            AppPillChip(
+                              icon: Icons.description,
+                              label: reimburse['description'] ?? 'N/A',
                             ),
-                          ),
-                        ],
-                        onTap: () => _showDetailDialog(reimburse),
-                      );
-                    },
-                  ),
+                            if (reimburse['fileName'] != null)
+                              AppPillChip(
+                                icon: Icons.attach_file,
+                                label: reimburse['fileName'],
+                              ),
+                          ],
+                          actions: [
+                            IconButton(
+                              icon: const Icon(Icons.visibility, size: 20),
+                              onPressed: () => _showDetailDialog(reimburse),
+                              tooltip: 'Lihat Detail',
+                              style: IconButton.styleFrom(
+                                backgroundColor: theme.primarySwatch
+                                    .withOpacity(0.1),
+                                foregroundColor: theme.primarySwatch,
+                              ),
+                            ),
+                          ],
+                          onTap: () => _showDetailDialog(reimburse),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

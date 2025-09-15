@@ -40,8 +40,8 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
       initialDate: isStartDate
           ? (_awalDate ?? now)
           : (_akhirDate ?? _awalDate ?? now),
-      firstDate: DateTime(now.year - 1), // Allow past dates for editing
-      lastDate: DateTime(now.year + 1), // Allow future dates up to 1 year
+      firstDate: DateTime(now.year - 1), 
+      lastDate: DateTime(now.year + 1), 
     );
     if (picked != null) {
       setState(() {
@@ -64,7 +64,7 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
-  // Parse date from dd-MM-yyyy format
+ 
   DateTime? _parseDate(String dateString) {
     try {
       final parts = dateString.split('-');
@@ -80,14 +80,14 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
     return null;
   }
 
-  // Parse end date from duration string like "3 hari (14 Sep - 16 Sep)"
+
   DateTime? _parseEndDateFromDuration(String duration, DateTime startDate) {
     try {
-      // Extract the number of days from duration
+
       final daysMatch = RegExp(r'(\d+) hari').firstMatch(duration);
       if (daysMatch != null) {
         final days = int.parse(daysMatch.group(1)!);
-        return startDate.add(Duration(days: days - 1)); // -1 because duration includes the start day
+        return startDate.add(Duration(days: days - 1));
       }
     } catch (e) {
       // Error parsing duration, will return null
@@ -125,16 +125,16 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
     super.initState();
     _jenisCtrl = TextEditingController(text: widget.data['type'] ?? '');
     
-    // Handle date initialization - improved error handling
+
     final dateData = widget.data['date'];
     if (dateData != null && dateData is DateTime) {
       _awalDate = dateData;
       _awalCtrl = TextEditingController(text: _formatDate(dateData));
     } else {
-      // Try to parse from string if it's not DateTime
+     
       try {
         if (dateData != null && dateData.toString().isNotEmpty) {
-          // Assume format is 'dd-MM-yyyy' or similar
+      
           final dateString = dateData.toString();
           final parsedDate = _parseDate(dateString);
           if (parsedDate != null) {
@@ -147,18 +147,18 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
           _awalCtrl = TextEditingController();
         }
       } catch (e) {
-        // Error parsing start date
+      
         _awalCtrl = TextEditingController();
       }
     }
     
-    // Handle end date - extract from duration or use existing field
+
     try {
       final duration = widget.data['duration'];
       final tanggalAkhir = widget.data['tanggal_akhir'] ?? widget.data['endDate'];
       
       if (tanggalAkhir != null && tanggalAkhir.toString().isNotEmpty) {
-        // If we have explicit end date, use it
+     
         if (tanggalAkhir is DateTime) {
           _akhirDate = tanggalAkhir;
           _akhirCtrl = TextEditingController(text: _formatDate(tanggalAkhir));
@@ -172,7 +172,7 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
           }
         }
       } else if (duration != null && duration.toString().isNotEmpty && _awalDate != null) {
-        // Extract end date from duration string
+     
         final parsedEndDate = _parseEndDateFromDuration(duration.toString(), _awalDate!);
         if (parsedEndDate != null) {
           _akhirDate = parsedEndDate;
@@ -184,16 +184,16 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
         _akhirCtrl = TextEditingController();
       }
     } catch (e) {
-      // Error parsing end date
+  
       _akhirCtrl = TextEditingController();
     }
     
     _alasanCtrl = TextEditingController(text: widget.data['reason'] ?? '');
     
-    // Handle file if exists
+    
     final fileName = widget.data['fileName'];
     if (fileName != null) {
-      // Note: We can't recreate PlatformFile from just filename, so we'll show the name but won't have the actual file
+    
     }
   }
 
@@ -486,18 +486,17 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
                           );
                           return;
                         }
-                        
-                        // Get current status and preserve it
+
                         final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
                         final statusColor = _statusColor(currentStatus);
                         
                         final updatedData = {
-                          'id': izinId, // Include ID in update data
+                          'id': izinId,
                           'type': _jenisCtrl.text.trim(),
                           'date': _awalDate!,
                           'duration': _formatDuration(),
                           'reason': _alasanCtrl.text.trim(),
-                          'status': currentStatus, // Preserve existing status
+                          'status': currentStatus,
                           'statusColor': statusColor,
                           'fileName': _selectedFile?.name ?? widget.data['fileName'],
                         };

@@ -20,7 +20,7 @@ class _DataKontakPageState extends ConsumerState<DataKontakPage> {
   String? _hubunganKontak;
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+ 
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -37,7 +37,7 @@ class _DataKontakPageState extends ConsumerState<DataKontakPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+ 
     setState(() {
       _noKontakController.text = _persistentData['noKontak'] ?? '';
       _namaKontakController.text = _persistentData['namaKontak'] ?? '';
@@ -75,7 +75,7 @@ class _DataKontakPageState extends ConsumerState<DataKontakPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
+
       _persistentData['noKontak'] = _noKontakController.text;
       _persistentData['namaKontak'] = _namaKontakController.text;
       _persistentData['hubunganKontak'] = _hubunganKontak!;

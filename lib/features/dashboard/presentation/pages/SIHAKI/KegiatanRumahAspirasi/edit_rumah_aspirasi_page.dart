@@ -53,7 +53,7 @@ class _EditRumahAspirasiPageState extends ConsumerState<EditRumahAspirasiPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with existing data
+
     _tanggalSuratController = TextEditingController(
       text: widget.rumahAspirasiItem['tanggalSurat'],
     );
@@ -133,7 +133,6 @@ class _EditRumahAspirasiPageState extends ConsumerState<EditRumahAspirasiPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ID Display
               AppFormCard(
                 title: 'Informasi Item',
                 titleIcon: Icons.info,
@@ -156,7 +155,6 @@ class _EditRumahAspirasiPageState extends ConsumerState<EditRumahAspirasiPage> {
               ),
               const SizedBox(height: 16),
 
-              // Data Surat Section
               AppFormCard(
                 title: 'Data Surat',
                 titleIcon: Icons.description,
@@ -185,7 +183,6 @@ class _EditRumahAspirasiPageState extends ConsumerState<EditRumahAspirasiPage> {
               ),
               const SizedBox(height: 16),
 
-              // Data Anggota Section
               AppFormCard(
                 title: 'Data Anggota',
                 titleIcon: Icons.person,
@@ -240,7 +237,6 @@ class _EditRumahAspirasiPageState extends ConsumerState<EditRumahAspirasiPage> {
               ),
               const SizedBox(height: 16),
 
-              // Data Bank Section
               AppFormCard(
                 title: 'Data Bank',
                 titleIcon: Icons.account_balance,

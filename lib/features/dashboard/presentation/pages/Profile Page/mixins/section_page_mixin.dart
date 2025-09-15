@@ -5,18 +5,17 @@ import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
 
 mixin SectionPageMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   bool _hasUnsavedChanges = false;
-  
-  // Subclasses harus implement method ini untuk cek apakah ada perubahan
+
   bool hasDataChanged();
   
-  // Method untuk set hasUnsavedChanges dari subclass
+
   void setHasUnsavedChanges(bool value) {
     setState(() {
       _hasUnsavedChanges = value;
     });
   }
   
-  // Method untuk handle back button dengan warning
+  
   Future<bool> handleBackButton() async {
     if (_hasUnsavedChanges || hasDataChanged()) {
       final shouldLeave = await NotificationUtils.showConfirmationDialog(
@@ -29,24 +28,24 @@ mixin SectionPageMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         isDangerous: true,
       );
       if (shouldLeave == true) {
-        context.pop(false); // Return false untuk indicate tidak disimpan
+        context.pop(false); 
         return true;
       }
       return false;
     } else {
-      context.pop(false); // Return false untuk indicate tidak disimpan
+      context.pop(false); 
       return true;
     }
   }
   
-  // Method untuk handle save dengan proper return value
+ 
   void handleSaveSuccess() {
     setState(() {
       _hasUnsavedChanges = false;
     });
-    context.pop('saved'); // Return 'saved' untuk indicate data tersimpan
+    context.pop('saved'); 
   }
   
-  // Getter untuk access hasUnsavedChanges
+ 
   bool get hasUnsavedChanges => _hasUnsavedChanges;
 }

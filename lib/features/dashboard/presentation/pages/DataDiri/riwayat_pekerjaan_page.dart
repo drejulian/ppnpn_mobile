@@ -57,26 +57,24 @@ class WorkHistoryPage extends ConsumerStatefulWidget {
 class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
   final TextEditingController _searchController = TextEditingController();
   
-  // Data user sebenarnya - ini yang disimpan ke storage
+
   List<Map<String, String>> _workHistoryData = [];
   
-  // Backup data for unsaved changes detection
+ 
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
-  bool _freshLoginProcessed = false; // Flag to prevent data reload after fresh login reset
+  bool _freshLoginProcessed = false;
 
   @override
   void initState() {
     super.initState();
     print('=== WORK HISTORY initState CALLED ===');
-    
-    // Check for fresh app restart or fresh login and reset data accordingly
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkFreshAppStartAndReset();
     });
   }
 
-  // Check jika ini fresh app start atau user baru logout-login
   Future<void> _checkFreshAppStartAndReset() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -88,43 +86,40 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
       print('workHistoryUserSaved: $workHistoryUserSaved');
       print('Current _workHistoryData BEFORE check: $_workHistoryData');
       print('Current _workHistoryData.length BEFORE check: ${_workHistoryData.length}');
-      
-      // CRITICAL: SKIP fresh login check in this page to avoid race condition!
-      // Let profile_page.dart handle ALL fresh login logic exclusively
+
       if (isLoggedOut) {
         print('Fresh login detected - but SKIPPING clearing in riwayat_pekerjaan_page');
         print('Profile_page.dart will handle fresh login clearing to avoid race conditions');
         print('Setting fresh login processed flag to prevent data loading');
         
-        // Only set the flag to prevent data loading, don't clear anything
+      
         setState(() {
-          _freshLoginProcessed = true; // Flag to prevent any data loading
+          _freshLoginProcessed = true; 
         });
         
         print('SKIPPED clearing - profile_page.dart is responsible for fresh login clearing');
         return;
       }
       
-      // Jika user belum pernah save dan ini fresh app start, pastikan data kosong
       if (!workHistoryUserSaved) {
         print('User never saved work history and fresh app start - ensuring clean state');
         
-        // Clear any temporary flags that might exist
+
         await prefs.remove('work_history_has_changes');
         await prefs.remove('work_history_just_saved');
         
-        // Reset local state ke kosong
+
         setState(() {
           _workHistoryData = [];
           _dataLoaded = false;
-          _freshLoginProcessed = true; // Prevent reload for users who never saved
+          _freshLoginProcessed = true; 
         });
         
-        // CRITICAL: Clear provider data untuk fresh app start
+
         ref.read(riwayatPekerjaanDataProvider.notifier).updateData(RiwayatPekerjaanData());
         ref.read(workHistoryDataProvider.notifier).state = [];
         
-        // CRITICAL: Clear completion status untuk fresh app start
+    
         final completionNotifier = ref.read(profileCompletionProvider.notifier);
         completionNotifier.markIncomplete('riwayatPekerjaan');
         
@@ -134,8 +129,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         return;
       }
       
-      // Jika user sudah pernah save, tapi ini fresh app start, 
-      // clear unsaved changes flags untuk fresh start
+     
       print('User has saved before, clearing temporary flags for fresh app start');
       await prefs.remove('work_history_has_changes');
       await prefs.remove('work_history_just_saved');
@@ -155,13 +149,13 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
     print('Current _workHistoryData: $_workHistoryData');
     print('_workHistoryData.length: ${_workHistoryData.length}');
     
-    // CRITICAL: Don't load data if fresh login was already processed
+
     if (_freshLoginProcessed) {
       print('Fresh login already processed - skipping data load to preserve reset state');
       return;
     }
     
-    // ABSOLUTE PROTECTION: If we have data, NEVER reload
+
     if (_workHistoryData.isNotEmpty) {
       print('Data exists in memory - ABSOLUTELY preserving it and marking as loaded');
       print('Preserving ${_workHistoryData.length} items: $_workHistoryData');
@@ -171,7 +165,6 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
       return;
     }
     
-    // Only load data on first time when completely empty AND not loaded yet
     if (!_dataLoaded && _workHistoryData.isEmpty) {
       print('First time loading data (completely empty state)...');
       _loadWorkHistoryData();
@@ -189,14 +182,13 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
   Future<void> _loadWorkHistoryData() async {
     print('=== LOADING WORK HISTORY DATA ===');
     
-    // CRITICAL: Don't load if fresh login was processed
+   
     if (_freshLoginProcessed) {
       print('Fresh login processed - aborting data load to preserve reset state');
       return;
     }
     
-    // CRITICAL: Don't load if we already have data in memory
-    // This prevents clearing temporary data that hasn't been saved yet
+
     if (_workHistoryData.isNotEmpty) {
       print('Already have ${_workHistoryData.length} items in memory - aborting load to preserve data');
       print('Existing data: $_workHistoryData');
@@ -209,7 +201,6 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Double check for fresh login flag before loading
       final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
       if (isLoggedOut) {
         print('Found is_logged_out flag during data load - aborting load and calling reset');
@@ -235,7 +226,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
           _workHistoryData = [];
         });
         
-        // Backup original data for change detection
+ 
         _originalData = _getCurrentData();
         
         setState(() {
@@ -245,10 +236,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         print('Starting with empty state for fresh user');
         return;
       }
-      
-      // Jika user sudah pernah save tapi ada flag has_changes dari session sebelumnya,
-      // ini berarti user add data tapi belum save kemudian restart app
-      // Reset ke data yang tersimpan saja (ignore unsaved changes)
+
       if (hasChanges) {
         print('Found leftover has_changes flag from previous session - user added data but didn\'t save before app restart');
         print('Resetting to saved data only (ignoring unsaved changes from previous session)');
@@ -269,11 +257,10 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         for (String jsonStr in workHistoryDataList) {
           try {
             final Map<String, dynamic> workMap = jsonDecode(jsonStr);
-            // CRITICAL: Safe conversion - preserve all data including empty values
+  
             final Map<String, String> workStringMap = workMap.map((key, value) => MapEntry(key, value?.toString() ?? ''));
             loadedData.add(workStringMap);
             
-            // DEBUG: Print what we're loading
             print('Loaded item: $workStringMap');
             print('  - isDummy: ${workStringMap['isDummy']}');
             print('  - ID: ${workStringMap['id']}');
@@ -281,8 +268,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
             print('Error parsing work history item: $e');
           }
         }
-        
-        // Filter out dummy data from loaded data
+  
         final userDataOnly = loadedData.where((item) => 
           item['isDummy'] != 'true' && !(item['id']?.startsWith('dummy') ?? false)
         ).toList();
@@ -293,7 +279,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         print('Loaded ${loadedData.length} total records, ${userDataOnly.length} user records after filtering dummy');
         print('_workHistoryData after loading: $_workHistoryData');
       } else {
-        // Try old format for backward compatibility
+  
         final workHistoryDataJson = prefs.getString('work_history_data');
         print('Trying old format - Data from storage (String): $workHistoryDataJson');
         
@@ -304,7 +290,6 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
                 .map((item) => Map<String, String>.from(item))
                 .toList();
             
-            // Filter out dummy data from loaded data
             final userDataOnly = loadedData.where((item) => 
               item['isDummy'] != 'true' && !(item['id']?.startsWith('dummy') ?? false)
             ).toList();
@@ -313,8 +298,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
               _workHistoryData = userDataOnly;
             });
             print('Loaded ${loadedData.length} total records (old format), ${userDataOnly.length} user records after filtering dummy');
-            
-            // Convert to new format
+      
             await _saveWorkHistoryDataToStorage(userDataOnly, false); // Temporary save, don't set user_saved flag
             print('Converted old format to new StringList format');
           }
@@ -326,10 +310,9 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
         }
       }
       
-      // Backup original data for change detection
+   
       _originalData = _getCurrentData();
-      
-      // Mark data as loaded to prevent unnecessary reloads
+
       setState(() {
         _dataLoaded = true;
       });
@@ -341,7 +324,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
       print('Error loading work history data: $e');
       setState(() {
         _workHistoryData = [];
-        _dataLoaded = true; // Still mark as loaded even on error
+        _dataLoaded = true; 
       });
     }
   }
@@ -350,12 +333,12 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
     try {
       print('=== SAVING TO STORAGE ===');
       
-      // Use provided data or fallback to _workHistoryData
+  
       final dataForSaving = dataToSave ?? _workHistoryData;
       print('Data to save: $dataForSaving');
       print('Data count: ${dataForSaving.length}');
       
-      // DETAILED DEBUG: Print each item to be saved
+  
       for (int i = 0; i < dataForSaving.length; i++) {
         final item = dataForSaving[i];
         print('  Item $i: ${item}');
@@ -367,18 +350,17 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
       
       final prefs = await SharedPreferences.getInstance();
       
-      // Convert to StringList format (each item as separate JSON string)
+  
       final List<String> workHistoryJsonList = dataForSaving
           .map((work) => jsonEncode(work))
           .toList();
       
       print('JSON list to save: $workHistoryJsonList');
       
-      // Save as StringList for consistency with profile page expectation
+    
       await prefs.setStringList('work_history_data', workHistoryJsonList);
       
-      // IMPORTANT: Only set work_history_user_saved flag when explicitly requested
-      // This method is also used for temporary saves (before user clicks Save button)
+      
       if (setUserSavedFlag) {
         await prefs.setBool('work_history_user_saved', true);
         print('Set work_history_user_saved = true (explicit save)');
@@ -389,7 +371,7 @@ class _AddWorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
       print('Work history data saved to storage: ${dataForSaving.length} records');
       print('work_history_user_saved flag set to true');
       
-      // ENHANCED VERIFICATION: Check what's actually in storage
+
       final savedData = prefs.getStringList('work_history_data');
       print('Verification - data in storage: $savedData');
       print('Verification - storage data count: ${savedData?.length ?? 0}');

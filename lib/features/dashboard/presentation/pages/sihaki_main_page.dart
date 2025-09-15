@@ -26,7 +26,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Modern App Bar with gradient
+       
             SliverToBoxAdapter(
               child: Container(
                 margin: EdgeInsets.symmetric(
@@ -36,7 +36,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Enhanced Header Card with glassmorphism effect
+                  
                     HeaderCardComponent(
                       title: 'SIHAKI',
                       subtitle: 'Sistem Informasi Harta Kekayaan',
@@ -107,27 +107,26 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
 
-    if (screenWidth > 1200) return 4; // Large desktop
+    if (screenWidth > 1200) return 4;
     if (screenWidth > 900) {
-      return isLandscape ? 4 : 3; // Tablet landscape/portrait
+      return isLandscape ? 4 : 3; 
     }
-    if (screenWidth > 600) return isLandscape ? 3 : 3; // Tablet
-    return isLandscape ? 3 : 2; // Phone landscape/portrait
+    if (screenWidth > 600) return isLandscape ? 3 : 3; 
+    return isLandscape ? 3 : 2; 
   }
 
   double _getChildAspectRatio(double screenWidth) {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
 
-    if (screenWidth > 1200) return 1.1; // Large desktop
+    if (screenWidth > 1200) return 1.1; 
     if (screenWidth > 900) {
-      return isLandscape ? 0.95 : 1.0; // Tablet landscape/portrait
+      return isLandscape ? 0.95 : 1.0;
     }
-    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95; // Tablet
-    return isLandscape ? 0.8 : 1.0; // Phone landscape/portrait
+    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95; 
+    return isLandscape ? 0.8 : 1.0; 
   }
 
-  // Get modern gradient colors for each menu item
   List<Color> _getModernGradient(int index) {
     final gradients = [
       [const Color(0xFFFF6B6B), const Color(0xFFFF8E8E)], // Red gradient
@@ -203,7 +202,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
               Colors.orange,
               onTap: () {
                 // Navigate to Agenda List page
-                debugPrint('Navigating to Daftar Agenda'); //
+                debugPrint('Navigating to Daftar Agenda');
                 Navigator.pop(context);
                 context.pushNamed(Routes.daftarAgenda.name);
               },
@@ -235,7 +234,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
               Colors.blue,
               onTap: () {
                 // Navigate to SKP Anggota page
-                debugPrint('Navigating to Anggota SKP'); //
+                debugPrint('Navigating to Anggota SKP');
                 Navigator.pop(context);
                 context.pushNamed(Routes.skpAnggota.name);
               },
@@ -246,7 +245,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
               Colors.green,
               onTap: () {
                 // Navigate to Final Tax Withholding Slip Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak Final'); //
+                debugPrint('Navigating to Anggota Bukti Potong Pajak Final');
                 Navigator.pop(context);
                 context.pushNamed(Routes.ppfAnggota.name);
               },
@@ -257,7 +256,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
               Colors.red,
               onTap: () {
                 // Navigate to Tax Withholding Slip A2 Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak A2'); //
+                debugPrint('Navigating to Anggota Bukti Potong Pajak A2');
                 Navigator.pop(context);
                 context.pushNamed(Routes.ppaAnggota.name);
               },
@@ -279,7 +278,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
         Icons.flight,
         Colors.lime,
         onTap: () {
-          debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan'); //
+          debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan');
           context.pushNamed(Routes.kunkerPerorangan.name);
         },
       ),
@@ -288,7 +287,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
         Icons.fingerprint,
         Colors.grey,
         onTap: () {
-          debugPrint('👍 Navigating to Data SIGOTA - KANJENK'); //
+          debugPrint('👍 Navigating to Data SIGOTA - KANJENK');
           // context.pushNamed(Routes.dataSigotaKanjek.name);
         },
       ),
@@ -297,7 +296,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
         Icons.article,
         Colors.purpleAccent,
         onTap: () {
-          debugPrint('📄 Navigating to Dokumen Anggota'); //
+          debugPrint('📄 Navigating to Dokumen Anggota');
           context.pushNamed(Routes.dataDokumenAnggota.name);
         },
       ),
@@ -306,7 +305,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
         Icons.home,
         Colors.tealAccent,
         onTap: () {
-          debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi'); //
+          debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi');
           context.pushNamed(Routes.daftarPengajuanRumahAspirasi.name);
         },
       ),
@@ -315,7 +314,7 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
         Icons.local_hospital,
         Colors.lightGreen,
         onTap: () {
-          debugPrint('🏥 Navigating to BPJS'); //
+          debugPrint('🏥 Navigating to BPJS');
           context.pushNamed(Routes.dataBPJS.name);
         },
       ),

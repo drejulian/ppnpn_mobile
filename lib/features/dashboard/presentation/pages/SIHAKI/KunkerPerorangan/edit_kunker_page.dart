@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'daftar_pengajuan_kunker_page.dart'
-    show kunkerDataProvider; // for CRUD update
+import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
 
 class EditKunkerPeroranganPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> kunkerData;
@@ -72,13 +71,12 @@ class _EditKunkerPeroranganPageState
   ];
   final List<String> _statusPencairanOptions = ['-', 'Disetujui', 'Ditolak'];
 
-  // Helper to coerce any incoming string into one of the allowed options
   String _coerceOption(String? raw, List<String> allowed, String fallback) {
     if (raw == null) return fallback;
     final v = raw.toString().trim();
-    // Exact match
+
     if (allowed.contains(v)) return v;
-    // Case-insensitive match
+
     final ci = allowed.firstWhere(
       (o) => o.toLowerCase() == v.toLowerCase(),
       orElse: () => '',
@@ -91,7 +89,6 @@ class _EditKunkerPeroranganPageState
   void initState() {
     super.initState();
 
-    // Map existing data or defaults
     _noSuratController = TextEditingController(
       text: widget.kunkerData['no_surat'] ?? '',
     );
@@ -595,7 +592,6 @@ class _EditKunkerPeroranganPageState
 
               const SizedBox(height: 16),
 
-              // Status is admin-controlled; editable card removed.
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -625,7 +621,6 @@ class _EditKunkerPeroranganPageState
     );
   }
 
-  // UI helpers
   Widget _buildStatusRow(dynamic theme) {
     Color pengajuanColor =
         _statusPengajuan == 'Konfirmasi' ? Colors.green : Colors.orange;
@@ -1081,7 +1076,6 @@ class _EditKunkerPeroranganPageState
   void _saveChanges() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // Build updated map (preserve no_surat as identifier)
     final updated = <String, dynamic>{
       'no_surat': _noSuratController.text.trim(),
       'jenis_perjadin': _selectedJenisPerjadin,

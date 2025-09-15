@@ -25,7 +25,7 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
   final _namaRekeningController = TextEditingController();
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+  
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -35,7 +35,7 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+
     setState(() {
       _namaController.text = _persistentData['nama'] ?? '';
       _noAnggotaController.text = _persistentData['noAnggota'] ?? '';
@@ -105,7 +105,7 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
+   
       _persistentData['nama'] = _namaController.text;
       _persistentData['noAnggota'] = _noAnggotaController.text;
       _persistentData['fraksi'] = _fraksiController.text;

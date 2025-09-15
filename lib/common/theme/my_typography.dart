@@ -9,7 +9,7 @@ class MyTypography {
     required this.bodyMedium,
     required this.bodySmall,
     required this.bodyExtraSmall,
-    required this.titleMedium, // Add this to the constructor
+    required this.titleMedium,
   });
 
   final TextStyle headingLarge;
@@ -26,5 +26,5 @@ class MyTypography {
 
   final TextStyle bodyExtraSmall;
 
-  final TextStyle titleMedium; // Define it as a final TextStyle
+  final TextStyle titleMedium;
 }

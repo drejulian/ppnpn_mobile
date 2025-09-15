@@ -53,11 +53,10 @@ class _EditDataPendidikanPageState
       text: widget.educationToEdit?['kota'] ?? '',
     );
 
-    // Extract years from both individual fields or from the combined display
+ 
     String? tahunMulai = widget.educationToEdit?['tahun_mulai'];
     String? tahunSelesai = widget.educationToEdit?['tahun_selesai'];
 
-    // If individual year fields are not available, try to parse from combined 'tahun'
     if ((tahunMulai == null || tahunSelesai == null) &&
         widget.educationToEdit?['tahun'] != null) {
       final parts = widget.educationToEdit?['tahun']?.split('-');
@@ -115,15 +114,12 @@ class _EditDataPendidikanPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section (like in tambah_data_pendidikan_page.dart)
               _buildHeaderSection(theme),
               const SizedBox(height: 24),
 
-              // Form Section (like in tambah_data_pendidikan_page.dart)
               _buildFormSection(theme),
               const SizedBox(height: 32),
 
-              // Save Button
               _buildSaveButton(theme),
               const SizedBox(height: 20),
             ],
@@ -205,7 +201,7 @@ class _EditDataPendidikanPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Jenis Pendidikan Dropdown
+          // Jenis Pendidikan
           _buildDropdownField(
             theme,
             label: 'Jenis Pendidikan',
@@ -256,7 +252,7 @@ class _EditDataPendidikanPageState
           ),
           const SizedBox(height: 20),
 
-          // Tahun Mulai (Start Year)
+          // Tahun Mulai
           _buildTextFormField(
             theme,
             controller: _tahunMulaiController,
@@ -265,7 +261,7 @@ class _EditDataPendidikanPageState
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+              LengthLimitingTextInputFormatter(4),
             ],
             validator: (value) {
               if (value?.isEmpty == true) return 'Tahun mulai wajib diisi';
@@ -279,7 +275,7 @@ class _EditDataPendidikanPageState
           ),
           const SizedBox(height: 20),
 
-          // Tahun Selesai (End Year)
+          // Tahun Selesai
           _buildTextFormField(
             theme,
             controller: _tahunSelesaiController,
@@ -288,13 +284,12 @@ class _EditDataPendidikanPageState
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+              LengthLimitingTextInputFormatter(4),
             ],
             validator: (value) {
               if (value?.isEmpty == true) return 'Tahun selesai wajib diisi';
               if (value!.length != 4) return 'Format tahun harus 4 digit';
 
-              // Compare with start year if both are filled
               if (_tahunMulaiController.text.isNotEmpty) {
                 final startYear = int.tryParse(_tahunMulaiController.text);
                 final endYear = int.tryParse(value);
@@ -501,7 +496,7 @@ class _EditDataPendidikanPageState
     setState(() => _isLoading = true);
 
     try {
-      // Simulate API call
+
       await Future.delayed(const Duration(milliseconds: 500));
 
       final tahunMulai = _tahunMulaiController.text.trim();
@@ -517,9 +512,9 @@ class _EditDataPendidikanPageState
         'kota': _kotaController.text.trim().toUpperCase(),
         'tahun_mulai': tahunMulai,
         'tahun_selesai': tahunSelesai,
-        // Add formatted display string for the cards
+
         'tahun': '$tahunMulai - $tahunSelesai',
-        // Ensure it's marked as user data, not dummy
+
         'isDummy': 'false',
       };
 
@@ -530,7 +525,6 @@ class _EditDataPendidikanPageState
         ),
       );
 
-      // Return to pendidikan page with updated data
       Navigator.pop(context, {'action': 'edit', 'data': updated});
     } catch (e) {
       if (mounted) {

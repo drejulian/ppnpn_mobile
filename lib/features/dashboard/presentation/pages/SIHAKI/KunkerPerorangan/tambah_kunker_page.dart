@@ -16,7 +16,6 @@ class _TambahKunkerPeroranganPageState
     extends ConsumerState<TambahKunkerPeroranganPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers and fields
   // Informasi Surat
   final _noSuratController = TextEditingController();
   String _selectedJenisPerjadin = 'Dapil 8x setahun';
@@ -126,7 +125,6 @@ class _TambahKunkerPeroranganPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // No status chips on Add page (status controlled by admin)
               _buildCard(
                 theme,
                 title: 'Informasi Surat',
@@ -328,7 +326,7 @@ class _TambahKunkerPeroranganPageState
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
                         final value = (v ?? '').trim();
-                        if (value.isEmpty) return null; // optional
+                        if (value.isEmpty) return null;
                         final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                         if (!emailRegex.hasMatch(value)) {
                           return 'Format email tidak valid';
@@ -416,7 +414,6 @@ class _TambahKunkerPeroranganPageState
                 ),
               ),
 
-              // Status card removed (status is controlled by admin; user can only view at the top)
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -581,7 +578,6 @@ class _TambahKunkerPeroranganPageState
                     if (validator != null) return validator(v);
                     if (label == 'No. Surat' &&
                         (v == null || v.trim().isEmpty)) {
-                      // Backward-compat default
                       return 'No. Surat wajib diisi';
                     }
                     return null;
@@ -622,8 +618,6 @@ class _TambahKunkerPeroranganPageState
       ),
     );
   }
-
-  // No _buildStatusRow on Add page
 
   Widget _buildDateField(
     String label,
@@ -848,7 +842,6 @@ class _TambahKunkerPeroranganPageState
 
   Map<String, dynamic> _collectFormData() {
     return {
-      // Minimal keys used by the list
       'no_surat': _noSuratController.text.trim(),
       'jenis_perjadin': _selectedJenisPerjadin,
       'tanggal_surat': _tanggalSuratController.text.trim(),
@@ -861,7 +854,6 @@ class _TambahKunkerPeroranganPageState
       'status_pengajuan': 'Menunggu Konfirmasi',
       'status_pencairan': '-',
 
-      // Additional fields
       'masa_persidangan': _masaPersidangan,
       'tahun_sidang': _tahunSidangController.text.trim(),
       'no_anggota': _noAnggotaController.text.trim(),

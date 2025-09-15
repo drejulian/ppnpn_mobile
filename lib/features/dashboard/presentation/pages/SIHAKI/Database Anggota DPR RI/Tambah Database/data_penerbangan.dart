@@ -21,7 +21,7 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
   final _kelasPenerbanganController = TextEditingController();
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -31,7 +31,7 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+
     setState(() {
       _nomorPassportController.text = _persistentData['nomorPassport'] ?? '';
       _bandaraPreferensiController.text =
@@ -90,7 +90,6 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
       _persistentData['nomorPassport'] = _nomorPassportController.text;
       _persistentData['bandaraPreferensi'] = _bandaraPreferensiController.text;
       _persistentData['maskapaiPreferensi'] =
