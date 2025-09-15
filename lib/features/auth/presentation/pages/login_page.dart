@@ -675,16 +675,129 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         const SizedBox(height: 16),
 
+        // Sign up button
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: ElevatedButton(
+            onPressed: () {
+              context.pushNamed(Routes.signUp.name);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primarySwatch,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.person_add,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Daftar Akun Baru',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
         SizedBox(
           width: double.infinity,
           height: 46,
           child: OutlinedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fitur login tamu akan segera tersedia'),
-                  backgroundColor: Colors.orange,
-                ),
+              // Navigate to guest mode
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    title: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue[600],
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Akses Tamu'),
+                      ],
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Dengan akses tamu, Anda dapat:',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '• Melihat informasi umum aplikasi\n'
+                          '• Mengakses fitur terbatas\n'
+                          '• Tidak dapat mengajukan permohonan',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning_amber, 
+                                   color: Colors.orange[600], size: 16),
+                              const SizedBox(width: 6),
+                              const Expanded(
+                                child: Text(
+                                  'Login untuk akses penuh',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Batal'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          context.pushReplacementNamed(Routes.guest.name);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Lanjutkan'),
+                      ),
+                    ],
+                  );
+                },
               );
             },
             style: OutlinedButton.styleFrom(

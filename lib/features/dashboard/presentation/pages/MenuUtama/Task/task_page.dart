@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/theme/my_theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'task_data.dart';
 import 'edit_task_page.dart';
 import 'tambah_task_page.dart';
@@ -87,9 +88,9 @@ class _TaskPageState extends ConsumerState<TaskPage> {
             const SizedBox(width: 12),
             Text(
               'Task List',
-              style: theme.typographyRegular.headingSmall.copyWith(
+              style: theme.typographyBold.bodyMedium.copyWith(
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
+                fontSize: 18,
               ),
             ),
           ],
@@ -121,26 +122,41 @@ class _TaskPageState extends ConsumerState<TaskPage> {
   Widget _buildAddTaskButton(MyTheme theme) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _showAddTaskDialog(context),
-          icon: const Icon(Icons.add_circle, size: 20),
-          label: Text(
-            'TAMBAH TASK BARU',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            theme.primarySwatch,
+            theme.primarySwatch.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primarySwatch.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: theme.primarySwatch,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 2,
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => _showAddTaskDialog(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: const Icon(Icons.add_circle_rounded, size: 22),
+        label: Text(
+          'TAMBAH TASK BARU',
+          style: theme.typographyBold.bodyMedium.copyWith(
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -226,374 +242,167 @@ class _TaskPageState extends ConsumerState<TaskPage> {
   }
 
   Widget _buildTaskCard(TaskData task, MyTheme theme) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _getStatusBorderColor(task.status),
-          width: 1,
+    return AppListCard(
+      onTap: () => _showTaskDetailDialog(context, task),
+      leftAccentColor: _getStatusBorderColor(task.status),
+      title: task.title,
+      subtitle: task.description,
+      trailing: AppStatusChip(
+        label: task.status,
+        color: task.statusColor,
+        icon: _getStatusIcon(task.status),
+      ),
+      chips: [
+        AppPillChip(
+          icon: Icons.flag,
+          label: task.priority,
+          color: task.priorityColor,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with title and options
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: theme.typographyRegular.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey[900],
-                    height: 1.3,
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: () => _showTaskOptions(context, task),
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.more_vert,
-                    color: Colors.grey[500],
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Description
-          if (task.description.isNotEmpty) ...[
-            Text(
-              task.description,
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                color: Colors.grey[600],
-                height: 1.4,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-          ],
-          
-          // Priority and Due Date
-          Row(
-            children: [
-              _buildModernBadge(task.priority, task.priorityColor, theme),
-              const Spacer(),
-              Row(
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: Colors.grey[500],
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    DateFormat('dd MMM yyyy').format(task.dueDate),
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Status badge at bottom
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _buildStatusBadge(task.status, task.statusColor, theme),
-          ),
-        ],
-      ),
+        AppPillChip(
+          icon: Icons.schedule,
+          label: DateFormat('dd MMM yyyy').format(task.dueDate),
+          color: Colors.grey[600]!,
+        ),
+      ],
     );
   }
 
-  Widget _buildModernBadge(String text, Color color, MyTheme theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        text,
-        style: theme.typographyRegular.bodySmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(String status, Color color, MyTheme theme) {
-    IconData icon;
+  IconData _getStatusIcon(String status) {
     switch (status) {
       case 'Complete':
-        icon = Icons.check_circle;
-        break;
+        return Icons.check_circle;
       case 'In Review':
-        icon = Icons.visibility;
-        break;
+        return Icons.visibility;
       case 'To Do':
-        icon = Icons.radio_button_unchecked;
-        break;
+        return Icons.radio_button_unchecked;
       default:
-        icon = Icons.radio_button_unchecked;
+        return Icons.radio_button_unchecked;
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            status,
-            style: theme.typographyRegular.bodySmall.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Color _getStatusBorderColor(String status) {
     switch (status) {
       case 'Complete':
-        return Colors.green.withOpacity(0.3);
+        return Colors.green;
       case 'To Do':
-        return Colors.blue.withOpacity(0.3);
+        return Colors.blue;
       case 'In Review':
-        return Colors.orange.withOpacity(0.3);
+        return Colors.orange;
       default:
-        return Colors.grey.withOpacity(0.2);
+        return Colors.grey;
     }
   }
 
-  void _showTaskOptions(BuildContext context, TaskData task) {
-    final theme = ref.watch(themeProvider);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Task Options',
-                style: theme.typographyRegular.headingSmall.copyWith(
-                  color: theme.primarySwatch.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildOptionTile(
-                icon: Icons.edit_outlined,
-                title: 'Edit Task',
-                subtitle: 'Modify task details',
-                onTap: () async {
-                  Navigator.pop(context);
-                  final updatedTask = await Navigator.push<TaskData>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditTaskPage(
-                        taskData: task,
-                        onTaskUpdated: (updatedTask) {
-                          setState(() {
-                            final index = _tasks.indexWhere((t) => 
-                              t.title == task.title && 
-                              t.dueDate == task.dueDate
-                            );
-                            if (index != -1) {
-                              _tasks[index] = updatedTask;
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                  
-                  if (updatedTask != null) {
-                    setState(() {
-                      final index = _tasks.indexWhere((t) => 
-                        t.title == task.title && 
-                        t.dueDate == task.dueDate
-                      );
-                      if (index != -1) {
-                        _tasks[index] = updatedTask;
-                      }
-                    });
-                  }
-                },
-                theme: theme,
-              ),
-              const SizedBox(height: 8),
-              _buildOptionTile(
-                icon: Icons.delete_outline,
-                title: 'Delete Task',
-                subtitle: 'Remove this task',
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteTask(task);
-                },
-                theme: theme,
-                isDestructive: true,
-              ),
-              const SizedBox(height: 8),
-              _buildOptionTile(
-                icon: Icons.share_outlined,
-                title: 'Share Task',
-                subtitle: 'Send task details',
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: Share task
-                },
-                theme: theme,
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+  void _editTask(TaskData task) async {
+    final updatedTask = await Navigator.push<TaskData>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTaskPage(
+          taskData: task,
+          onTaskUpdated: (updatedTask) {
+            setState(() {
+              final index = _tasks.indexWhere((t) => 
+                t.title == task.title && 
+                t.dueDate == task.dueDate
+              );
+              if (index != -1) {
+                _tasks[index] = updatedTask;
+              }
+            });
+          },
+        ),
+      ),
+    );
+    
+    if (updatedTask != null) {
+      setState(() {
+        final index = _tasks.indexWhere((t) => 
+          t.title == task.title && 
+          t.dueDate == task.dueDate
         );
+        if (index != -1) {
+          _tasks[index] = updatedTask;
+        }
+      });
+    }
+  }
+
+  void _showTaskDetailDialog(BuildContext context, TaskData task) {
+    final dialogData = SIHAKIDialogData(
+      title: 'Detail Task - ${task.title}',
+      fields: [
+        SIHAKIDialogField(label: 'Title', value: task.title),
+        SIHAKIDialogField(label: 'Description', value: task.description),
+        SIHAKIDialogField(label: 'Due Date', value: DateFormat('dd MMM yyyy').format(task.dueDate)),
+        SIHAKIDialogField(label: 'Priority', value: task.priority),
+        SIHAKIDialogField(label: 'Status', value: task.status),
+      ],
+      actions: [
+        SIHAKIDialogAction(
+          icon: Icons.edit_rounded,
+          label: 'Edit Task',
+          backgroundColor: Colors.orange[600],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.of(context).pop();
+            _editTask(task);
+          },
+        ),
+        SIHAKIDialogAction(
+          icon: Icons.delete_rounded,
+          label: 'Delete Task',
+          backgroundColor: Colors.red[600],
+          textColor: Colors.white,
+          isDestructive: true,
+          onTap: () {
+            Navigator.of(context).pop();
+            _confirmDeleteTaskWithSIHAKI(task);
+          },
+        ),
+        SIHAKIDialogAction(
+          icon: Icons.share_rounded,
+          label: 'Share Task',
+          backgroundColor: Colors.blue[600],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.of(context).pop();
+            _shareTask(task);
+          },
+        ),
+      ],
+    );
+
+    SIHAKIDetailDialog.show(context, dialogData);
+  }
+
+  void _confirmDeleteTaskWithSIHAKI(TaskData task) {
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Hapus Task',
+      message:
+          'Apakah Anda yakin ingin menghapus task "${task.title}"? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      icon: Icons.delete_forever_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () {
+        _deleteTask(task);
       },
     );
   }
 
-  Widget _buildOptionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required MyTheme theme,
-    bool isDestructive = false,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isDestructive
-              ? Colors.red.shade50
-              : theme.primarySwatch.shade50,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: isDestructive
-              ? Colors.red.shade600
-              : theme.primarySwatch.shade600,
-          size: 20,
+  void _shareTask(TaskData task) {
+    // Implementasi share task
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sharing task: ${task.title}'),
+        backgroundColor: Colors.blue[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
-      title: Text(
-        title,
-        style: theme.typographyRegular.bodyMedium.copyWith(
-          color:
-              isDestructive ? Colors.red.shade700 : theme.primarySwatch.shade700,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: theme.typographyRegular.bodySmall.copyWith(
-          color: Colors.grey[600],
-        ),
-      ),
-      trailing: Icon(Icons.arrow_forward_ios,
-          color: Colors.grey[400], size: 16),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    );
-  }
-
-  void _confirmDeleteTask(TaskData task) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Konfirmasi"),
-          content: const Text("Anda yakin ingin menghapus task ini?"),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _deleteTask(task);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text("Delete"),
-            ),
-          ],
-        );
-      },
     );
   }
 

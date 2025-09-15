@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/theme/my_theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'edit_meeting_page.dart';
 import 'tambah_meeting_page.dart';
 import 'meeting_data.dart';
@@ -61,9 +62,9 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
         ),
         title: Text(
           'Meeting',
-          style: theme.typographyRegular.headingSmall.copyWith(
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: false,
@@ -101,8 +102,7 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
           icon: const Icon(Icons.add_circle, size: 20),
           label: Text(
             'TAMBAH MEETING BARU',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
+            style: theme.typographyBold.bodyMedium.copyWith(
               letterSpacing: 0.5,
             ),
           ),
@@ -333,253 +333,144 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
   }
 
   Widget _buildMeetingCard(MeetingData meeting, MyTheme theme, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
+    final isOnline = meeting.room.toLowerCase().contains('online') || 
+                     meeting.room.toLowerCase().contains('zoom') || 
+                     meeting.room.toLowerCase().contains('meet');
+    
+    return AppListCard(
+      onTap: () => _showMeetingDetailDialog(context, meeting),
+      leftAccentColor: meeting.color,
+      title: meeting.title,
+      subtitle: meeting.room,
+      chips: [
+        AppPillChip(
+          icon: Icons.calendar_today,
+          label: DateFormat('dd MMM yyyy').format(meeting.date),
+          color: meeting.color,
+        ),
+        AppPillChip(
+          icon: Icons.schedule,
+          label: '${meeting.startTime} - ${meeting.endTime}',
+          color: Colors.blue,
+        ),
+        if (isOnline)
+          AppPillChip(
+            icon: Icons.videocam,
+            label: 'Online Meeting',
+            color: Colors.green,
+          )
+        else
+          AppPillChip(
+            icon: Icons.room,
+            label: 'On-site',
+            color: Colors.orange,
           ),
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 50,
-            decoration: BoxDecoration(
-              color: meeting.color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  meeting.title,
-                  style: theme.typographyRegular.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  meeting.room,
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 8,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.calendar_today_outlined,
-                            size: 14, color: meeting.color),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat('dd.MM.yyyy').format(meeting.date),
-                          style: theme.typographyRegular.bodySmall.copyWith(
-                            color: meeting.color,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.access_time_outlined,
-                            size: 14, color: meeting.color),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${meeting.startTime}-${meeting.endTime}',
-                          style: theme.typographyRegular.bodySmall.copyWith(
-                            color: meeting.color,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          InkWell(
-            onTap: () => _showMeetingOptions(context, meeting),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Icon(Icons.more_vert,
-                  color: Colors.grey[600], size: 20),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  void _showMeetingOptions(BuildContext context, MeetingData meeting) {
-    final theme = ref.watch(themeProvider);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Meeting Options',
-                style: theme.typographyRegular.headingSmall.copyWith(
-                  color: theme.primarySwatch.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildOptionTile(
-                icon: Icons.edit_outlined,
-                title: 'Edit Meeting',
-                subtitle: 'Modify meeting details',
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EditMeetingPage(meetingData: meeting),
-                    ),
-                  );
-                  
-                  // If meeting was updated, refresh the list
-                  if (result != null && result is MeetingData) {
-                    setState(() {
-                      final index = _meetings.indexWhere((m) => m.title == meeting.title && 
-                                                              m.date == meeting.date);
-                      if (index != -1) {
-                        _meetings[index] = result;
-                      }
-                    });
-                  }
-                },
-                theme: theme,
-              ),
-              const SizedBox(height: 8),
-              _buildOptionTile(
-                icon: Icons.delete_outline,
-                title: 'Delete Meeting',
-                subtitle: 'Remove this meeting',
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteMeeting(meeting);
-                },
-                theme: theme,
-                isDestructive: true,
-              ),
-              const SizedBox(height: 8),
-              _buildOptionTile(
-                icon: Icons.share_outlined,
-                title: 'Share Meeting',
-                subtitle: 'Send meeting details',
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: share
-                },
-                theme: theme,
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+  void _editMeeting(MeetingData meeting) async {
+    final result = await Navigator.push<MeetingData>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditMeetingPage(
+          meetingData: meeting,
+        ),
+      ),
+    );
+    
+    if (result != null) {
+      setState(() {
+        final index = _meetings.indexWhere((m) => 
+          m.title == meeting.title && 
+          m.date == meeting.date
         );
+        if (index != -1) {
+          _meetings[index] = result;
+        }
+      });
+    }
+  }
+
+  void _showMeetingDetailDialog(BuildContext context, MeetingData meeting) {
+    final isOnline = meeting.room.toLowerCase().contains('online') || 
+                     meeting.room.toLowerCase().contains('zoom') || 
+                     meeting.room.toLowerCase().contains('meet');
+    
+    final dialogData = SIHAKIDialogData(
+      title: 'Detail Meeting - ${meeting.title}',
+      fields: [
+        SIHAKIDialogField(label: 'Title', value: meeting.title),
+        SIHAKIDialogField(label: 'Room', value: meeting.room),
+        SIHAKIDialogField(label: 'Date', value: DateFormat('dd MMM yyyy').format(meeting.date)),
+        SIHAKIDialogField(label: 'Time', value: '${meeting.startTime} - ${meeting.endTime}'),
+        SIHAKIDialogField(label: 'Type', value: isOnline ? 'Online Meeting' : 'Offline Meeting'),
+      ],
+      actions: [
+        SIHAKIDialogAction(
+          icon: Icons.edit_rounded,
+          label: 'Edit Meeting',
+          backgroundColor: Colors.orange[600],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.of(context).pop();
+            _editMeeting(meeting);
+          },
+        ),
+        SIHAKIDialogAction(
+          icon: Icons.delete_rounded,
+          label: 'Delete Meeting',
+          backgroundColor: Colors.red[600],
+          textColor: Colors.white,
+          isDestructive: true,
+          onTap: () {
+            Navigator.of(context).pop();
+            _confirmDeleteMeetingWithSIHAKI(meeting);
+          },
+        ),
+        SIHAKIDialogAction(
+          icon: Icons.share_rounded,
+          label: 'Share Meeting',
+          backgroundColor: Colors.blue[600],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.of(context).pop();
+            _shareMeeting(meeting);
+          },
+        ),
+      ],
+    );
+
+    SIHAKIDetailDialog.show(context, dialogData);
+  }
+
+  void _confirmDeleteMeetingWithSIHAKI(MeetingData meeting) {
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Hapus Meeting',
+      message:
+          'Apakah Anda yakin ingin menghapus meeting "${meeting.title}"? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      icon: Icons.delete_forever_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () {
+        _deleteMeeting(meeting);
       },
     );
   }
 
-  Widget _buildOptionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required MyTheme theme,
-    bool isDestructive = false,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isDestructive
-              ? Colors.red.shade50
-              : theme.primarySwatch.shade50,
-          borderRadius: BorderRadius.circular(8),
+  void _shareMeeting(MeetingData meeting) {
+    // Implementasi share meeting
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sharing meeting: ${meeting.title}'),
+        backgroundColor: Colors.blue[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(
-          icon,
-          color: isDestructive
-              ? Colors.red.shade600
-              : theme.primarySwatch.shade600,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: theme.typographyRegular.bodyMedium.copyWith(
-          color:
-              isDestructive ? Colors.red.shade700 : theme.primarySwatch.shade700,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: theme.typographyRegular.bodySmall.copyWith(
-          color: Colors.grey[600],
-        ),
-      ),
-      trailing: Icon(Icons.arrow_forward_ios,
-          color: Colors.grey[400], size: 16),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
       ),
     );
   }
