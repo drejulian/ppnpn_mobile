@@ -1,6 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/daftar_agenda.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/daftar_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/edit_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/MediaSosialAnggota/tambah_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/edit_bpjs_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/tambah_bpjs_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/tambah_agenda_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/edit_agenda_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
+import 'package:ppnpm_dpr/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/lupa_password_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/data_lamaran_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/dokumen_page.dart';
@@ -18,18 +29,19 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/pribadi
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/add_data_pekerjaan_pages.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayatPekerjaan/edit_data_pekerjaan_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/daftar_agenda.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/detail_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/daftar_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/edit_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataMediaSosialAnggota/tambah_medsos.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/reimburse.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/izinpage.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/edit_cuti_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/edit_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/tambah_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/edit_reimburse_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/tambah_reimburse_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/reimburse/daftar_reimburse_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/izin/daftar_izin_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/daftar_pengajuan_BPJS.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/data_bpjs_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/ppf_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakPPNPN/skp_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/TambahRumahAspirasi/tambah_rumah_aspirasi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/tambah_rumah_aspirasi_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/edit_rumah_aspirasi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KegiatanRumahAspirasi/daftar_pengajuan_rumah_aspirasi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppa_anggota_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataPajakAnggota/ppf_anggota_page.dart';
@@ -45,23 +57,21 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_pribadi.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/Tambah%20Database/data_tata_naskah.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/daftar_pengajuan_kunker_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/daftar_cuti_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/tambah_cuti_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Cuti/edit_cuti_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/daftar_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/tambah_lembur_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur/edit_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Meeting/meeting_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/task_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/tambah_task_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/notification_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_sections_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/tambah_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/edit_agenda_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataAgendaPribadiAnggota/agenda_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
+import '../features/auth/presentation/pages/welcome_page.dart';
 import 'package:ppnpm_dpr/common/widgets/nav_bar.dart';
 import 'routes.dart';
 
@@ -97,14 +107,29 @@ GoRouter router(RouterRef ref) {
         },
       ),
       GoRoute(
+        path: '/welcome',
+        name: Routes.welcome.name,
+        builder: (context, state) => const WelcomePage(),
+      ),
+      GoRoute(
         path: '/login',
         name: Routes.login.name,
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
+        path: '/sign-up',
+        name: Routes.signUp.name,
+        builder: (context, state) => const SignUpPage(),
+      ),
+      GoRoute(
         path: '/lupa-password',
         name: Routes.lupaPassword.name,
         builder: (context, state) => const LupaPasswordPage(),
+      ),
+      GoRoute(
+        path: '/guest',
+        name: Routes.guest.name,
+        builder: (_, __) => const MainLayout(),
       ),
       GoRoute(
         path: '/home',
@@ -159,13 +184,13 @@ GoRouter router(RouterRef ref) {
         name: Routes.addDataKeluarga.name,
         builder: (context, state) => const TambahAnggotaKeluargaPage(),
       ),
-      
+
       GoRoute(
         path: '/edit-data-keluarga',
         name: Routes.editDataKeluarga.name,
         builder: (context, state) => const EditDataKeluargaPage(),
       ),
-      
+
       GoRoute(
         path: '/edit-data-keluarga/:memberId',
         name: Routes.editDataKeluargaWithId.name,
@@ -266,20 +291,12 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const TambahAgendaPage(),
       ),
       GoRoute(
-      path: '/edit-agenda',
-      name: Routes.editAgenda.name,
-      builder: (context, state) {
-        final agendaItem = state.extra as AgendaItem;
-        return EditAgendaPage(agendaItem: agendaItem);
-      },
-      ),
-      GoRoute(
-      path: '/detail-agenda',
-      name: Routes.detailAgenda.name,
-      builder: (context, state)  {
-        final agendaItem = state.extra as AgendaItem;
-        return DetailAgendaPage(agenda: agendaItem);
-      },
+        path: '/edit-agenda',
+        name: Routes.editAgenda.name,
+        builder: (context, state) {
+          final agendaItem = state.extra as Map<String, dynamic>;
+          return EditAgendaPage(agendaItem: agendaItem);
+        },
       ),
       GoRoute(
         path: '/media-sosial-anggota',
@@ -295,13 +312,8 @@ GoRouter router(RouterRef ref) {
         path: '/edit-media-sosial-anggota',
         name: Routes.editMediaSosialAnggota.name,
         builder: (context, state) {
-          final medsos = state.extra as Map<String, String>? ?? {};
-          final namaPlatform = medsos['platform'] ?? '';
-          final username = medsos['username'] ?? '';
-          return EditSosialMediaAnggotaPage(
-            namaPlatform: namaPlatform,
-            username: username,
-          );
+          final medsos = state.extra as Map<String, dynamic>? ?? {};
+          return EditMediaSosialAnggotaPage(medsos: medsos);
         },
       ),
       GoRoute(
@@ -312,28 +324,84 @@ GoRouter router(RouterRef ref) {
       GoRoute(
         path: '/tambah-rumah-aspirasi',
         name: Routes.tambahRumahAspirasi.name,
-        builder: (context, state) => const TambahRumahAspirasiPage()
+        builder: (context, state) => const TambahRumahAspirasiPage(),
+      ),
+      GoRoute(
+        path: '/edit-rumah-aspirasi',
+        name: Routes.editRumahAspirasi.name,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          if (extra == null) {
+            throw Exception(
+              'EditRumahAspirasiPage requires rumahAspirasiItem data',
+            );
+          }
+          return EditRumahAspirasiPage(rumahAspirasiItem: extra);
+        },
       ),
       GoRoute(
         path: '/data-bpjs',
         name: Routes.dataBPJS.name,
-        builder: (context, state) => const DaftarBPJSPage()
+        builder: (context, state) => const DaftarPengajuanBPJS(),
       ),
       GoRoute(
         path: '/daftar-pengajuan-bpjs',
         name: Routes.daftarPengajuanBPJS.name,
-        builder: (context, state) => const DaftarPengajuanBPJS()
+        builder: (context, state) => const DaftarPengajuanBPJS(),
+      ),
+      GoRoute(
+        path: '/tambah-bpjs',
+        name: Routes.tambahBPJS.name,
+        builder: (context, state) => const TambahBpjsPage(),
+      ),
+      GoRoute(
+        path: '/edit-bpjs/:index',
+        name: Routes.editBPJS.name,
+        builder: (context, state) {
+          final index = int.parse(state.pathParameters['index']!);
+          final extra = state.extra as BPJSData;
+          return EditBpjsPage(bpjsItem: extra, index: index);
+        },
       ),
       GoRoute(
         path: '/izin',
         name: Routes.izin.name,
-        builder: (context, state) => const IzinPage()
+        builder: (context, state) => const DaftarIzinPage(),
       ),
+      GoRoute(
+        path: '/tambah-izin',
+        name: Routes.tambahIzin.name,
+        builder: (context, state) => const TambahIzinPage(),
+      ),
+      GoRoute(
+        path: '/edit-izin',
+        name: Routes.editIzin.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditIzinPage(data: data);
+        },
+      ),
+
+
       GoRoute(
         path: '/reimburse',
         name: Routes.reimbursePage.name,
-        builder: (context, state) => const ReimbursePage()
+        builder: (context, state) => const DaftarReimbursePage(),
       ),
+      GoRoute(
+        path: '/tambah-reimburse',
+        name: Routes.tambahReimburse.name,
+        builder: (context, state) => const TambahReimbursePage(),
+      ),
+      GoRoute(
+        path: '/edit-reimburse',
+        name: Routes.editReimburse.name,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return EditReimbursePage(data: data);
+        },
+      ),
+
        GoRoute(
         path: '/ppa',
         name: Routes.ppa.name,
@@ -376,16 +444,16 @@ GoRouter router(RouterRef ref) {
       // Cuti
       GoRoute(
         path: '/cuti',
-        name: Routes.cuti.name,
+        name: Routes.DaftarCutiPage.name,
         builder: (context, state) => const DaftarCutiPage(),
       ),
       GoRoute(
-        path: '/tambahCuti',
+        path: '/tambah-cuti',
         name: Routes.tambahCuti.name,
         builder: (context, state) => const TambahCutiPage(),
       ),
       GoRoute(
-        path: '/editCuti',
+        path: '/edit-cuti',
         name: Routes.editCuti.name,
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>? ?? {};
@@ -399,17 +467,40 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const DaftarLemburPage(),
       ),
       GoRoute(
-        path: '/tambahLembur',
+        path: '/tambah-lembur',
         name: Routes.tambahLembur.name,
         builder: (context, state) => const TambahLemburPage(),
       ),
       GoRoute(
-        path: '/editLembur',
+        path: '/edit-lembur',
         name: Routes.editLembur.name,
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>? ?? {};
           return EditLemburPage(data: data);
         },
+      ),
+      // Meeting
+      GoRoute(
+        path: '/meeting',
+        name: Routes.meeting.name,
+        builder: (context, state) => const MeetingPage(),
+      ),
+      // Task
+      GoRoute(
+        path: '/task',
+        name: Routes.task.name,
+        builder: (context, state) => const TaskPage(),
+      ),
+      GoRoute(
+        path: '/tambahTask',
+        name: Routes.tambahTask.name,
+        builder: (context, state) => const TambahTaskPage(),
+      ),
+      // Notification
+      GoRoute(
+        path: '/notification',
+        name: Routes.notification.name,
+        builder: (context, state) => const NotificationPage(),
       ),
       GoRoute(
         path: '/dataKomisi',

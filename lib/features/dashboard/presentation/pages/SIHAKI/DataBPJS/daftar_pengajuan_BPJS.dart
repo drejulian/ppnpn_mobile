@@ -2,77 +2,124 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/data_bpjs_page.dart';
-import 'package:flutter/services.dart'; // For input formatters
+import 'package:ppnpm_dpr/app/routes.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+
+// BPJSData Model
+class BPJSData {
+  final String nama;
+  final String noBPJS;
+  final String nik;
+  final String hubunganKeluarga;
+  final String tanggalLahir;
+  final String namaFaskesTingkat1;
+
+  BPJSData({
+    required this.nama,
+    required this.noBPJS,
+    required this.nik,
+    required this.hubunganKeluarga,
+    required this.tanggalLahir,
+    required this.namaFaskesTingkat1,
+  });
+}
+
+// StateNotifier for managing BPJSData list
+class DataBpjsPage extends StateNotifier<List<BPJSData>> {
+  DataBpjsPage()
+    : super([
+        BPJSData(
+          nama: 'Alfian Kadang, M.M.',
+          noBPJS: '000112233445566',
+          nik: '3174081234567890',
+          hubunganKeluarga: 'Kepala Keluarga',
+          tanggalLahir: '15-08-1985',
+          namaFaskesTingkat1: 'Puskesmas Cikini',
+        ),
+        BPJSData(
+          nama: 'Budi Santoso',
+          noBPJS: '000998877665544',
+          nik: '3174089876543210',
+          hubunganKeluarga: 'Suami',
+          tanggalLahir: '20-03-1980',
+          namaFaskesTingkat1: 'Puskesmas Menteng',
+        ),
+      ]);
+
+  void addBPJSData(BPJSData bpjsData) {
+    state = [...state, bpjsData];
+  }
+
+  void updateBPJSData(int index, BPJSData updatedData) {
+    if (index >= 0 && index < state.length) {
+      final newState = [...state];
+      newState[index] = updatedData;
+      state = newState;
+    }
+  }
+
+  void removeBPJSData(int index) {
+    state = [...state]..removeAt(index);
+  }
+}
+
+final bpjsDataProvider = StateNotifierProvider<DataBpjsPage, List<BPJSData>>(
+  (ref) => DataBpjsPage(),
+);
+
+final searchBpjsQueryProvider = StateProvider<String>((ref) => '');
+
+final filteredBpjsDataProvider = Provider<List<BPJSData>>((ref) {
+  final query = ref.watch(searchBpjsQueryProvider).toLowerCase().trim();
+  final allItems = ref.watch(bpjsDataProvider);
+  if (query.isEmpty) return allItems;
+  return allItems.where((item) {
+    return item.nama.toLowerCase().contains(query) ||
+        item.noBPJS.toLowerCase().contains(query) ||
+        item.nik.toLowerCase().contains(query) ||
+        item.hubunganKeluarga.toLowerCase().contains(query) ||
+        item.tanggalLahir.toLowerCase().contains(query) ||
+        item.namaFaskesTingkat1.toLowerCase().contains(query);
+  }).toList();
+});
 
 class DaftarPengajuanBPJS extends ConsumerStatefulWidget {
   const DaftarPengajuanBPJS({super.key});
 
   @override
-  ConsumerState<DaftarPengajuanBPJS> createState() => _DaftarPengajuanBPJSState();
+  ConsumerState<DaftarPengajuanBPJS> createState() =>
+      _DaftarPengajuanBPJSState();
 }
 
-class _DaftarPengajuanBPJSState
-    extends ConsumerState<DaftarPengajuanBPJS> {
-  final _formKey = GlobalKey<FormState>();
-  final _namaController = TextEditingController(text: 'Alfian Kadang, M.M.');
-  final _noBPJSController = TextEditingController(text: '000112233445566');
-  final _tanggalBerlakuController = TextEditingController(text: '31-07-2025');
-  final _jenisAnggotaController = TextEditingController();
+class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      ref.read(searchBpjsQueryProvider.notifier).state = _searchController.text;
+    });
+  }
 
   @override
   void dispose() {
-    _namaController.dispose();
-    _noBPJSController.dispose();
-    _tanggalBerlakuController.dispose();
-    _jenisAnggotaController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      final newBPJSData = BPJSData(
-        nama: _namaController.text,
-        noBPJS: _noBPJSController.text,
-        tanggalBerlaku: _tanggalBerlakuController.text,
-        jenisAnggota: _jenisAnggotaController.text,
-      );
-
-      ref.read(bpjsDataProvider.notifier).addBPJSData(newBPJSData);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Data berhasil disimpan'),
-          backgroundColor: ref.read(themeProvider).primarySwatch,
-        ),
-      );
-
-      context.pop();
-    }
-  }
-
-  void _cancelForm() {
-    _namaController.clear();
-    _noBPJSController.clear();
-    _tanggalBerlakuController.clear();
-    _jenisAnggotaController.clear();
-    context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
+    final filteredItems = ref.watch(filteredBpjsDataProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'Data BPJS',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
+            fontSize: 18,
           ),
         ),
         backgroundColor: theme.primarySwatch,
@@ -80,386 +127,235 @@ class _DaftarPengajuanBPJSState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
+          onPressed: () => context.pop(),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [theme.primarySwatch, theme.secondarySwatch],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.add_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Tambah Data BPJS',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Modern Search Bar
+            AppFilterBar(
+              controller: _searchController,
+              labelText: 'Cari Data BPJS',
+              hintText: 'Nama, nomor BPJS, tanggal, jenis...',
+              onChanged: (_) {},
+              onClear:
+                  () => ref.read(searchBpjsQueryProvider.notifier).state = '',
+              cardMargin: EdgeInsets.zero,
+              padding: const EdgeInsets.all(16),
             ),
-          ),
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? 24.0 : 16.0,
-                  vertical: 16.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Data Pribadi Section
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.greenAccent],
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Data Pribadi',
-                                style: theme.typographyRegular.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            'Nama',
-                            _namaController,
-                            Icons.person,
-                            theme,
-                            isRequired: true,
-                          ),
-                          _buildTextField(
-                            'Nomor BPJS',
-                            _noBPJSController,
-                            Icons.receipt,
-                            theme,
-                            isRequired: true,
-                            isNumeric: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-                    // Data Keanggotaan Section
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.greenAccent],
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Data Keanggotaan',
-                                style: theme.typographyRegular.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            'Tanggal Berlaku',
-                            _tanggalBerlakuController,
-                            Icons.calendar_today,
-                            theme,
-                            isRequired: true,
-                          ),
-                          _buildTextField(
-                            'Jenis Anggota',
-                            _jenisAnggotaController,
-                            Icons.group,
-                            theme,
-                            isRequired: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Action Buttons
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: _saveForm,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.primarySwatch,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Simpan',
-                              style: theme.typographyRegular.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          OutlinedButton(
-                            onPressed: _cancelForm,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.primarySwatch,
-                              side: BorderSide(color: theme.primarySwatch),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Batal',
-                              style: theme.typographyRegular.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: theme.primarySwatch,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Hubungi Kami functionality not implemented'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'HUBUNGI KAMI',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
+            // Add Button with modern styling
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    theme.primarySwatch,
+                    theme.primarySwatch.withValues(alpha: 0.8),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primarySwatch.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () => context.pushNamed(Routes.tambahBPJS.name),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 24,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add_circle_rounded, size: 22),
+                label: Text(
+                  'TAMBAH DATA BPJS',
+                  style: theme.typographyBold.bodyMedium.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+
+            // Content
+            Expanded(
+              child:
+                  filteredItems.isEmpty
+                      ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.medical_services_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Belum ada data BPJS',
+                              style: theme.typographyRegular.bodyLarge.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      : ListView.builder(
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          return _buildBpjsCard(item, theme, index);
+                        },
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller,
-    IconData icon,
-    dynamic theme, {
-    bool isRequired = false,
-    bool isLast = false,
-    bool isNumeric = false,
-  }) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: theme.primarySwatch.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: theme.primarySwatch,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: theme.typographyRegular.bodySmall.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      if (isRequired)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red[100],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Wajib diisi',
-                            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                              color: Colors.red[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: controller,
-                    keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
-                    inputFormatters: isNumeric
-                        ? [FilteringTextInputFormatter.digitsOnly]
-                        : null,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: theme.primarySwatch),
-                      ),
-                    ),
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: Colors.grey[800],
-                      fontWeight: FontWeight.w600,
-                    ),
-                    validator: (value) {
-                      if (isRequired && (value == null || value.isEmpty)) {
-                        return 'Field ini wajib diisi';
-                      }
-                      if (isNumeric && value != null && !RegExp(r'^\d+$').hasMatch(value)) {
-                        return 'Field ini harus diisi dengan angka';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (!isLast) ...[
-          const SizedBox(height: 16),
-          Divider(
-            color: Colors.grey[200],
-            thickness: 1,
+  Widget _buildBpjsCard(BPJSData item, dynamic theme, int index) {
+    return AppListCard(
+      onTap: () => _showDetailDialog(item, theme, index),
+      leftAccentColor: theme.primarySwatch,
+      gradient: LinearGradient(
+        colors: [Colors.white, Colors.grey[50]!],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.primarySwatch.withValues(alpha: 0.2),
+              theme.primarySwatch.withValues(alpha: 0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 16),
-        ],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.primarySwatch.withValues(alpha: 0.3)),
+        ),
+        child: Icon(
+          Icons.medical_services,
+          color: theme.primarySwatch,
+          size: 24,
+        ),
+      ),
+      title: item.nama,
+      subtitle: 'No BPJS: ${item.noBPJS}',
+      chips: [
+        AppPillChip(
+          icon: Icons.confirmation_num_rounded,
+          label: item.noBPJS,
+          color: theme.primarySwatch,
+        ),
+        AppPillChip(
+          icon: Icons.badge_rounded,
+          label: item.nik,
+          color: Colors.blue[600],
+        ),
+        AppPillChip(
+          icon: Icons.family_restroom_rounded,
+          label: item.hubunganKeluarga,
+          color: Colors.green[600],
+        ),
       ],
+    );
+  }
+
+  void _showDetailDialog(BPJSData item, dynamic theme, int index) {
+    final dialogData = SIHAKIDialogData(
+      title: 'Detail BPJS - ${item.nama}',
+      fields: [
+        SIHAKIDialogField(label: 'Nama', value: item.nama),
+        SIHAKIDialogField(label: 'Nomor BPJS', value: item.noBPJS),
+        SIHAKIDialogField(label: 'NIK', value: item.nik),
+        SIHAKIDialogField(
+          label: 'Hubungan Keluarga',
+          value: item.hubunganKeluarga,
+        ),
+        SIHAKIDialogField(label: 'Tanggal Lahir', value: item.tanggalLahir),
+        SIHAKIDialogField(
+          label: 'Nama Faskes Tingkat 1',
+          value: item.namaFaskesTingkat1,
+        ),
+      ],
+      actions: [
+        SIHAKIDialogAction(
+          icon: Icons.edit_rounded,
+          label: 'Edit Data',
+          backgroundColor: Colors.orange[600],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.of(context).pop();
+            context.pushNamed(
+              Routes.editBPJS.name,
+              pathParameters: {'index': index.toString()},
+              extra: item,
+            );
+          },
+        ),
+        SIHAKIDialogAction(
+          icon: Icons.delete_rounded,
+          label: 'Hapus Data',
+          backgroundColor: Colors.red[600],
+          textColor: Colors.white,
+          isDestructive: true,
+          onTap: () {
+            Navigator.of(context).pop();
+            _confirmDelete(item, index);
+          },
+        ),
+      ],
+    );
+
+    SIHAKIDetailDialog.show(context, dialogData);
+  }
+
+  void _confirmDelete(BPJSData item, int index) {
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Hapus Data BPJS',
+      message:
+          'Apakah Anda yakin ingin menghapus data BPJS untuk "${item.nama}"? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      icon: Icons.delete_forever_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () {
+        ref.read(bpjsDataProvider.notifier).removeBPJSData(index);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Data BPJS untuk "${item.nama}" berhasil dihapus'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      },
     );
   }
 }
