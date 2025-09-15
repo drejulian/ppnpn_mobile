@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/sihaki_submenu_modal.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -68,32 +68,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _buildHeader(theme, context, _currentTime),
                 const SizedBox(height: 24),
 
-                // Absensi Card
-                _buildAbsensiCard(theme, context, _currentTime),
-                const SizedBox(height: 24),
-
                 // Menu Utama Section
                 _buildMenuSection(
                   'Menu Utama',
                   _getMainMenuItems(),
-                  theme,
-                  context,
-                ),
-                const SizedBox(height: 24),
-
-                // Data Pribadi Section
-                _buildMenuSection(
-                  'Data Pribadi',
-                  _getDataPribadiItems(context),
-                  theme,
-                  context,
-                ),
-                const SizedBox(height: 24),
-
-                // SIHAKI Section (New Addition)
-                _buildSihakiSection(
-                  'SIHAKI', // Title for the new section
-                  _getSihakiItems(context), // Get SIHAKI specific menu items
                   theme,
                   context,
                 ),
@@ -209,216 +187,63 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
 
-          // Notification Icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: IconButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tidak ada notifikasi baru'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              icon: Icon(
-                Icons.notifications_outlined,
-                color: Colors.grey[600],
-                size: 20,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAbsensiCard(
-    dynamic theme,
-    BuildContext context,
-    DateTime currentTime,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [theme.primarySwatch, theme.secondarySwatch],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.primarySwatch.withValues(alpha: 0.3),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Notification Icon with Badge
+          Stack(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Absensi Hari Ini',
-                    style: theme.typographyRegular.bodyMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat(
-                      'EEEE, d MMMM yyyy',
-                      'id_ID',
-                    ).format(currentTime),
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  'miftahul01',
-                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                child: IconButton(
+                  onPressed: () {
+                    context.pushNamed(Routes.notification.name);
+                  },
+                  icon: Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.grey[600],
+                    size: 20,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Single Row Layout
-          Row(
-            children: [
-              // Check In Button
-              Expanded(
-                flex: 2,
-                child: _buildAbsensiButton(
-                  'Check In',
-                  Icons.login,
-                  '08:00',
-                  theme,
-                  true,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Check Out Button
-              Expanded(
-                flex: 2,
-                child: _buildAbsensiButton(
-                  'Check Out',
-                  Icons.logout,
-                  '--:--',
-                  theme,
-                  false,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Riwayat Button
-              Expanded(
-                flex: 3,
-                child: ElevatedButton(
-                  onPressed: () {
-                    debugPrint('📊 Viewing attendance history');
-                    debugPrint('👤 User: miftahul01');
-                    debugPrint(
-                      '📅 Time: ${currentTime.toIso8601String().substring(0, 19)} WIB',
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Fitur riwayat absensi akan segera tersedia',
+              // Badge for notification count
+              Consumer(
+                builder: (context, ref, child) {
+                  final notificationState = ref.watch(notificationProvider);
+                  if (notificationState.unreadCount > 0) {
+                    return Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        duration: Duration(seconds: 2),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          notificationState.unreadCount > 99 
+                              ? '99+' 
+                              : '${notificationState.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: theme.primarySwatch,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Riwayat\nAbsensi',
-                    textAlign: TextAlign.center,
-                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAbsensiButton(
-    String title,
-    IconData icon,
-    String time,
-    dynamic theme,
-    bool isActive,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isActive ? 0.2 : 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-              fontWeight: FontWeight.w500,
-              fontSize: 11.0,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            time,
-            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 10.0,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -482,95 +307,60 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildMenuItem(MenuItemData item, dynamic theme) {
     return GestureDetector(
       onTap: item.onTap ?? () {},
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [item.color.withValues(alpha: 0.8), item.color],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(item.icon, color: Colors.white, size: 20),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [item.color.withOpacity(0.8), item.color],
           ),
-          const SizedBox(height: 8),
-          Flexible(
-            child: Text(
-              item.title,
-              style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: item.color.withOpacity(0.3),
+              blurRadius: 8,
+              spreadRadius: 1,
+              offset: const Offset(0, 3),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon container with white background
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(item.icon, color: Colors.white, size: 14),
+            ),
+            const SizedBox(height: 4),
+            // Title text
+            Flexible(
+              child: Text(
+                item.title,
+                style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 9.0,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // New method for SIHAKI section
-  Widget _buildSihakiSection(
-    String title,
-    List<MenuItemData> items,
-    dynamic theme,
-    BuildContext context,
-  ) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                blurRadius: 10,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isTablet ? 6 : 4,
-              childAspectRatio: 1,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return _buildMenuItem(item, theme);
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildKalenderSection(
     dynamic theme,
@@ -1249,11 +1039,17 @@ class _HomePageState extends ConsumerState<HomePage> {
         Icons.event_busy,
         Colors.orange,
         onTap: () {
-          context.pushNamed(Routes.cuti.name);
+          context.pushNamed(Routes.DaftarCutiPage.name);
         },
       ),
-       MenuItemData('izin', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.izin.name);},),
+      MenuItemData(
+        'Izin',
+        Icons.assignment,
+        Colors.blue,
+        onTap: () {
+          context.pushNamed(Routes.izin.name);
+        },
+      ),
       MenuItemData(
         'Lembur',
         Icons.access_time,
@@ -1262,279 +1058,33 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.pushNamed(Routes.lembur.name);
         },
       ),
-      MenuItemData('Reimburse', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
-      MenuItemData('Training', Icons.school, Colors.indigo),
-      MenuItemData('Meeting', Icons.groups, Colors.teal),
-      MenuItemData('Task', Icons.task_alt, Colors.red),
-      MenuItemData('Report', Icons.bar_chart, Colors.amber),
-    ];
-  }
-
-  List<MenuItemData> _getDataPribadiItems(BuildContext context) {
-    return [
       MenuItemData(
-        'Edit Profil',
-        Icons.person,
-        Colors.blueAccent,
-        onTap: () {
-          context.pushNamed(Routes.editProfile.name);
-        },
-      ),
-      MenuItemData(
-        'Edit Identitas Diri',
-        Icons.person,
+        'Reimburse',
+        Icons.assignment,
         Colors.blue,
         onTap: () {
-          context.pushNamed(Routes.pribadi.name);
+          context.pushNamed(Routes.reimbursePage.name);
         },
       ),
+      MenuItemData('Training', Icons.school, Colors.indigo),
       MenuItemData(
-        'Edit Data Honorarium',
-        Icons.payments,
-        Colors.green,
-        onTap: () {
-          context.pushNamed(Routes.honorarium.name);
-        },
-      ),
-      MenuItemData(
-        'Keluarga',
-        Icons.family_restroom,
-        Colors.green,
-        onTap: () {
-          context.pushNamed(Routes.keluarga.name);
-        },
-      ),
-      MenuItemData(
-        'PAS Foto',
-        Icons.contact_phone,
-        Colors.red,
-        onTap: () {
-          context.pushNamed(Routes.idCard.name);
-        },
-      ),
-      MenuItemData(
-        'Dokumen',
-        Icons.folder,
+        'Meeting',
+        Icons.groups,
         Colors.teal,
         onTap: () {
-          context.pushNamed(Routes.dokumen.name);
+          context.pushNamed(Routes.meeting.name);
         },
       ),
       MenuItemData(
-        'Pendidikan',
-        Icons.school,
-        Colors.purple,
+        'Task',
+        Icons.task_alt,
+        Colors.red,
         onTap: () {
-          debugPrint('🎓 Navigating to Pendidikan page');
-          debugPrint('👤 User: miftahul01');
-          context.pushNamed(Routes.pendidikan.name);
+          context.pushNamed(Routes.task.name);
         },
       ),
-      MenuItemData(
-        'Riwayat Pekerjaan',
-        Icons.work,
-        Colors.orange,
-        onTap: () {
-          context.pushNamed(Routes.riwayatPekerjaan.name);
-        },
-      ),
-      MenuItemData(
-        'Data Lamaran',
-        Icons.card_membership,
-        Colors.indigo,
-        onTap: () {
-          context.pushNamed(Routes.dataLamaran.name);
-        },
-      ),
+      MenuItemData('Report', Icons.bar_chart, Colors.amber),
     ];
-  }
-
-  // Updated method to provide SIHAKI menu items with sub-menu functionality
-  List<MenuItemData> _getSihakiItems(BuildContext context) {
-    return [
-      MenuItemData(
-        'Data Pajak PPNPN',
-        Icons.receipt_long,
-        Colors.deepOrange,
-        onTap: () {
-          debugPrint('💰 Opening submenu for Data Pajak PPNPN');
-          _showSihakiSubMenu(context, 'Data Pajak PPNPN', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP PPNPM page
-                debugPrint('Navigating to PPNPN SKP'); //
-                // context.pushNamed(Routes.ppnpmSkp.name);
-                context.pushNamed(Routes.skp.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppf.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A1',
-              Icons.format_list_numbered,
-              Colors.purple,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A1 PPNPM page
-                debugPrint('Navigating to PPNPN Bukti Potong Pajak A1');
-                context.pushNamed(Routes.ppa.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Agenda Pribadi Anggota',
-        Icons.calendar_today,
-        Colors.pink,
-        onTap: () {
-          debugPrint('🗓️ Opening submenu for Agenda Pribadi Anggota');
-          _showSihakiSubMenu(context, 'Agenda Pribadi Anggota', [
-            SubMenuItemData(
-              'Daftar Agenda',
-              Icons.list_alt,
-              Colors.orange,
-              onTap: () {
-                // Navigate to Agenda List page
-                debugPrint('Navigating to Daftar Agenda'); //
-                 context.pushNamed(Routes.daftarAgenda.name);
-              },
-            ),
-            SubMenuItemData(
-              'Media Sosial Anggota',
-              Icons.share,
-              Colors.teal,
-              onTap: () {
-                // Navigate to Member's Social Media page
-                debugPrint('Navigating to Media Sosial Anggota'); 
-                 context.pushNamed(Routes.mediaSosialAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-        'Data Pajak Anggota',
-        Icons.account_balance_wallet,
-        Colors.brown,
-        onTap: () {
-          debugPrint('💲 Opening submenu for Data Pajak Anggota');
-          _showSihakiSubMenu(context, 'Data Pajak Anggota', [
-            SubMenuItemData(
-              'Surat Keterangan Penghasilan (SKP)',
-              Icons.description,
-              Colors.blue,
-              onTap: () {
-                // Navigate to SKP Anggota page
-                debugPrint('Navigating to Anggota SKP'); //
-                context.pushNamed(Routes.skpAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak Final',
-              Icons.attach_money,
-              Colors.green,
-              onTap: () {
-                // Navigate to Final Tax Withholding Slip Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak Final'); //
-                context.pushNamed(Routes.ppfAnggota.name);
-              },
-            ),
-            SubMenuItemData(
-              'Bukti Potong Pajak A2',
-              Icons.format_list_numbered_rtl,
-              Colors.red,
-              onTap: () {
-                // Navigate to Tax Withholding Slip A2 Anggota page
-                debugPrint('Navigating to Anggota Bukti Potong Pajak A2'); //
-                context.pushNamed(Routes.ppaAnggota.name);
-              },
-            ),
-          ]);
-        },
-      ),
-      MenuItemData(
-  'Database Anggota DPR RI',
-  Icons.storage,
-  Colors.cyan,
-  onTap: () {
-    debugPrint('Navigating directly to Data Komisi');
-    context.pushNamed('dataKomisi');
-        },
-      ),
-      MenuItemData(
-        'Data Kunjungan Kerja Perorangan',
-        Icons.flight,
-        Colors.lime,
-        onTap: () {
-          debugPrint('✈️ Navigating to Data Kunjungan Kerja Perorangan'); //
-          context.pushNamed(Routes.kunkerPerorangan.name);
-        },
-      ),
-      MenuItemData(
-        'Data SIGOTA - KANJENK',
-        Icons.fingerprint,
-        Colors.grey,
-        onTap: () {
-          debugPrint('👍 Navigating to Data SIGOTA - KANJENK'); //
-          // context.pushNamed(Routes.dataSigotaKanjek.name);
-        },
-      ),
-      MenuItemData(
-        'Dokumen Anggota',
-        Icons.article,
-        Colors.purpleAccent,
-        onTap: () {
-          debugPrint('📄 Navigating to Dokumen Anggota'); //
-          context.pushNamed(Routes.dataDokumenAnggota.name);
-        },
-      ),
-      MenuItemData(
-        'Kegiatan Rumah Aspirasi',
-        Icons.home,
-        Colors.tealAccent,
-        onTap: () {
-          debugPrint('🏡 Navigating to Kegiatan Rumah Aspirasi'); //
-          context.pushNamed(Routes.daftarPengajuanRumahAspirasi.name);
-        },
-      ),
-      MenuItemData(
-        'BPJS',
-        Icons.local_hospital,
-        Colors.lightGreen,
-        onTap: () {
-          debugPrint('🏥 Navigating to BPJS'); //
-          context.pushNamed(Routes.dataBPJS.name);
-        },
-      ),
-    ];
-  }
-
-  // Helper method to show the bottom sheet modal
-  void _showSihakiSubMenu(
-    BuildContext context,
-    String title,
-    List<SubMenuItemData> subMenuItems,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext bc) {
-        return SihakiSubMenuModal(title: title, subMenuItems: subMenuItems);
-      },
-    );
   }
 }
 

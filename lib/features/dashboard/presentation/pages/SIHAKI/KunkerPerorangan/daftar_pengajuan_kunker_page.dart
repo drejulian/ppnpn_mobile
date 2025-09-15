@@ -89,23 +89,13 @@ final kunkerDataProvider =
     );
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
-final selectedStatusProvider = StateProvider<String>((ref) => 'Semua Status');
-
 final filteredKunkerProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final query = ref.watch(searchQueryProvider).toLowerCase().trim();
-  final statusFilter = ref.watch(selectedStatusProvider);
   final allItems = ref.watch(kunkerDataProvider);
 
+  if (query.isEmpty) return allItems;
+
   return allItems.where((item) {
-    // Filter by status
-    if (statusFilter != 'Semua Status' &&
-        item['status_pengajuan'] != statusFilter) {
-      return false;
-    }
-
-    // Filter by search query
-    if (query.isEmpty) return true;
-
     return item['no_surat'].toString().toLowerCase().contains(query) ||
         item['anggota'].toString().toLowerCase().contains(query) ||
         item['tenaga_ahli'].toString().toLowerCase().contains(query) ||
@@ -171,7 +161,6 @@ class _DaftarPengajuanKunkerPageState
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final filteredList = ref.watch(filteredKunkerProvider);
-    final selectedStatus = ref.watch(selectedStatusProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -196,140 +185,116 @@ class _DaftarPengajuanKunkerPageState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Search + Filter (Cuti-style)
+            // Modern Search Bar
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Pengajuan Kunker',
               hintText: 'No. surat, anggota, TA, dapil, tanggal, status...',
-              headerTitle: 'Pencarian & Filter',
-              hasActiveFilters:
-                  _searchController.text.trim().isNotEmpty ||
-                  selectedStatus != 'Semua Status',
-              onReset: () {
-                _searchController.clear();
-                ref.read(searchQueryProvider.notifier).state = '';
-                ref.read(selectedStatusProvider.notifier).state =
-                    'Semua Status';
-              },
-              filterSection: Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final opt in const [
-                      'Semua Status',
-                      'Menunggu Konfirmasi',
-                      'Konfirmasi',
-                    ])
-                      ChoiceChip(
-                        avatar: Icon(
-                          opt == 'Semua Status'
-                              ? Icons.filter_alt
-                              : opt == 'Menunggu Konfirmasi'
-                              ? Icons.hourglass_bottom
-                              : Icons.check_circle,
-                          size: 16,
-                          color:
-                              selectedStatus == opt
-                                  ? Colors.white
-                                  : theme.primarySwatch,
-                        ),
-                        label: Text(opt),
-                        selected: selectedStatus == opt,
-                        onSelected:
-                            (_) =>
-                                ref
-                                    .read(selectedStatusProvider.notifier)
-                                    .state = opt,
-                        selectedColor: theme.primarySwatch,
-                        backgroundColor: Colors.grey[100],
-                        labelStyle: theme.typographyRegular.bodyExtraSmall
-                            .copyWith(
-                              color:
-                                  selectedStatus == opt
-                                      ? Colors.white
-                                      : Colors.grey[800],
-                              fontWeight: FontWeight.w600,
-                            ),
-                        side: BorderSide(
-                          color:
-                              selectedStatus == opt
-                                  ? theme.primarySwatch
-                                  : Colors.grey[300]!,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
               cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
             ),
             const SizedBox(height: 16),
 
-            // Add Button
-            SizedBox(
+            // Add Button with modern styling
+            Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    theme.primarySwatch,
+                    theme.primarySwatch.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primarySwatch.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: ElevatedButton.icon(
                 onPressed:
                     () => context.pushNamed(Routes.tambahKunkerPerorangan.name),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primarySwatch,
+                  backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 2,
                 ),
-                icon: const Icon(Icons.add_circle, size: 20),
+                icon: const Icon(Icons.add_circle_rounded, size: 22),
                 label: Text(
                   'TAMBAH PENGAJUAN KUNKER',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+                  style: theme.typographyBold.bodyMedium.copyWith(
                     letterSpacing: 0.5,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // Data Count
+            // Header with data count
             Row(
               children: [
-                Text(
-                  'Daftar Pengajuan Kunker',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.primarySwatch.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.assignment,
+                        color: theme.primarySwatch,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Daftar Pengajuan Kunker',
+                        style: theme.typographyBold.bodyMedium.copyWith(
+                          color: theme.primarySwatch,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.primarySwatch.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: theme.primarySwatch.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     '${filteredList.length} data',
-                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    style: theme.typographyBold.bodySmall.copyWith(
                       color: theme.primarySwatch,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // Kunker List
             Expanded(
@@ -339,37 +304,53 @@ class _DaftarPengajuanKunkerPageState
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[300],
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.search_off_rounded,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               _searchController.text.isEmpty
-                                  ? 'Tidak ada data kunker'
+                                  ? 'Belum ada data pengajuan kunker'
                                   : 'Data tidak ditemukan',
-                              style: theme.typographyRegular.bodyMedium
-                                  .copyWith(color: Colors.grey[600]),
+                              style: theme.typographyRegular.bodyLarge.copyWith(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            if (_searchController.text.isNotEmpty ||
-                                ref.read(selectedStatusProvider) !=
-                                    'Semua Status') ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _searchController.text.isEmpty
+                                  ? 'Mulai dengan menambah pengajuan kunker baru'
+                                  : 'Coba kata kunci yang berbeda',
+                              style: theme.typographyRegular.bodyMedium
+                                  .copyWith(color: Colors.grey[500]),
+                            ),
+                            if (_searchController.text.isNotEmpty) ...[
                               const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.primarySwatch,
-                                  foregroundColor: Colors.white,
-                                ),
+                              ElevatedButton.icon(
                                 onPressed: () {
                                   _searchController.clear();
                                   ref.read(searchQueryProvider.notifier).state =
                                       '';
-                                  ref
-                                      .read(selectedStatusProvider.notifier)
-                                      .state = 'Semua Status';
                                 },
-                                child: const Text('Reset Pencarian'),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Reset Pencarian'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: theme.primarySwatch,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
                               ),
                             ],
                           ],
@@ -408,93 +389,99 @@ class _DaftarPengajuanKunkerPageState
         end: Alignment.bottomRight,
       ),
       leading: Container(
-        width: 40,
-        height: 40,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: statusPengajuanColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            colors: [
+              statusPengajuanColor.withValues(alpha: 0.2),
+              statusPengajuanColor.withValues(alpha: 0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: statusPengajuanColor.withValues(alpha: 0.3),
+          ),
         ),
-        child: Icon(Icons.assignment, color: statusPengajuanColor),
+        child: Icon(
+          Icons.assignment_outlined,
+          color: statusPengajuanColor,
+          size: 24,
+        ),
       ),
       title: kunker['no_surat'].toString(),
       subtitle: kunker['jenis_perjadin'].toString(),
       trailing: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildStatusChip(
-            kunker['status_pengajuan'],
-            statusPengajuanColor,
-            theme,
+          AppStatusChip(
+            label: kunker['status_pengajuan'],
+            color: statusPengajuanColor,
+            icon:
+                kunker['status_pengajuan'] == 'Menunggu Konfirmasi'
+                    ? Icons.hourglass_bottom_rounded
+                    : Icons.check_circle_rounded,
           ),
           if (kunker['status_pencairan'] != '-') ...[
             const SizedBox(height: 8),
-            _buildStatusChip(
-              kunker['status_pencairan'],
-              statusPencairanColor,
-              theme,
+            AppStatusChip(
+              label: kunker['status_pencairan'],
+              color: statusPencairanColor,
+              icon:
+                  kunker['status_pencairan'] == 'Disetujui'
+                      ? Icons.verified_rounded
+                      : Icons.cancel_rounded,
             ),
           ],
         ],
       ),
       chips: [
         AppPillChip(
-          icon: Icons.calendar_today,
+          icon: Icons.calendar_today_rounded,
           label: '${kunker['tanggal_awal']} - ${kunker['tanggal_akhir']}',
+          color: theme.primarySwatch,
         ),
         AppPillChip(
-          icon: Icons.place,
+          icon: Icons.place_rounded,
           label: (kunker['dapil'] ?? '-').toString(),
+          color: Colors.blue[600],
         ),
-        AppPillChip(icon: Icons.group, label: kunker['anggota'].toString()),
         AppPillChip(
-          icon: Icons.engineering,
-          label: kunker['tenaga_ahli'].toString(),
+          icon: Icons.person_rounded,
+          label:
+              kunker['anggota'].toString().length > 25
+                  ? '${kunker['anggota'].toString().substring(0, 25)}...'
+                  : kunker['anggota'].toString(),
+          color: Colors.green[600],
+        ),
+        AppPillChip(
+          icon: Icons.engineering_rounded,
+          label:
+              kunker['tenaga_ahli'].toString().length > 20
+                  ? '${kunker['tenaga_ahli'].toString().substring(0, 20)}...'
+                  : kunker['tenaga_ahli'].toString(),
+          color: Colors.orange[600],
         ),
       ],
       actions: [
         if (isSuccess) ...[
           _buildActionButton(
-            icon: Icons.download,
+            icon: Icons.download_rounded,
             label: 'Transfer Anggota',
-            color: Colors.green,
+            color: Colors.green[600]!,
             onPressed: () => _downloadBuktiTransfer(kunker),
           ),
           _buildActionButton(
-            icon: Icons.download,
+            icon: Icons.download_rounded,
             label: 'Transfer TA',
-            color: Colors.green,
+            color: Colors.green[600]!,
             onPressed: () => _downloadBuktiTransferTA(kunker),
           ),
         ],
-        IconButton(
-          tooltip: isSuccess ? 'Tidak dapat diedit' : 'Edit',
-          icon: Icon(
-            Icons.edit,
-            color: isSuccess ? Colors.grey : theme.primarySwatch,
-          ),
-          onPressed: isSuccess ? null : () => _navigateToEditPage(kunker),
-        ),
-        IconButton(
-          tooltip: 'Hapus',
-          icon: const Icon(Icons.delete, color: Colors.redAccent),
-          onPressed: () => _confirmDelete(kunker),
-        ),
       ],
-    );
-  }
-
-  Widget _buildStatusChip(String text, Color color, dynamic theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        text,
-        style: theme.typographyBold.bodySmall?.copyWith(color: color),
-      ),
     );
   }
 
@@ -527,296 +514,96 @@ class _DaftarPengajuanKunkerPageState
     dynamic theme,
   ) {
     final isSuccess = kunker['status_pencairan'] == 'Disetujui';
-    final statusPengajuanColor = _getStatusPengajuanColor(
-      kunker['status_pengajuan'],
-    );
-    final statusPencairanColor =
-        kunker['status_pencairan'] != '-'
-            ? _getStatusPencairanColor(kunker['status_pencairan'])
-            : Colors.transparent;
 
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            contentPadding: const EdgeInsets.all(0),
-            content: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [Colors.white, theme.primarySwatch.withOpacity(0.05)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Detail',
-                          style: theme.typographyRegular.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.primarySwatch,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: theme.primarySwatch,
-                            size: 24,
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Status Section
-                    Text(
-                      'Status',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildStatusField(
-                            'Status Pengajuan',
-                            kunker['status_pengajuan'],
-                            statusPengajuanColor,
-                            theme,
-                          ),
-                          if (kunker['status_pencairan'] != '-') ...[
-                            const SizedBox(height: 16),
-                            Divider(color: Colors.grey[200], thickness: 1),
-                            const SizedBox(height: 16),
-                            _buildStatusField(
-                              'Status Pencairan',
-                              kunker['status_pencairan'],
-                              statusPencairanColor,
-                              theme,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Data Surat Section
-                    Text(
-                      'Data Surat',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField(
-                            'No. Surat',
-                            kunker['no_surat'],
-                            theme,
-                          ),
-                          _buildTextField(
-                            'Jenis Perjadin',
-                            kunker['jenis_perjadin'],
-                            theme,
-                          ),
-                          _buildTextField(
-                            'Tanggal',
-                            '${kunker['tanggal_awal']} s/d ${kunker['tanggal_akhir']}',
-                            theme,
-                            isLast: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Data Anggota Section
-                    Text(
-                      'Data Anggota',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.primarySwatch.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField('Anggota', kunker['anggota'], theme),
-                          _buildTextField(
-                            'Tenaga Ahli',
-                            kunker['tenaga_ahli'],
-                            theme,
-                          ),
-                          _buildTextField(
-                            'Dapil',
-                            kunker['dapil'],
-                            theme,
-                            isLast: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Action Buttons (if status is Disetujui)
-                    if (isSuccess) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.download, size: 18),
-                          label: const Text('Unduh Bukti Transfer Anggota'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onPressed: () => _downloadBuktiTransfer(kunker),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.download, size: 18),
-                          label: const Text('Unduh Bukti Transfer TA'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onPressed: () => _downloadBuktiTransferTA(kunker),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-    );
-  }
-
-  Widget _buildTextField(
-    String label,
-    String value,
-    dynamic theme, {
-    bool isLast = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.typographyRegular.bodySmall.copyWith(
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+    final dialogData = SIHAKIDialogData(
+      title: 'Detail Pengajuan - ${kunker['no_surat']}',
+      fields: [
+        SIHAKIDialogField(label: 'No. Surat', value: kunker['no_surat']),
+        SIHAKIDialogField(
+          label: 'Jenis Perjadin',
+          value: kunker['jenis_perjadin'],
         ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w600,
-          ),
+        SIHAKIDialogField(
+          label: 'Periode',
+          value: '${kunker['tanggal_awal']} s/d ${kunker['tanggal_akhir']}',
+          valueColor: Colors.blue[700],
         ),
-        if (!isLast) ...[
-          const SizedBox(height: 16),
-          Divider(color: Colors.grey[200], thickness: 1),
-          const SizedBox(height: 16),
+        SIHAKIDialogField(label: 'Anggota DPR', value: kunker['anggota']),
+        SIHAKIDialogField(label: 'Tenaga Ahli', value: kunker['tenaga_ahli']),
+        SIHAKIDialogField(label: 'Daerah Pemilihan', value: kunker['dapil']),
+        SIHAKIDialogField(
+          label: 'Status Pengajuan',
+          value: kunker['status_pengajuan'],
+          valueColor: _getStatusPengajuanColor(kunker['status_pengajuan']),
+        ),
+        if (kunker['status_pencairan'] != '-')
+          SIHAKIDialogField(
+            label: 'Status Pencairan',
+            value: kunker['status_pencairan'],
+            valueColor: _getStatusPencairanColor(kunker['status_pencairan']),
+          ),
+      ],
+      actions: [
+        if (!isSuccess)
+          SIHAKIDialogAction(
+            label: 'Edit Pengajuan',
+            icon: Icons.edit_rounded,
+            backgroundColor: Colors.orange[600],
+            textColor: Colors.white,
+            onTap: () {
+              Navigator.pop(context);
+              _navigateToEditPage(kunker);
+            },
+          ),
+        SIHAKIDialogAction(
+          label: 'Hapus Pengajuan',
+          icon: Icons.delete_rounded,
+          backgroundColor: Colors.red[600],
+          textColor: Colors.white,
+          isDestructive: true,
+          onTap: () {
+            Navigator.pop(context);
+            _confirmDelete(kunker);
+          },
+        ),
+        if (isSuccess) ...[
+          SIHAKIDialogAction(
+            label: 'Bukti Transfer Anggota',
+            icon: Icons.download_rounded,
+            backgroundColor: Colors.green[600],
+            textColor: Colors.white,
+            onTap: () {
+              Navigator.pop(context);
+              _downloadBuktiTransfer(kunker);
+            },
+          ),
+          SIHAKIDialogAction(
+            label: 'Bukti Transfer TA',
+            icon: Icons.download_rounded,
+            backgroundColor: Colors.green[600],
+            textColor: Colors.white,
+            onTap: () {
+              Navigator.pop(context);
+              _downloadBuktiTransferTA(kunker);
+            },
+          ),
         ],
       ],
     );
+
+    SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  Widget _buildStatusField(
-    String label,
-    String value,
-    Color color,
-    dynamic theme,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.typographyRegular.bodySmall.copyWith(
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color),
-          ),
-          child: Text(
-            value,
-            style: theme.typographyBold.bodySmall?.copyWith(color: color),
-          ),
-        ),
-      ],
-    );
-  }
-
+  // Helper Methods untuk Dialog SIHAKI
   void _downloadBuktiTransfer(Map<String, dynamic> kunker) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           'Mengunduh Bukti Transfer Anggota untuk ${kunker['no_surat']}',
         ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -827,39 +614,43 @@ class _DaftarPengajuanKunkerPageState
         content: Text(
           'Mengunduh Bukti Transfer TA untuk ${kunker['no_surat']}',
         ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   void _confirmDelete(Map<String, dynamic> kunker) {
     final noSurat = kunker['no_surat']?.toString() ?? '';
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Hapus Pengajuan'),
-            content: Text('Yakin menghapus $noSurat?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Batal'),
+
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Hapus Pengajuan',
+      message:
+          'Apakah Anda yakin ingin menghapus pengajuan kunker $noSurat? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Hapus',
+      icon: Icons.delete_forever_rounded,
+      iconColor: Colors.red[600],
+      isDestructive: true,
+      onConfirm: () {
+        final list = ref.read(kunkerDataProvider);
+        final idx = list.indexWhere((e) => e['no_surat'] == noSurat);
+        if (idx != -1) {
+          ref.read(kunkerDataProvider.notifier).removeKunker(idx);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Pengajuan kunker berhasil dihapus'),
+              backgroundColor: Colors.green[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              TextButton(
-                onPressed: () {
-                  final list = ref.read(kunkerDataProvider);
-                  final idx = list.indexWhere((e) => e['no_surat'] == noSurat);
-                  if (idx != -1) {
-                    ref.read(kunkerDataProvider.notifier).removeKunker(idx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data dihapus')),
-                    );
-                  }
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('Hapus'),
-              ),
-            ],
-          ),
+            ),
+          );
+        }
+        Navigator.of(context).pop();
+      },
     );
   }
 }
