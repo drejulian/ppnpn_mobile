@@ -16,11 +16,33 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 2), () => navigateToLogin());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startTimer();
+    });
   }
 
-  void navigateToLogin() {
-    context.pushReplacementNamed(Routes.login.name);
+  void _startTimer() async {
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        navigateToWelcome();
+      }
+    } catch (e) {
+      debugPrint('Error in splash timer: $e');
+      if (mounted) {
+        context.pushReplacementNamed(Routes.login.name);
+      }
+    }
+  }
+
+  void navigateToWelcome() {
+    try {
+      context.pushReplacementNamed(Routes.welcome.name);
+    } catch (e) {
+      // Jika welcome gagal, redirect ke login
+      debugPrint('Error navigating to welcome: $e');
+      context.pushReplacementNamed(Routes.login.name);
+    }
   }
 
   @override

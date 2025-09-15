@@ -483,6 +483,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
+                      
                     ),
           ),
         ),

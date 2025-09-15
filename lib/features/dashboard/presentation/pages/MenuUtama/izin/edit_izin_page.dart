@@ -1,0 +1,586 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'daftar_izin_page.dart';
+
+class EditIzinPage extends ConsumerStatefulWidget {
+  const EditIzinPage({super.key, required this.data});
+  final Map<String, dynamic> data;
+
+  @override
+  ConsumerState<EditIzinPage> createState() => _EditIzinPageState();
+}
+
+class _EditIzinPageState extends ConsumerState<EditIzinPage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _jenisCtrl;
+  late final TextEditingController _awalCtrl;
+  late final TextEditingController _akhirCtrl;
+  late final TextEditingController _alasanCtrl;
+  
+  DateTime? _awalDate;
+  DateTime? _akhirDate;
+  PlatformFile? _selectedFile;
+  
+  final List<String> _jenisIzinOptions = [
+    'Izin Sakit',
+    'Izin Pribadi',
+    'Izin Keluarga',
+    'Izin Lainnya',
+  ];
+
+  // Helper methods
+  Future<void> _pickDate(bool isStartDate) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: isStartDate
+          ? (_awalDate ?? now)
+          : (_akhirDate ?? _awalDate ?? now),
+      firstDate: DateTime(now.year - 1), // Allow past dates for editing
+      lastDate: DateTime(now.year + 1), // Allow future dates up to 1 year
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          _awalDate = picked;
+          _awalCtrl.text = _formatDate(picked);
+          if (_akhirDate != null && _akhirDate!.isBefore(picked)) {
+            _akhirDate = null;
+            _akhirCtrl.clear();
+          }
+        } else {
+          _akhirDate = picked;
+          _akhirCtrl.text = _formatDate(picked);
+        }
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd-MM-yyyy').format(date);
+  }
+
+  // Parse date from dd-MM-yyyy format
+  DateTime? _parseDate(String dateString) {
+    try {
+      final parts = dateString.split('-');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        return DateTime(year, month, day);
+      }
+    } catch (e) {
+      // Error parsing date, will return null
+    }
+    return null;
+  }
+
+  // Parse end date from duration string like "3 hari (14 Sep - 16 Sep)"
+  DateTime? _parseEndDateFromDuration(String duration, DateTime startDate) {
+    try {
+      // Extract the number of days from duration
+      final daysMatch = RegExp(r'(\d+) hari').firstMatch(duration);
+      if (daysMatch != null) {
+        final days = int.parse(daysMatch.group(1)!);
+        return startDate.add(Duration(days: days - 1)); // -1 because duration includes the start day
+      }
+    } catch (e) {
+      // Error parsing duration, will return null
+    }
+    return null;
+  }
+
+  String _formatDuration() {
+    if (_awalDate == null || _akhirDate == null) {
+      return '';
+    }
+    
+    final difference = _akhirDate!.difference(_awalDate!).inDays + 1;
+    final awalFormatted = DateFormat('dd MMM').format(_awalDate!);
+    final akhirFormatted = DateFormat('dd MMM').format(_akhirDate!);
+    
+    return '$difference hari ($awalFormatted - $akhirFormatted)';
+  }
+
+  Future<void> _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'png', 'pdf'],
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedFile = result.files.first;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _jenisCtrl = TextEditingController(text: widget.data['type'] ?? '');
+    
+    // Handle date initialization - improved error handling
+    final dateData = widget.data['date'];
+    if (dateData != null && dateData is DateTime) {
+      _awalDate = dateData;
+      _awalCtrl = TextEditingController(text: _formatDate(dateData));
+    } else {
+      // Try to parse from string if it's not DateTime
+      try {
+        if (dateData != null && dateData.toString().isNotEmpty) {
+          // Assume format is 'dd-MM-yyyy' or similar
+          final dateString = dateData.toString();
+          final parsedDate = _parseDate(dateString);
+          if (parsedDate != null) {
+            _awalDate = parsedDate;
+            _awalCtrl = TextEditingController(text: dateString);
+          } else {
+            _awalCtrl = TextEditingController();
+          }
+        } else {
+          _awalCtrl = TextEditingController();
+        }
+      } catch (e) {
+        // Error parsing start date
+        _awalCtrl = TextEditingController();
+      }
+    }
+    
+    // Handle end date - extract from duration or use existing field
+    try {
+      final duration = widget.data['duration'];
+      final tanggalAkhir = widget.data['tanggal_akhir'] ?? widget.data['endDate'];
+      
+      if (tanggalAkhir != null && tanggalAkhir.toString().isNotEmpty) {
+        // If we have explicit end date, use it
+        if (tanggalAkhir is DateTime) {
+          _akhirDate = tanggalAkhir;
+          _akhirCtrl = TextEditingController(text: _formatDate(tanggalAkhir));
+        } else {
+          final parsedEndDate = _parseDate(tanggalAkhir.toString());
+          if (parsedEndDate != null) {
+            _akhirDate = parsedEndDate;
+            _akhirCtrl = TextEditingController(text: tanggalAkhir.toString());
+          } else {
+            _akhirCtrl = TextEditingController();
+          }
+        }
+      } else if (duration != null && duration.toString().isNotEmpty && _awalDate != null) {
+        // Extract end date from duration string
+        final parsedEndDate = _parseEndDateFromDuration(duration.toString(), _awalDate!);
+        if (parsedEndDate != null) {
+          _akhirDate = parsedEndDate;
+          _akhirCtrl = TextEditingController(text: _formatDate(parsedEndDate));
+        } else {
+          _akhirCtrl = TextEditingController();
+        }
+      } else {
+        _akhirCtrl = TextEditingController();
+      }
+    } catch (e) {
+      // Error parsing end date
+      _akhirCtrl = TextEditingController();
+    }
+    
+    _alasanCtrl = TextEditingController(text: widget.data['reason'] ?? '');
+    
+    // Handle file if exists
+    final fileName = widget.data['fileName'];
+    if (fileName != null) {
+      // Note: We can't recreate PlatformFile from just filename, so we'll show the name but won't have the actual file
+    }
+  }
+
+  @override
+  void dispose() {
+    _jenisCtrl.dispose();
+    _awalCtrl.dispose();
+    _akhirCtrl.dispose();
+    _alasanCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ref.watch(themeProvider);
+    final String status = (widget.data['status'] ?? 'Menunggu') as String;
+    final bool isLocked = status == 'Disetujui';
+    
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: Text(
+          'Ubah Pengajuan Izin',
+          style: theme.typographyBold.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: theme.primarySwatch,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Status chip on top
+                if (status != 'Menunggu Persetujuan')
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _statusChip('Status: $status', _statusColor(status), theme),
+                      ],
+                    ),
+                  ),
+                
+                if (isLocked)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lock, size: 18, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Pengajuan ini sudah disetujui dan tidak dapat diedit.',
+                            style: theme.typographyRegular.bodySmall.copyWith(
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                AppFormCard(
+                  title: 'Form Edit Izin',
+                  titleIcon: Icons.edit,
+                  showSaveButton: false,
+                  fields: [
+                    FormFieldConfig(
+                      label: 'Jenis Izin',
+                      icon: Icons.category,
+                      type: FormFieldType.dropdown,
+                      isRequired: true,
+                      options: _jenisIzinOptions,
+                      value: _jenisIzinOptions.contains(_jenisCtrl.text) ? _jenisCtrl.text : null,
+                      onChanged: isLocked ? null : (value) => setState(() => _jenisCtrl.text = value ?? ''),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Pilih jenis izin';
+                        }
+                        return null;
+                      },
+                    ),
+                    FormFieldConfig(
+                      label: 'Tanggal Mulai Izin',
+                      icon: Icons.calendar_today,
+                      type: FormFieldType.datePicker,
+                      isRequired: true,
+                      controller: _awalCtrl,
+                      hintText: 'Pilih tanggal mulai izin',
+                      suffixIcon: Icons.calendar_today,
+                      onTap: isLocked ? null : () => _pickDate(true),
+                      validator: (value) {
+                        if (value == null || value.isEmpty || _awalDate == null) {
+                          return 'Pilih tanggal mulai izin';
+                        }
+                        return null;
+                      },
+                    ),
+                    FormFieldConfig(
+                      label: 'Tanggal Selesai Izin',
+                      icon: Icons.event_available,
+                      type: FormFieldType.datePicker,
+                      isRequired: true,
+                      controller: _akhirCtrl,
+                      hintText: 'Pilih tanggal selesai izin',
+                      suffixIcon: Icons.calendar_today,
+                      onTap: isLocked ? null : () => _pickDate(false),
+                      validator: (value) {
+                        if (value == null || value.isEmpty || _akhirDate == null) {
+                          return 'Pilih tanggal selesai izin';
+                        }
+                        if (_awalDate != null && _akhirDate != null) {
+                          if (_akhirDate!.isBefore(_awalDate!)) {
+                            return 'Tanggal selesai harus setelah tanggal mulai';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    FormFieldConfig(
+                      label: 'Alasan Izin',
+                      icon: Icons.description,
+                      type: FormFieldType.multiline,
+                      isRequired: true,
+                      controller: _alasanCtrl,
+                      hintText: 'Jelaskan alasan pengajuan izin',
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Masukkan alasan izin';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // File Upload Section
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.primarySwatch.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.cloud_upload,
+                              color: theme.primarySwatch,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Lampiran (Opsional)',
+                            style: theme.typographyBold.bodyMedium.copyWith(
+                              color: Colors.grey[800],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: isLocked ? null : _pickFile,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isLocked ? Colors.grey[300]! : Colors.grey[300]!,
+                              style: BorderStyle.solid,
+                              width: 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            color: isLocked ? Colors.grey[50] : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.attach_file,
+                                color: isLocked ? Colors.grey[400] : theme.primarySwatch,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedFile?.name ?? widget.data['fileName'] ?? 'Upload file pendukung',
+                                      style: theme.typographyRegular.bodyMedium.copyWith(
+                                        color: (_selectedFile != null || widget.data['fileName'] != null)
+                                            ? (isLocked ? Colors.grey[600] : Colors.grey[800])
+                                            : (isLocked ? Colors.grey[400] : Colors.grey[600]),
+                                        fontWeight: (_selectedFile != null || widget.data['fileName'] != null)
+                                            ? FontWeight.w600 
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    if (_selectedFile == null && widget.data['fileName'] == null)
+                                      Text(
+                                        'Format: PDF, JPG, PNG (Max 5MB)',
+                                        style: theme.typographyRegular.bodySmall.copyWith(
+                                          color: isLocked ? Colors.grey[400] : Colors.grey[500],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (_selectedFile != null && !isLocked)
+                                IconButton(
+                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedFile = null;
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.primarySwatch,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                    ),
+                    onPressed: isLocked ? null : () {
+                      if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
+                        // Check if ID is available
+                        final izinId = widget.data['id'];
+                        if (izinId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Error: ID izin tidak ditemukan'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        
+                        // Get current status and preserve it
+                        final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
+                        final statusColor = _statusColor(currentStatus);
+                        
+                        final updatedData = {
+                          'id': izinId, // Include ID in update data
+                          'type': _jenisCtrl.text.trim(),
+                          'date': _awalDate!,
+                          'duration': _formatDuration(),
+                          'reason': _alasanCtrl.text.trim(),
+                          'status': currentStatus, // Preserve existing status
+                          'statusColor': statusColor,
+                          'fileName': _selectedFile?.name ?? widget.data['fileName'],
+                        };
+                        
+                        try {
+                          // Update izin data
+                          ref.read(izinProvider.notifier).update(izinId, updatedData);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Data izin berhasil diperbarui'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          Navigator.pop(context);
+                        } catch (e) {
+                          // Error updating data
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal memperbarui data izin: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } else if (_awalDate == null || _akhirDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Pilih tanggal mulai dan selesai izin terlebih dahulu'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    child: Text(
+                      'SIMPAN PERUBAHAN',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Status helpers
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'Disetujui':
+        return Colors.green;
+      case 'Ditolak':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  Widget _statusChip(String label, Color color, dynamic theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.typographyRegular.bodySmall.copyWith(
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

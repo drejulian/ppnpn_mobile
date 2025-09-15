@@ -313,10 +313,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              item.color.withOpacity(0.8),
-              item.color,
-            ],
+            colors: [item.color.withOpacity(0.8), item.color],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
@@ -340,11 +337,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 color: Colors.white.withOpacity(0.25),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                item.icon, 
-                color: Colors.white, 
-                size: 14,
-              ),
+              child: Icon(item.icon, color: Colors.white, size: 14),
             ),
             const SizedBox(height: 4),
             // Title text
@@ -1046,11 +1039,17 @@ class _HomePageState extends ConsumerState<HomePage> {
         Icons.event_busy,
         Colors.orange,
         onTap: () {
-          context.pushNamed(Routes.cuti.name);
+          context.pushNamed(Routes.DaftarCutiPage.name);
         },
       ),
-       MenuItemData('Izin', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.izin.name);},),
+      MenuItemData(
+        'Izin',
+        Icons.assignment,
+        Colors.blue,
+        onTap: () {
+          context.pushNamed(Routes.izin.name);
+        },
+      ),
       MenuItemData(
         'Lembur',
         Icons.access_time,
@@ -1059,8 +1058,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.pushNamed(Routes.lembur.name);
         },
       ),
-      MenuItemData('Reimburse', Icons.assignment, Colors.blue,
-          onTap: () {context.pushNamed(Routes.reimbursePage.name);},),
+      MenuItemData(
+        'Reimburse',
+        Icons.assignment,
+        Colors.blue,
+        onTap: () {
+          context.pushNamed(Routes.reimbursePage.name);
+        },
+      ),
       MenuItemData('Training', Icons.school, Colors.indigo),
       MenuItemData(
         'Meeting',
