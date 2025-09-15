@@ -61,9 +61,9 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
         ),
         title: Text(
           'Edit Task',
-          style: theme.typographyRegular.headingSmall.copyWith(
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: false,

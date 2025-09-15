@@ -46,9 +46,9 @@ class _TambahTaskPageState extends ConsumerState<TambahTaskPage> {
         ),
         title: Text(
           'Tambah Task Baru',
-          style: theme.typographyRegular.headingSmall.copyWith(
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: false,

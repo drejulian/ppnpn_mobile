@@ -71,5 +71,6 @@ enum Routes {
   meeting,
   task,
   tambahTask,
+  notification,
   DaftarCutiPage,
 }
