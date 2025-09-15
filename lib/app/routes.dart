@@ -8,6 +8,7 @@ enum Routes {
   home,
   absensi,
   profile,
+  profileSections,
   editProfile,
   pribadi,
   honorarium,

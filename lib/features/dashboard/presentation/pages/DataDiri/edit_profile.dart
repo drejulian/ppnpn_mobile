@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'providers/profile_data_provider.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -13,14 +15,10 @@ class EditProfilePage extends ConsumerStatefulWidget {
 
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  final _nikController = TextEditingController(text: '13-0265');
-  final _namaController = TextEditingController(
-    text: 'Airlangga Eka Wardhana, S.Kom, M.T.I',
-  );
-  final _bidangKeahlianController = TextEditingController(
-    text: 'MAGISTER TEKNOLOGI INFORMASI',
-  );
-  final _toeflController = TextEditingController(text: '450');
+  final _nikController = TextEditingController();
+  final _namaController = TextEditingController();
+  final _bidangKeahlianController = TextEditingController();
+  final _toeflController = TextEditingController();
 
   String _selectedPendidikan = 'Master/S2';
 
@@ -39,6 +37,38 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     'MAGISTER EKONOMI',
     'MAGISTER TEKNIK',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Data akan diload dari provider di didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load data from provider when page is loaded
+    final savedData = ref.read(editProfileDataProvider);
+    
+    // Only set data if controllers are empty (not already set)
+    if (_nikController.text.isEmpty) {
+      _nikController.text = savedData.nik.isNotEmpty 
+        ? savedData.nik 
+        : '13-0265';
+      _namaController.text = savedData.nama.isNotEmpty 
+        ? savedData.nama 
+        : 'Airlangga Eka Wardhana, S.Kom, M.T.I';
+      _bidangKeahlianController.text = savedData.bidangKeahlian.isNotEmpty 
+        ? savedData.bidangKeahlian 
+        : 'MAGISTER TEKNOLOGI INFORMASI';
+      _toeflController.text = savedData.toefl.isNotEmpty 
+        ? savedData.toefl 
+        : '450';
+      _selectedPendidikan = savedData.pendidikan.isNotEmpty 
+        ? savedData.pendidikan 
+        : 'Master/S2';
+    }
+  }
 
   @override
   void dispose() {
@@ -70,16 +100,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+          onPressed: () async {
+            // Check if there are unsaved changes
+            if (_hasUnsavedChanges()) {
+              final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+              if (shouldLeave) {
+                Navigator.pop(context, false);
+              }
             } else {
-              context.go('/home');
+              Navigator.pop(context, false);
             }
           },
         ),
       ),
-      body: Form(
+        body: Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
@@ -148,12 +182,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 onSave: () => _saveProfile(context, ref.watch(themeProvider)),
                 saveButtonText: 'SIMPAN',
               ),
-              const SizedBox(height: 20), // Bottom spacing
+              const SizedBox(height: 20), 
             ],
           ),
         ),
       ),
-    );
+    ); 
   }
 
   void _saveProfile(BuildContext context, dynamic theme) {
@@ -179,52 +213,84 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         return;
       }
 
+      // Save data to provider
+      final editProfileData = EditProfileData(
+        nik: _nikController.text,
+        nama: _namaController.text,
+        bidangKeahlian: _bidangKeahlianController.text,
+        toefl: _toeflController.text,
+        pendidikan: _selectedPendidikan,
+      );
+      
+      ref.read(editProfileDataProvider.notifier).updateData(editProfileData);
+
       // Show success dialog
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Text(
-                'Simpan Profil',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              content: const Text('Profil berhasil disimpan.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
+      NotificationUtils.showSuccessDialog(
+        context,
+        title: 'Simpan Profil',
+        message: 'Profil berhasil disimpan.',
+        onPressed: () => context.pop('saved'), // Return 'saved' to indicate data was saved
       );
     }
   }
 
   void _showErrorDialog(BuildContext context, dynamic theme, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Error',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.red[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    NotificationUtils.showErrorDialog(
+      context,
+      title: 'Error',
+      message: message,
     );
+  }
+
+  // Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    final savedData = ref.read(editProfileDataProvider);
+    
+    // Default values yang diset di controller
+    final defaultNik = '13-0265';
+    final defaultNama = 'Airlangga Eka Wardhana, S.Kom, M.T.I';
+    final defaultBidang = 'MAGISTER TEKNOLOGI INFORMASI';
+    final defaultToefl = '450';
+    final defaultPendidikan = 'Master/S2';
+    
+    // Ambil nilai yang seharusnya (dari saved data atau default)
+    final expectedNik = savedData.nik.isNotEmpty ? savedData.nik : defaultNik;
+    final expectedNama = savedData.nama.isNotEmpty ? savedData.nama : defaultNama;
+    final expectedBidang = savedData.bidangKeahlian.isNotEmpty ? savedData.bidangKeahlian : defaultBidang;
+    final expectedToefl = savedData.toefl.isNotEmpty ? savedData.toefl : defaultToefl;
+    final expectedPendidikan = savedData.pendidikan.isNotEmpty ? savedData.pendidikan : defaultPendidikan;
+    
+    // Debug print untuk melihat perbandingan data
+    print('=== CHECKING UNSAVED CHANGES ===');
+    print('Controller NIK: "${_nikController.text}" vs Expected: "$expectedNik"');
+    print('Controller Nama: "${_namaController.text}" vs Expected: "$expectedNama"');
+    print('Controller Bidang: "${_bidangKeahlianController.text}" vs Expected: "$expectedBidang"');
+    print('Controller TOEFL: "${_toeflController.text}" vs Expected: "$expectedToefl"');
+    print('Selected Pendidikan: "$_selectedPendidikan" vs Expected: "$expectedPendidikan"');
+    
+    final hasChanges = _nikController.text.trim() != expectedNik.trim() ||
+           _namaController.text.trim() != expectedNama.trim() ||
+           _bidangKeahlianController.text.trim() != expectedBidang.trim() ||
+           _toeflController.text.trim() != expectedToefl.trim() ||
+           _selectedPendidikan != expectedPendidikan;
+           
+    print('Has changes: $hasChanges');
+    print('================================');
+    
+    return hasChanges;
+  }
+
+  // Show unsaved changes dialog
+  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+    final result = await NotificationUtils.showConfirmationDialog(
+      context,
+      title: 'Perubahan Belum Disimpan',
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmButtonText: 'Keluar Tanpa Menyimpan',
+      cancelButtonText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      isDangerous: true,
+    );
+    return result ?? false;
   }
 }

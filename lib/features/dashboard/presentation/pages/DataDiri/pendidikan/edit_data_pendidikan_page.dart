@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:flutter/services.dart';
 
@@ -20,7 +19,6 @@ class _EditDataPendidikanPageState
   late TextEditingController _jurusanController;
   late TextEditingController _institusiController;
   late TextEditingController _kotaController;
-  // Replace single year with start and end years
   late TextEditingController _tahunMulaiController;
   late TextEditingController _tahunSelesaiController;
 
@@ -104,7 +102,7 @@ class _EditDataPendidikanPageState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/pendidikan'),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
@@ -521,6 +519,8 @@ class _EditDataPendidikanPageState
         'tahun_selesai': tahunSelesai,
         // Add formatted display string for the cards
         'tahun': '$tahunMulai - $tahunSelesai',
+        // Ensure it's marked as user data, not dummy
+        'isDummy': 'false',
       };
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -530,8 +530,8 @@ class _EditDataPendidikanPageState
         ),
       );
 
-      // Return to pendidikan page
-      context.go('/pendidikan', extra: {'action': 'edit', 'data': updated});
+      // Return to pendidikan page with updated data
+      Navigator.pop(context, {'action': 'edit', 'data': updated});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

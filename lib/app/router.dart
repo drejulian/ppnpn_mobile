@@ -8,7 +8,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/DataBPJS/tambah_bpjs_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Dokumen%20Anggota/edit_dokumen.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/profile_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/tambah_agenda_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/edit_agenda_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
@@ -68,6 +67,8 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/t
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/notification_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/Profile%20Page/profile_sections_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
 import '../features/auth/presentation/pages/welcome_page.dart';
@@ -144,6 +145,11 @@ GoRouter router(RouterRef ref) {
         path: '/profile',
         name: Routes.profile.name,
         builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: '/profile-sections',
+        name: Routes.profileSections.name,
+        builder: (context, state) => const ProfileSectionsPage(),
       ),
       GoRoute(
         path: '/edit-profile',
@@ -238,7 +244,24 @@ GoRouter router(RouterRef ref) {
         path: '/edit-riwayat-pekerjaan',
         name: Routes.editRiwayatPekerjaan.name,
         builder: (context, state) {
-          final data = state.extra as WorkHistoryData;
+          final extra = state.extra;
+          WorkHistoryData data;
+          
+          if (extra is WorkHistoryData) {
+            data = extra;
+          } else if (extra is Map<String, String>) {
+            // Convert Map to WorkHistoryData
+            data = WorkHistoryData(
+              id: extra['id'] ?? '',
+              position: extra['position'] ?? '',
+              company: extra['company'] ?? '',
+              startYear: extra['startYear'] ?? '',
+              endYear: extra['endYear'] ?? '',
+            );
+          } else {
+            throw Exception('Invalid data type for edit-riwayat-pekerjaan route');
+          }
+          
           return EditDataPekerjaanPage(data: data);
         },
       ),

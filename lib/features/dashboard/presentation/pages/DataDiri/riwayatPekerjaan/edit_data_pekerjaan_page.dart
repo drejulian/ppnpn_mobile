@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/riwayat_pekerjaan_page.dart';
 import 'package:flutter/services.dart';
@@ -63,9 +62,18 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
         backgroundColor: Colors.green,
       ),
     );
-    context.go(
-      '/riwayat-pekerjaan',
-    ); 
+    
+    // Return data to parent page
+    Navigator.pop(context, {
+      'action': 'edit',
+      'data': {
+        'id': widget.data.id,
+        'position': _positionCtrl.text.trim(),
+        'company': _companyCtrl.text.trim(),
+        'startYear': _startYearCtrl.text.trim(),
+        'endYear': _endYearCtrl.text.trim(),
+      }
+    }); 
   }
 
   @override
@@ -86,7 +94,7 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/riwayat-pekerjaan'),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
