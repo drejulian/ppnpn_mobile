@@ -60,6 +60,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Lembur
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Meeting/meeting_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/task_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/MenuUtama/Task/tambah_task_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/pages/notification_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/edit_kunker_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/KunkerPerorangan/tambah_kunker_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -421,6 +422,12 @@ GoRouter router(RouterRef ref) {
         path: '/tambahTask',
         name: Routes.tambahTask.name,
         builder: (context, state) => const TambahTaskPage(),
+      ),
+      // Notification
+      GoRoute(
+        path: '/notification',
+        name: Routes.notification.name,
+        builder: (context, state) => const NotificationPage(),
       ),
       GoRoute(
         path: '/dataKomisi',

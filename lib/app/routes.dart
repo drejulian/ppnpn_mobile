@@ -65,4 +65,5 @@ enum Routes {
   meeting,
   task,
   tambahTask,
+  notification,
 }

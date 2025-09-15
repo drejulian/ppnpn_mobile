@@ -84,7 +84,7 @@ class AppFormCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
 
-    return Container(
+    return Container(  
       margin: margin ?? const EdgeInsets.all(0),
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -195,7 +195,7 @@ class AppFormCard extends ConsumerWidget {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: [ 
             Container(
               width: 36,
               height: 36,

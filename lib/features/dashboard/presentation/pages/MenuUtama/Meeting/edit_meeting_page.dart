@@ -169,9 +169,9 @@ class _EditMeetingPageState extends ConsumerState<EditMeetingPage> {
         ),
         title: Text(
           'Edit Meeting',
-          style: theme.typographyRegular.headingSmall.copyWith(
+          style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: false,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -65,10 +66,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               children: [
                 // Header Section
                 _buildHeader(theme, context, _currentTime),
-                const SizedBox(height: 24),
-
-                // Absensi Card
-                _buildAbsensiCard(theme, context, _currentTime),
                 const SizedBox(height: 24),
 
                 // Menu Utama Section
@@ -190,216 +187,63 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
 
-          // Notification Icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: IconButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tidak ada notifikasi baru'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              icon: Icon(
-                Icons.notifications_outlined,
-                color: Colors.grey[600],
-                size: 20,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAbsensiCard(
-    dynamic theme,
-    BuildContext context,
-    DateTime currentTime,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [theme.primarySwatch, theme.secondarySwatch],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.primarySwatch.withValues(alpha: 0.3),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Notification Icon with Badge
+          Stack(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Absensi Hari Ini',
-                    style: theme.typographyRegular.bodyMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat(
-                      'EEEE, d MMMM yyyy',
-                      'id_ID',
-                    ).format(currentTime),
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  'miftahul01',
-                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                child: IconButton(
+                  onPressed: () {
+                    context.pushNamed(Routes.notification.name);
+                  },
+                  icon: Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.grey[600],
+                    size: 20,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Single Row Layout
-          Row(
-            children: [
-              // Check In Button
-              Expanded(
-                flex: 2,
-                child: _buildAbsensiButton(
-                  'Check In',
-                  Icons.login,
-                  '08:00',
-                  theme,
-                  true,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Check Out Button
-              Expanded(
-                flex: 2,
-                child: _buildAbsensiButton(
-                  'Check Out',
-                  Icons.logout,
-                  '--:--',
-                  theme,
-                  false,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Riwayat Button
-              Expanded(
-                flex: 3,
-                child: ElevatedButton(
-                  onPressed: () {
-                    debugPrint('📊 Viewing attendance history');
-                    debugPrint('👤 User: miftahul01');
-                    debugPrint(
-                      '📅 Time: ${currentTime.toIso8601String().substring(0, 19)} WIB',
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Fitur riwayat absensi akan segera tersedia',
+              // Badge for notification count
+              Consumer(
+                builder: (context, ref, child) {
+                  final notificationState = ref.watch(notificationProvider);
+                  if (notificationState.unreadCount > 0) {
+                    return Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        duration: Duration(seconds: 2),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          notificationState.unreadCount > 99 
+                              ? '99+' 
+                              : '${notificationState.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: theme.primarySwatch,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Riwayat\nAbsensi',
-                    textAlign: TextAlign.center,
-                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAbsensiButton(
-    String title,
-    IconData icon,
-    String time,
-    dynamic theme,
-    bool isActive,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isActive ? 0.2 : 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-              fontWeight: FontWeight.w500,
-              fontSize: 11.0,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            time,
-            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 10.0,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
