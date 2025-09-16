@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 part 'material_color_generator.dart';
-part 'my_typography.dart'; // Make sure my_typography.dart is correctly defined
+part 'my_typography.dart';
 
 class MyTheme {
   MaterialColor primarySwatch = _generateMaterialColor(
@@ -43,11 +43,7 @@ class MyTheme {
       fontWeight: FontWeight.w400,
       fontSize: 12,
     ),
-    // ADD THIS LINE
-    titleMedium: GoogleFonts.poppins(
-      fontWeight: FontWeight.w400,
-      fontSize: 18,
-    ), // Provide a default or appropriate value
+    titleMedium: GoogleFonts.poppins(fontWeight: FontWeight.w400, fontSize: 18),
   );
 
   MyTypography typographyLight = MyTypography(
@@ -70,11 +66,7 @@ class MyTheme {
       fontWeight: FontWeight.w300,
       fontSize: 12,
     ),
-    // ADD THIS LINE
-    titleMedium: GoogleFonts.poppins(
-      fontWeight: FontWeight.w300,
-      fontSize: 18,
-    ), // Provide a default or appropriate value
+    titleMedium: GoogleFonts.poppins(fontWeight: FontWeight.w300, fontSize: 18),
   );
 
   MyTypography typographyBold = MyTypography(
@@ -97,11 +89,7 @@ class MyTheme {
       fontWeight: FontWeight.w500,
       fontSize: 12,
     ),
-    // ADD THIS LINE
-    titleMedium: GoogleFonts.poppins(
-      fontWeight: FontWeight.w500,
-      fontSize: 18,
-    ), // Provide a default or appropriate value
+    titleMedium: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 18),
   );
 
   ThemeData buildLightTheme(BuildContext context) {
@@ -116,7 +104,6 @@ class MyTheme {
         titleTextStyle: typographyBold.bodyLarge.copyWith(color: Colors.black),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      // Tambahkan pengaturan lainnya jika diperlukan
     );
   }
 
@@ -132,7 +119,6 @@ class MyTheme {
         titleTextStyle: typographyBold.bodyLarge.copyWith(color: Colors.white),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      // Tambahkan pengaturan lainnya jika diperlukan
     );
   }
 

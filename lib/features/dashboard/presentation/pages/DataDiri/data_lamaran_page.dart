@@ -29,7 +29,7 @@ const List<String> subPlacements = [
   'DONI SAPUTRA, M.Kom',
 ];
 
-// Provider for selected dates (to easily manage and clear them)
+
 final selectedStartDateProvider = StateProvider<DateTime?>((ref) => null);
 final selectedLetterDateProvider = StateProvider<DateTime?>((ref) => null);
 final selectedPlacementDateProvider = StateProvider<DateTime?>((ref) => null);
@@ -48,13 +48,12 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
   String? _selectedPosition;
   String? _selectedPlacement;
   late TextEditingController _subPlacementController;
-  late TextEditingController _otherPositionController; // For "Lainnya" position
+  late TextEditingController _otherPositionController; 
   late TextEditingController
-  _otherPlacementController; // For "Lainnya" placement
+  _otherPlacementController; 
   late TextEditingController
-  _notesController; // For the "lainnya" textfield at the bottom
+  _notesController; 
 
-  // Dummy list of existing positions for "Data Pergantian / Posisi Baru"
   final List<String> _existingPositions = [
     'Manajer Proyek - PT ABC (2020-2023)',
     'Analis Data - CV XYZ (2018-2020)',
@@ -73,10 +72,9 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Load data from provider when page is loaded
+  
     final savedData = ref.read(dataLamaranDataProvider);
     
-    // Only set data if not already set
     if (_selectedPosition == null && savedData.position.isNotEmpty) {
       _selectedPosition = savedData.position;
       if (savedData.otherPosition.isNotEmpty) {
@@ -100,7 +98,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
 
   @override
   void dispose() {
-    // Safe dispose with null checks
+
     try {
       _subPlacementController.dispose();
       _otherPositionController.dispose();
@@ -161,7 +159,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         context,
         title: 'Simpan Data Lamaran',
         message: 'Data lamaran berhasil disimpan.',
-        onPressed: () => context.pop('saved'), // Return 'saved' to indicate data was saved
+        onPressed: () => context.pop('saved'),
       );
     }
   }
@@ -292,7 +290,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             ),
             const SizedBox(height: 30),
 
-            // --- Data Pergantian / Posisi Baru Section ---
+          
             _buildSectionHeader(
               theme,
               'Data Pergantian / Posisi Baru',
@@ -303,7 +301,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             _buildReplacementPositionSection(theme),
             const SizedBox(height: 30),
 
-            // --- Pernyataan Pengisian Data Section ---
+
             _buildSectionHeader(
               theme,
               'Pernyataan Pengisian Data',
@@ -314,7 +312,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             _buildStatementSection(theme),
             const SizedBox(height: 30),
 
-            // --- Transfer Data Section ---
+   
             _buildSectionHeader(
               theme,
               'Transfer Data',
@@ -325,7 +323,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             _buildTransferDataSection(theme),
             const SizedBox(height: 30),
 
-            // --- Cetak Berkas Lamaran Section ---
+       
             _buildSectionHeader(
               theme,
               'Cetak Berkas Lamaran',
@@ -336,7 +334,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             _buildPrintFilesSection(theme),
             const SizedBox(height: 30),
 
-            // Tombol Simpan Utama
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -402,7 +399,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 30), // Bottom spacing
+            const SizedBox(height: 30), 
           ],
         ),
       ),
@@ -501,7 +498,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Posisi
+
             Text(
               'Posisi',
               style: theme.typographyRegular.bodySmall.copyWith(
@@ -550,7 +547,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             ],
             const SizedBox(height: 16),
 
-            // Penempatan
             Text(
               'Penempatan',
               style: theme.typographyRegular.bodySmall.copyWith(
@@ -621,7 +617,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               },
               onSelected: (String selection) {
                 setState(() {
-                  _subPlacementController.text = selection; // Update controller
+                  _subPlacementController.text = selection; 
                 });
               },
               fieldViewBuilder: (
@@ -631,7 +627,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 VoidCallback onFieldSubmitted,
               ) {
                 _subPlacementController =
-                    textEditingController; // Keep controller updated
+                    textEditingController; 
                 return TextFormField(
                   controller: textEditingController,
                   focusNode: focusNode,
@@ -849,7 +845,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                   );
                 }).toList(),
             validator: (value) {
-              // Optional validation if you want to force selection here
+
               return null;
             },
           ),

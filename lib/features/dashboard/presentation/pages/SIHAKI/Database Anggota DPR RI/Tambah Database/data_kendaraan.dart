@@ -18,7 +18,6 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
   final _nopolPribadiController = TextEditingController();
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -28,7 +27,7 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+
     setState(() {
       _nopolDinasController.text = _persistentData['nopolDinas'] ?? '';
       _nopolPribadiController.text = _persistentData['nopolPribadi'] ?? '';
@@ -72,7 +71,6 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
       _persistentData['nopolDinas'] = _nopolDinasController.text;
       _persistentData['nopolPribadi'] = _nopolPribadiController.text;
 

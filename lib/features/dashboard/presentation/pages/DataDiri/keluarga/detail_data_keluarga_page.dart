@@ -67,7 +67,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
                 member == null
                     ? null
                     : () {
-                      final m = member; // promote to non-null inside closure
+                      final m = member;
                       if (m != null) _editFamilyMember(context, m);
                     },
             icon: const Icon(Icons.edit, color: Colors.white),

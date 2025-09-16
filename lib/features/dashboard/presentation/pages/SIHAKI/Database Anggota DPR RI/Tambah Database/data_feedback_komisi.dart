@@ -22,7 +22,7 @@ class _DataFeedbackKomisiPageState
   String? _ratingKinerja;
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -32,7 +32,7 @@ class _DataFeedbackKomisiPageState
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+  
     setState(() {
       _topikController.text = _persistentData['topik'] ?? '';
       _feedbackController.text = _persistentData['feedback'] ?? '';
@@ -83,7 +83,6 @@ class _DataFeedbackKomisiPageState
         return;
       }
 
-      // Simpan data ke memori persisten
       _persistentData['topik'] = _topikController.text;
       _persistentData['feedback'] = _feedbackController.text;
       _persistentData['saran'] = _saranController.text;

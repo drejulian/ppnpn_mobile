@@ -63,7 +63,6 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
       ),
     );
     
-    // Return data to parent page
     Navigator.pop(context, {
       'action': 'edit',
       'data': {
@@ -104,7 +103,7 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Job ID Card
+ 
               _buildInfoCard(theme),
 
               const SizedBox(height: 16),
@@ -213,7 +212,6 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
     );
   }
 
-  // Info card showing job ID
   Widget _buildInfoCard(dynamic theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -261,7 +259,6 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
     );
   }
 
-  // Kunker-style card container with gradient header
   Widget _buildCard(
     dynamic theme, {
     required String title,
@@ -314,7 +311,6 @@ class _EditDataPekerjaanPageState extends ConsumerState<EditDataPekerjaanPage> {
     );
   }
 
-  // Kunker-style field with left icon and "Wajib diisi" indicator
   Widget _buildFieldWithIcon(
     String label,
     TextEditingController controller,

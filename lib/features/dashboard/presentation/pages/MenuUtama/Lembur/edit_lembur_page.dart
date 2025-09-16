@@ -78,7 +78,6 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     return '$hour:$minute';
   }
 
-  // Parse time from string format like "19:00" or just "19"
   TimeOfDay? _parseTime(String timeString) {
     try {
       if (timeString.contains(':')) {
@@ -91,7 +90,7 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
           }
         }
       } else {
-        // Handle old format with just hour number
+
         final hour = int.tryParse(timeString);
         if (hour != null && hour >= 0 && hour <= 23) {
           return TimeOfDay(hour: hour, minute: 0);
@@ -113,7 +112,7 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     
     int durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
-      durationMinutes += 24 * 60; // Handle overnight work
+      durationMinutes += 24 * 60; 
     }
     
     final hours = durationMinutes ~/ 60;
@@ -142,11 +141,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize jenis lembur
+ 
     _jenisCtrl = TextEditingController(text: widget.data['type'] ?? '');
     
-    // Format tanggal dari DateTime ke string dd-MM-yyyy
     final date = widget.data['date'];
     if (date is DateTime) {
       _selectedDate = date;
@@ -155,8 +152,7 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
       final dateStr = date?.toString() ?? '';
       _tanggalCtrl = TextEditingController(text: dateStr);
     }
-    
-    // Initialize time fields
+
     final jamMulaiStr = widget.data['jamMulai'] ?? widget.data['mulai'] ?? '19:00';
     final jamSelesaiStr = widget.data['jamSelesai'] ?? widget.data['selesai'] ?? '22:00';
     
@@ -168,10 +164,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     
     _kegiatanCtrl = TextEditingController(text: widget.data['reason'] ?? '');
     
-    // Handle file if exists
+
     final fileName = widget.data['fileName'];
     if (fileName != null) {
-      // Note: We can't recreate PlatformFile from just filename, so we'll show the name but won't have the actual file
     }
   }
 

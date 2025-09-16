@@ -28,7 +28,7 @@ class _DataPribadiPageState extends ConsumerState<DataPribadiPage> {
   final _namaRekeningMitraController = TextEditingController();
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+ 
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -38,7 +38,6 @@ class _DataPribadiPageState extends ConsumerState<DataPribadiPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
     setState(() {
       _handphoneController.text = _persistentData['handphone'] ?? '';
       _emailController.text = _persistentData['email'] ?? '';
@@ -472,7 +471,7 @@ class _DataPribadiPageState extends ConsumerState<DataPribadiPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
+      // Simpan data ke memori
       _persistentData['handphone'] = _handphoneController.text;
       _persistentData['email'] = _emailController.text;
       _persistentData['telponRuangan'] = _telponRuanganController.text;

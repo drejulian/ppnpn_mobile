@@ -130,7 +130,6 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
     context.push('/edit-media-sosial-anggota', extra: medsos);
   }
 
-  // Helper Methods untuk Dialog SIHAKI
   void _confirmDelete(Map<String, dynamic> medsos) {
     SIHAKIConfirmationDialog.show(
       context,
@@ -224,7 +223,6 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Media Sosial',
@@ -236,7 +234,6 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
             ),
             const SizedBox(height: 16),
 
-            // Add Button with modern styling
             Container(
               width: double.infinity,
               decoration: BoxDecoration(

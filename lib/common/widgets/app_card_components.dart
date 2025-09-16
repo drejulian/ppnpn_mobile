@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 
-/// Field types for form card components
+// Field types for form card components
 enum FormFieldType {
   text,
   textRequired,
@@ -15,7 +15,7 @@ enum FormFieldType {
   multiline,
 }
 
-/// Configuration class for form field
+// Configuration class for form field
 class FormFieldConfig {
   final String label;
   final IconData icon;
@@ -58,7 +58,7 @@ class FormFieldConfig {
   });
 }
 
-/// Reusable Form Card Component with consistent styling and multiple field types
+// Reusable Form Card Component with consistent styling and multiple field types
 class AppFormCard extends ConsumerWidget {
   final String title;
   final IconData titleIcon;
@@ -85,7 +85,7 @@ class AppFormCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
 
-    return Container(  
+    return Container(
       margin: margin ?? const EdgeInsets.all(0),
       padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -196,7 +196,7 @@ class AppFormCard extends ConsumerWidget {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [ 
+          children: [
             Container(
               width: 36,
               height: 36,
@@ -1031,7 +1031,6 @@ class AppCard extends StatelessWidget {
 }
 
 /// A reusable search/filter bar for app pages.
-/// Wraps a styled Card + TextField with clear button and theme-aware borders.
 class AppFilterBar extends ConsumerWidget {
   final TextEditingController controller;
   final String labelText;
@@ -1041,13 +1040,12 @@ class AppFilterBar extends ConsumerWidget {
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry cardMargin;
   final Widget? prefixIcon;
-  // New: optional header + filter section like "Daftar Cuti"
-  final String? headerTitle; // e.g., 'Pencarian & Filter'
-  final bool?
-  showHeader; // default auto when headerTitle/filterSection provided
-  final bool hasActiveFilters; // controls Reset visibility
-  final VoidCallback? onReset; // Reset button callback
-  final Widget? filterSection; // extra filter widgets (chips, dropdowns, etc.)
+
+  final String? headerTitle;
+  final bool? showHeader;
+  final bool hasActiveFilters;
+  final VoidCallback? onReset;
+  final Widget? filterSection;
 
   const AppFilterBar({
     super.key,
@@ -1171,11 +1169,6 @@ class AppFilterBar extends ConsumerWidget {
   }
 }
 
-/// A standardized list-item card layout built on top of [AppCard],
-/// matching the look-and-feel used by "Daftar Cuti":
-/// - Top row: leading avatar/icon, title + subtitle, trailing status chip
-/// - Middle: wrap of small "pill" chips
-/// - Bottom-right: row of action buttons (icon/text)
 class AppListCard extends StatelessWidget {
   const AppListCard({
     super.key,
@@ -1208,7 +1201,6 @@ class AppListCard extends StatelessWidget {
   // Content
   final List<Widget> chips;
 
-  // Bottom-right action widgets (e.g. IconButtons or OutlinedButtons)
   final List<Widget> actions;
 
   @override
@@ -1275,7 +1267,6 @@ class AppListCard extends StatelessWidget {
   }
 }
 
-/// Small rounded "pill" chip used under the header inside [AppListCard].
 class AppPillChip extends StatelessWidget {
   const AppPillChip({
     super.key,
@@ -1318,7 +1309,6 @@ class AppPillChip extends StatelessWidget {
   }
 }
 
-/// Status chip to be placed on the top-right of [AppListCard].
 class AppStatusChip extends StatelessWidget {
   const AppStatusChip({
     super.key,
@@ -1361,7 +1351,6 @@ class AppStatusChip extends StatelessWidget {
   }
 }
 
-/// Enhanced card menu component dengan glassmorphism effect dan animasi modern
 class CardMenuComponent extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -1509,7 +1498,6 @@ class CardMenuComponent extends StatelessWidget {
   }
 }
 
-/// Header card component dengan gradient theme yang konsisten
 class HeaderCardComponent extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -1665,7 +1653,6 @@ class HeaderCardComponent extends StatelessWidget {
   }
 }
 
-/// Section header component untuk menampilkan judul section dengan counter
 class SectionHeaderComponent extends StatelessWidget {
   final String title;
   final String counter;
@@ -1748,7 +1735,6 @@ class SectionHeaderComponent extends StatelessWidget {
   }
 }
 
-//Sihaki Components
 class SIHAKICard extends ConsumerWidget {
   final String title;
   final String periode;
@@ -1796,7 +1782,6 @@ class SIHAKICard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header dengan icon dan periode
                 Row(
                   children: [
                     Container(
@@ -2023,7 +2008,6 @@ class SIHAKICard extends ConsumerWidget {
   }
 }
 
-/// SIHAKI Page Header dengan design yang clean dan informatif
 class SIHAKIPageHeader extends ConsumerWidget {
   final String title;
   final String subtitle;
@@ -2136,7 +2120,6 @@ class SIHAKIPageHeader extends ConsumerWidget {
   }
 }
 
-/// SIHAKI Action Button untuk header dengan design yang sederhana
 class SIHAKIActionButton extends ConsumerWidget {
   final IconData icon;
   final String label;
@@ -2194,7 +2177,6 @@ class SIHAKIActionButton extends ConsumerWidget {
   }
 }
 
-/// SIHAKI Data Card Component - Generic untuk semua jenis data SIHAKI
 class SIHAKIDataCard extends ConsumerWidget {
   final String title;
   final String subtitle;
@@ -2682,7 +2664,6 @@ class SIHAKIListCard extends ConsumerWidget {
   }
 }
 
-/// SIHAKI Pagination Component
 class SIHAKIPagination extends StatelessWidget {
   final int currentPage;
   final int totalPages;
@@ -3272,7 +3253,6 @@ class SIHAKIConfirmationDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon dengan background colorful
               Container(
                 padding: EdgeInsets.all(isTablet ? 16 : 14),
                 decoration: BoxDecoration(

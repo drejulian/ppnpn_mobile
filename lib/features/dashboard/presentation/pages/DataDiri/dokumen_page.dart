@@ -18,7 +18,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
   final Map<String, File?> _uploadedFiles = {};
   final Map<String, bool> _uploading = {};
   
-  // Backup data for unsaved changes detection
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
 
@@ -27,10 +26,9 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     super.didChangeDependencies();
     
     if (!_dataLoaded) {
-      // Load data from provider when page is loaded
+
       final savedData = ref.read(dokumenDataProvider);
       
-      // Update upload status based on saved data
       if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
       if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
       if (savedData.ijazahUploaded) _uploadedFiles['ijazah'] = File('dummy_ijazah.pdf');
@@ -40,7 +38,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
       if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
       
-      // Backup original data for change detection
       _originalData = _getCurrentData();
       _dataLoaded = true;
       
@@ -72,7 +69,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     print('Original: $_originalData');
     print('Current: $currentData');
     
-    // Check each upload status
     _originalData.forEach((key, value) {
       if (currentData[key] != value) {
         print('$key changed: $value -> ${currentData[key]}');
@@ -87,10 +83,9 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
   void _restoreOriginalData() {
     print('=== RESTORING ORIGINAL DATA ===');
     
-    // Clear current uploads
+
     _uploadedFiles.clear();
     
-    // Restore from original provider data (re-read from provider)
     final savedData = ref.read(dokumenDataProvider);
     if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
     if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
@@ -167,7 +162,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     });
 
     try {
-      // Simulate upload delay
       await Future.delayed(const Duration(seconds: 2));
 
       print('=== FILE UPLOADED: $documentId ===');
@@ -222,7 +216,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(dialogContext); // Just close dialog, don't navigate
+              Navigator.pop(dialogContext);
             },
             child: const Text('OK'),
           ),
@@ -297,7 +291,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
               _buildDocumentSection(theme),
               const SizedBox(height: 30),
               
-              // Save Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -682,7 +675,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
           onPressed: () {
             print('=== SUCCESS DIALOG BUTTON PRESSED ===');
             
-            // Update original data to clear unsaved changes flag
             _originalData = _getCurrentData();
             
             // Safe navigation back to previous page

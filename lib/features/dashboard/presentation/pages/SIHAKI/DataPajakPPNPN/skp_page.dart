@@ -8,7 +8,6 @@ import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 class SuratKeteranganPenghasilanPage extends ConsumerStatefulWidget {
   const SuratKeteranganPenghasilanPage({Key? key}) : super(key: key);
 
-  // Static data for SKP
   static final List<Map<String, String>> skpData = [
     {
       'tahun': '2024',
@@ -129,7 +128,7 @@ class _SuratKeteranganPenghasilanPageState
     final paginatedData = _getPaginatedData(filteredData);
     final totalPages = (filteredData.length / _itemsPerPage).ceil();
 
-    // Check if there are active filters
+  
     final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
@@ -156,7 +155,7 @@ class _SuratKeteranganPenghasilanPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SIHAKI Header
+    
             SIHAKIPageHeader(
               title: 'SKP PPNPN',
               subtitle: 'Surat Keterangan Penghasilan',
@@ -198,7 +197,7 @@ class _SuratKeteranganPenghasilanPageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-            // Search + Filter using AppFilterBar
+       
             AppFilterBar(
               controller: searchController,
               labelText: 'Pencarian SKP ',
@@ -359,7 +358,7 @@ class _SuratKeteranganPenghasilanPageState
       '12': 'Desember',
     };
 
-    // Use Enhanced SIHAKI Detail Dialog Component
+
     SIHAKIDetailDialog.show(
       context,
       SIHAKIDialogData(

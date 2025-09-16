@@ -22,7 +22,7 @@ class _DataKesehatanPageState extends ConsumerState<DataKesehatanPage> {
   final _alergiController = TextEditingController();
   bool _isEditing = false;
 
-  // Simulasi memori lokal untuk menyimpan data antar sesi
+ 
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -32,7 +32,7 @@ class _DataKesehatanPageState extends ConsumerState<DataKesehatanPage> {
   }
 
   Future<void> _loadSavedData() async {
-    // Memuat data persisten saat halaman dimuat
+
     setState(() {
       _beratBadanController.text = _persistentData['beratBadan'] ?? '';
       _tinggiBadanController.text = _persistentData['tinggiBadan'] ?? '';
@@ -87,7 +87,7 @@ class _DataKesehatanPageState extends ConsumerState<DataKesehatanPage> {
         return;
       }
 
-      // Simpan data ke memori persisten
+ 
       _persistentData['beratBadan'] = _beratBadanController.text;
       _persistentData['tinggiBadan'] = _tinggiBadanController.text;
       _persistentData['golonganDarah'] = _golonganDarahController.text;

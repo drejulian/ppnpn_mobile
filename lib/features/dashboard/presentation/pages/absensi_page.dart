@@ -761,7 +761,7 @@ class AbsensiPage extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon with checkmark overlay
+        
             Stack(
               alignment: Alignment.center,
               children: [
@@ -953,7 +953,7 @@ class AbsensiPage extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    // Camera Button
+              
                     ElevatedButton.icon(
                       onPressed: () => _openCamera(ref),
                       icon: Icon(Icons.camera_alt, size: 16),
@@ -1330,8 +1330,8 @@ class AbsensiPage extends ConsumerWidget {
       final month = DateTime(now.year, now.month - i, 1);
       final monthName = DateFormat('MMMM yyyy', 'id_ID').format(month);
       final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-      final workingDays = daysInMonth - 8; // Assume 8 weekend days
-      final presentDays = workingDays - (i * 2); // Mock absent days
+      final workingDays = daysInMonth - 8; 
+      final presentDays = workingDays - (i * 2);
       final percentage = (presentDays / workingDays) * 100;
 
       data.add({
@@ -1387,7 +1387,6 @@ class AbsensiPage extends ConsumerWidget {
     } catch (e) {
       debugPrint('Error getting location: $e');
 
-      // Show error message
       String errorMessage = 'Terjadi kesalahan saat mendapatkan lokasi.';
       if (e.toString().contains('Location services are disabled')) {
         errorMessage =

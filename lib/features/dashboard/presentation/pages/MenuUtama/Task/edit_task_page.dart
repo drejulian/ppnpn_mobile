@@ -344,9 +344,9 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
       dueDate: _selectedDate,
       priority: _selectedPriority,
       status: _selectedStatus,
-      assignees: [], // Empty list since we removed assignees functionality
-      commentsCount: 0, // Default value
-      filesCount: 0, // Default value
+      assignees: [], 
+      commentsCount: 0, 
+      filesCount: 0,
       priorityColor: _getPriorityColor(_selectedPriority),
       statusColor: _getStatusColor(_selectedStatus),
     );

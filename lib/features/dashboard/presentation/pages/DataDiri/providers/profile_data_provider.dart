@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
-// Models for different sections
 class HonorariumData {
   final String kartuKeluarga;
   final String ktp;
@@ -388,7 +387,6 @@ class IdCardData {
   }
 }
 
-// Notifiers for each section
 class HonorariumNotifier extends StateNotifier<HonorariumData> {
   HonorariumNotifier() : super(HonorariumData());
 
@@ -701,7 +699,6 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
   IdCardNotifier() : super(IdCardData());
 
   void updateData(IdCardData newData) {
-    // Validate image path before saving
     if (newData.fotoPath.isNotEmpty) {
       try {
         final file = File(newData.fotoPath);
@@ -723,7 +720,7 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
   void updateField(String field, dynamic value) {
     switch (field) {
       case 'fotoPath':
-        // Validate file path before updating
+   
         final String path = value as String;
         if (path.isNotEmpty) {
           try {
@@ -762,7 +759,6 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
   }
 }
 
-// Section completion tracking
 class ProfileCompletionNotifier extends StateNotifier<Map<String, bool>> {
   ProfileCompletionNotifier() : super({
     'editProfile': false,
@@ -790,7 +786,6 @@ class ProfileCompletionNotifier extends StateNotifier<Map<String, bool>> {
     };
   }
 
-  // Reset all completion status for fresh login
   void resetAll() {
     state = {
       'editProfile': false,

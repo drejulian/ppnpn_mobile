@@ -48,7 +48,6 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
   @override
   void initState() {
     super.initState();
-    // No need to generate ID anymore since we removed it
   }
 
   @override

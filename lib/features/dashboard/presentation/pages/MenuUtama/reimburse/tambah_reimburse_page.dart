@@ -11,7 +11,8 @@ class TambahReimbursePage extends ConsumerStatefulWidget {
   const TambahReimbursePage({super.key});
 
   @override
-  ConsumerState<TambahReimbursePage> createState() => _TambahReimbursePageState();
+  ConsumerState<TambahReimbursePage> createState() =>
+      _TambahReimbursePageState();
 }
 
 class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
@@ -20,13 +21,13 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
   final TextEditingController _tanggalCtrl = TextEditingController();
   final TextEditingController _jumlahCtrl = TextEditingController();
   final TextEditingController _deskripsiCtrl = TextEditingController();
-  
+
   DateTime? _selectedDate;
   PlatformFile? _selectedFile;
-  
+
   final List<String> _kategoriOptions = [
     'Transport',
-    'Makan', 
+    'Makan',
     'Hotel',
     'Komunikasi',
     'Lainnya',
@@ -116,8 +117,11 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                     type: FormFieldType.dropdown,
                     isRequired: true,
                     options: _kategoriOptions,
-                    value: _kategoriCtrl.text.isEmpty ? null : _kategoriCtrl.text,
-                    onChanged: (value) => setState(() => _kategoriCtrl.text = value ?? ''),
+                    value:
+                        _kategoriCtrl.text.isEmpty ? null : _kategoriCtrl.text,
+                    onChanged:
+                        (value) =>
+                            setState(() => _kategoriCtrl.text = value ?? ''),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Pilih kategori reimburse';
@@ -135,7 +139,9 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                     suffixIcon: Icons.calendar_today,
                     onTap: _pickDate,
                     validator: (value) {
-                      if (value == null || value.isEmpty || _selectedDate == null) {
+                      if (value == null ||
+                          value.isEmpty ||
+                          _selectedDate == null) {
                         return 'Pilih tanggal pengeluaran';
                       }
                       return null;
@@ -153,8 +159,11 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                       if (value == null || value.isEmpty) {
                         return 'Masukkan jumlah pengeluaran';
                       }
-                      // Remove all non-numeric characters except decimal point
-                      final numericValue = value.replaceAll(RegExp(r'[^0-9.]'), '');
+
+                      final numericValue = value.replaceAll(
+                        RegExp(r'[^0-9.]'),
+                        '',
+                      );
                       if (numericValue.isEmpty) {
                         return 'Masukkan angka yang valid';
                       }
@@ -182,9 +191,9 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // File Upload Section - Moved after date field
               Container(
                 width: double.infinity,
@@ -254,31 +263,36 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _selectedFile != null 
-                                        ? _selectedFile!.name 
+                                    _selectedFile != null
+                                        ? _selectedFile!.name
                                         : 'Upload file pendukung',
-                                    style: theme.typographyRegular.bodyMedium.copyWith(
-                                      color: _selectedFile != null 
-                                          ? Colors.grey[800] 
-                                          : Colors.grey[600],
-                                      fontWeight: _selectedFile != null 
-                                          ? FontWeight.w600 
-                                          : FontWeight.normal,
-                                    ),
+                                    style: theme.typographyRegular.bodyMedium
+                                        .copyWith(
+                                          color:
+                                              _selectedFile != null
+                                                  ? Colors.grey[800]
+                                                  : Colors.grey[600],
+                                          fontWeight:
+                                              _selectedFile != null
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
+                                        ),
                                   ),
                                   if (_selectedFile == null)
                                     Text(
                                       'Format: PDF, JPG, PNG (Max 5MB)',
-                                      style: theme.typographyRegular.bodySmall.copyWith(
-                                        color: Colors.grey[500],
-                                      ),
+                                      style: theme.typographyRegular.bodySmall
+                                          .copyWith(color: Colors.grey[500]),
                                     ),
                                 ],
                               ),
                             ),
                             if (_selectedFile != null)
                               IconButton(
-                                icon: const Icon(Icons.clear, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _selectedFile = null;
@@ -292,9 +306,9 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Submit button moved to bottom
               SizedBox(
                 width: double.infinity,
@@ -304,8 +318,9 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
 
                     try {
                       // Generate ID
-                      final id = 'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-                      
+                      final id =
+                          'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+
                       // Parse amount - handle both formatted and unformatted input
                       String amountText = _jumlahCtrl.text.trim();
                       if (amountText.isEmpty) {
@@ -317,11 +332,14 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                         );
                         return;
                       }
-                      
+
                       // Remove all non-numeric characters except decimal point
-                      final numericValue = amountText.replaceAll(RegExp(r'[^0-9.]'), '');
+                      final numericValue = amountText.replaceAll(
+                        RegExp(r'[^0-9.]'),
+                        '',
+                      );
                       final amount = double.tryParse(numericValue);
-                      
+
                       if (amount == null || amount <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -331,7 +349,7 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                         );
                         return;
                       }
-                      
+
                       // Create new reimburse data
                       final newReimburse = {
                         'id': id,
@@ -344,9 +362,11 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                       };
 
                       // Add to provider
-                      ref.read(reimburseProvider.notifier).addReimburse(newReimburse);
-                      
-                      // Debug: Print the new reimburse data
+                      ref
+                          .read(reimburseProvider.notifier)
+                          .addReimburse(newReimburse);
+
+                      //Print the new reimburse data
                       print('New reimburse added: $newReimburse');
 
                       ScaffoldMessenger.of(context).showSnackBar(

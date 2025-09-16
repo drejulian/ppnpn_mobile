@@ -5,7 +5,6 @@ import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
-// StateNotifier for managing RumahAspirasi list
 class RumahAspirasiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   int _nextId = 3;
 
@@ -140,7 +139,6 @@ class _DaftarPengajuanRumahAspirasiPageState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Kegiatan Rumah Aspirasi',
@@ -295,7 +293,7 @@ class _DaftarPengajuanRumahAspirasiPageState
         SIHAKIDialogField(label: 'Nama Anggota', value: item['anggota']),
         SIHAKIDialogField(label: 'Tanggal Surat', value: item['tanggalSurat']),
         SIHAKIDialogField(label: 'Tahun Sidang', value: item['tahunSidang']),
-        SIHAKIDialogField(label: '', value: ''), // Spacer
+        SIHAKIDialogField(label: '', value: ''),
         SIHAKIDialogField(label: 'No. Anggota', value: item['noAnggota']),
         SIHAKIDialogField(label: 'NIK Anggota', value: item['nikAnggota']),
         SIHAKIDialogField(
@@ -303,7 +301,7 @@ class _DaftarPengajuanRumahAspirasiPageState
           value: item['fraksiAnggota'],
         ),
         SIHAKIDialogField(label: 'Dapil Anggota', value: item['dapilAnggota']),
-        SIHAKIDialogField(label: '', value: ''), // Spacer
+        SIHAKIDialogField(label: '', value: ''),
         SIHAKIDialogField(label: 'No. Rekening', value: item['rekening']),
         SIHAKIDialogField(label: 'Nama Rekening', value: item['namaRekening']),
         SIHAKIDialogField(label: 'Kode Bank', value: item['kodeBank']),
@@ -337,7 +335,6 @@ class _DaftarPengajuanRumahAspirasiPageState
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  // Helper method untuk konfirmasi hapus
   void _confirmDelete(Map<String, dynamic> item) {
     SIHAKIConfirmationDialog.show(
       context,

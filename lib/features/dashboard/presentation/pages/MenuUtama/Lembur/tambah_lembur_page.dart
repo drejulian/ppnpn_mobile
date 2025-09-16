@@ -21,12 +21,12 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
   final _jamMulaiCtrl = TextEditingController();
   final _jamSelesaiCtrl = TextEditingController();
   final _kegiatanCtrl = TextEditingController();
-  
+
   DateTime? _selectedDate;
   TimeOfDay? _jamMulai;
   TimeOfDay? _jamSelesai;
   PlatformFile? _selectedFile;
-  
+
   final List<String> _jenisLemburOptions = [
     'Lembur Komisi',
     'Lembur Anggaran',
@@ -54,9 +54,10 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
   Future<void> _pickTime(bool isStartTime) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: isStartTime 
-          ? (_jamMulai ?? TimeOfDay.now()) 
-          : (_jamSelesai ?? TimeOfDay.now()),
+      initialTime:
+          isStartTime
+              ? (_jamMulai ?? TimeOfDay.now())
+              : (_jamSelesai ?? TimeOfDay.now()),
       initialEntryMode: TimePickerEntryMode.input,
     );
     if (picked != null) {
@@ -82,18 +83,18 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
     if (_jamMulai == null || _jamSelesai == null) {
       return '';
     }
-    
+
     final startMinutes = _jamMulai!.hour * 60 + _jamMulai!.minute;
     final endMinutes = _jamSelesai!.hour * 60 + _jamSelesai!.minute;
-    
+
     int durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
-      durationMinutes += 24 * 60; // Handle overnight work
+      durationMinutes += 24 * 60;
     }
-    
+
     final hours = durationMinutes ~/ 60;
     final minutes = durationMinutes % 60;
-    
+
     if (minutes == 0) {
       return '$hours jam';
     } else {
@@ -144,7 +145,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -180,7 +181,9 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       isRequired: true,
                       options: _jenisLemburOptions,
                       value: _jenisCtrl.text.isEmpty ? null : _jenisCtrl.text,
-                      onChanged: (value) => setState(() => _jenisCtrl.text = value ?? ''),
+                      onChanged:
+                          (value) =>
+                              setState(() => _jenisCtrl.text = value ?? ''),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Pilih jenis lembur';
@@ -198,7 +201,9 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: _pickDate,
                       validator: (value) {
-                        if (value == null || value.isEmpty || _selectedDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _selectedDate == null) {
                           return 'Pilih tanggal lembur';
                         }
                         return null;
@@ -214,7 +219,9 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       suffixIcon: Icons.access_time,
                       onTap: () => _pickTime(true),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _jamMulai == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _jamMulai == null) {
                           return 'Pilih jam mulai lembur';
                         }
                         return null;
@@ -230,13 +237,18 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       suffixIcon: Icons.access_time,
                       onTap: () => _pickTime(false),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _jamSelesai == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _jamSelesai == null) {
                           return 'Pilih jam selesai lembur';
                         }
                         if (_jamMulai != null && _jamSelesai != null) {
-                          final startMinutes = _jamMulai!.hour * 60 + _jamMulai!.minute;
-                          final endMinutes = _jamSelesai!.hour * 60 + _jamSelesai!.minute;
-                          if (endMinutes <= startMinutes && endMinutes != startMinutes) {
+                          final startMinutes =
+                              _jamMulai!.hour * 60 + _jamMulai!.minute;
+                          final endMinutes =
+                              _jamSelesai!.hour * 60 + _jamSelesai!.minute;
+                          if (endMinutes <= startMinutes &&
+                              endMinutes != startMinutes) {
                             return 'Jam selesai harus setelah jam mulai';
                           }
                         }
@@ -260,9 +272,9 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // File Upload Section
                 Container(
                   width: double.infinity,
@@ -332,31 +344,36 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile != null 
-                                          ? _selectedFile!.name 
+                                      _selectedFile != null
+                                          ? _selectedFile!.name
                                           : 'Upload file pendukung',
-                                      style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: _selectedFile != null 
-                                            ? Colors.grey[800] 
-                                            : Colors.grey[600],
-                                        fontWeight: _selectedFile != null 
-                                            ? FontWeight.w600 
-                                            : FontWeight.normal,
-                                      ),
+                                      style: theme.typographyRegular.bodyMedium
+                                          .copyWith(
+                                            color:
+                                                _selectedFile != null
+                                                    ? Colors.grey[800]
+                                                    : Colors.grey[600],
+                                            fontWeight:
+                                                _selectedFile != null
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                          ),
                                     ),
                                     if (_selectedFile == null)
                                       Text(
                                         'Format: PDF, JPG, PNG (Max 5MB)',
-                                        style: theme.typographyRegular.bodySmall.copyWith(
-                                          color: Colors.grey[500],
-                                        ),
+                                        style: theme.typographyRegular.bodySmall
+                                            .copyWith(color: Colors.grey[500]),
                                       ),
                                   ],
                                 ),
                               ),
                               if (_selectedFile != null)
                                 IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedFile = null;
@@ -370,9 +387,9 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
@@ -387,7 +404,10 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       elevation: 2,
                     ),
                     onPressed: () {
-                      if (_formKey.currentState!.validate() && _selectedDate != null && _jamMulai != null && _jamSelesai != null) {
+                      if (_formKey.currentState!.validate() &&
+                          _selectedDate != null &&
+                          _jamMulai != null &&
+                          _jamSelesai != null) {
                         final newLembur = {
                           'id': _generateId(),
                           'type': _jenisCtrl.text,
@@ -397,24 +417,28 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                           'duration': _calculateDuration(),
                           'reason': _kegiatanCtrl.text,
                           'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor('Menunggu Persetujuan'),
+                          'statusColor': _getStatusColor(
+                            'Menunggu Persetujuan',
+                          ),
                           'fileName': _selectedFile?.name,
                         };
-                        
+
                         ref.read(lemburProvider.notifier).add(newLembur);
-                        
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Pengajuan lembur berhasil dikirim'),
                             backgroundColor: Colors.green,
                           ),
                         );
-                        
+
                         context.pop();
                       } else if (_selectedDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Pilih tanggal lembur terlebih dahulu'),
+                            content: Text(
+                              'Pilih tanggal lembur terlebih dahulu',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );

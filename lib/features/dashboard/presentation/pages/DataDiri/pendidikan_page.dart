@@ -100,15 +100,12 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         print('  - education_just_saved: $verifyJustSaved');
         print('  - _educationData.length: ${_educationData.length}');
         print('  - provider completion status reset: pendidikan marked incomplete');
-        
-        // JANGAN clear flag is_logged_out di sini - biarkan profile_page yang handle
-        // untuk memastikan semua page mendapat fresh login clearing
+  
         
         print('All education data cleared for fresh login (storage, memory, provider, completion)');
         return;
       }
       
-      // Jika user belum pernah save dan ini fresh app start, pastikan data kosong
       if (!educationUserSaved) {
         print('User never saved education and fresh app start - ensuring clean state');
         
@@ -1068,12 +1065,11 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         print('Adding new education data from navigation: $newEducation');
         print('_educationData BEFORE add: $_educationData (${_educationData.length} items)');
         
-        // Ensure it's not marked as dummy
         newEducation['isDummy'] = 'false';
         
         setState(() {
           _educationData.add(newEducation);
-          _dataLoaded = true; // Mark as loaded to prevent reload
+          _dataLoaded = true;
         });
         
         print('_educationData AFTER add: $_educationData (${_educationData.length} items)');
@@ -1082,7 +1078,6 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           print('  [$i]: ${_educationData[i]}');
         }
         
-        // Set flag untuk detect unsaved changes
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('education_has_changes', true);
         print('Set education_has_changes = true (data added but not saved)');
@@ -1106,7 +1101,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     print('Education to edit: $education');
     print('Is dummy data: ${education['isDummy'] == 'true'}');
     
-    // Check if this is dummy data by ID pattern or isDummy field
+
     bool isDummyData = education['isDummy'] == 'true' || 
                        education['id']?.startsWith('dummy-') == true;
     
@@ -1123,7 +1118,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     }
     
     try {
-      // Navigate to edit education page
+
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -1135,7 +1130,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       
       print('Edit navigation result: $result');
       
-      // Handle result from edit page
+  
       if (result is Map && result['action'] == 'edit' && result['data'] is Map) {
         final updatedEducation = Map<String, String>.from(result['data']);
         
@@ -1154,8 +1149,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           print('ERROR: Could not find education with id ${updatedEducation['id']}');
           print('Available IDs: ${_educationData.map((e) => e['id']).toList()}');
         }
-        
-        // Set flag untuk detect unsaved changes
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('education_has_changes', true);
         print('Set education_has_changes = true (data edited but not saved)');
@@ -1181,7 +1175,6 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     print('isDummy field value: ${education['isDummy']}');
     print('isDummy check result: ${education['isDummy'] == 'true'}');
     
-    // Check if this is dummy data by ID pattern or isDummy field
     bool isDummyData = education['isDummy'] == 'true' || 
                        education['id']?.startsWith('dummy-') == true;
     
@@ -1241,7 +1234,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   }
 
   void _saveData(BuildContext context, dynamic theme) async {
-    // CRITICAL: Prevent multiple simultaneous save operations
+
     if (_isSaving) {
       print('Save already in progress, ignoring duplicate call');
       return;
@@ -1257,10 +1250,9 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     });
     
     try {
-      // Save only user data to storage (not dummy data)
+
       await _saveEducationDataToStorage();
-    
-    // Update provider for profile page display (use latest entry)
+ 
     if (_educationData.isNotEmpty) {
       final latestEducation = _educationData.last;
       final pendidikanData = PendidikanData(
@@ -1273,16 +1265,13 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       ref.read(pendidikanDataProvider.notifier).updateData(pendidikanData);
       print('Updated PendidikanDataProvider with latest education entry after save: ${latestEducation['institusi']} - ${latestEducation['jurusan']}');
     }
-    
-    // Refresh UI to reflect the saved data
+ 
     setState(() {});
     
-    // Set flag education_just_saved untuk indicate user sudah save dari individual page
-    // Set flag education_user_saved untuk indicate user pernah save  
-    // Clear flag education_has_changes karena sudah disave
+   
     final prefs = await SharedPreferences.getInstance();
     
-    // CRITICAL: Use multiple retry attempts untuk ensure flags are properly set
+
     int maxRetries = 3;
     bool flagsSetSuccessfully = false;
     
@@ -1294,10 +1283,10 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         await prefs.setBool('education_user_saved', true);
         await prefs.setBool('education_has_changes', false);
         
-        // Add delay untuk ensure write operations complete
+  
         await Future.delayed(const Duration(milliseconds: 100));
         
-        // Verify flags were set correctly
+   
         final verifyJustSaved = prefs.getBool('education_just_saved') ?? false;
         final verifyUserSaved = prefs.getBool('education_user_saved') ?? false;
         final verifyHasChanges = prefs.getBool('education_has_changes') ?? false;
@@ -1313,11 +1302,11 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           break;
         } else {
           print('❌ Flags not set correctly on attempt $attempt, retrying...');
-          await Future.delayed(Duration(milliseconds: 50 * attempt)); // Exponential backoff
+          await Future.delayed(Duration(milliseconds: 50 * attempt)); 
         }
       } catch (e) {
         print('❌ Error setting flags on attempt $attempt: $e');
-        await Future.delayed(Duration(milliseconds: 50 * attempt)); // Exponential backoff
+        await Future.delayed(Duration(milliseconds: 50 * attempt)); 
       }
     }
     
@@ -1326,8 +1315,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     } else {
       print('✅ SUCCESS: All flags set correctly and will trigger EDITED status in profile_sections');
     }
-    
-    // IMPORTANT: Set completion status HANYA jika benar-benar ada data user yang valid
+
     if (_educationData.isNotEmpty) {
       final completionNotifier = ref.read(profileCompletionProvider.notifier);
       completionNotifier.markCompleted('pendidikan');
@@ -1336,11 +1324,8 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       completionNotifier.markIncomplete('pendidikan');
     }
 
-    // Update original data to clear unsaved changes flag after successful save
     _originalData = _getCurrentData();
-    
-    // CRITICAL: Add longer delay untuk ensure all SharedPreferences operations complete
-    // This prevents race condition with profile_sections_page flag detection
+
     print('=== WAITING FOR SHAREDPREFERENCES OPERATIONS TO COMPLETE ===');
     await Future.delayed(const Duration(milliseconds: 800));
     
@@ -1351,8 +1336,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         message: 'Data pendidikan berhasil disimpan.',
         buttonText: 'OK',
         onPressed: () {
-          // Simple direct navigation without additional async operations
-          // All flag setting has been done before dialog was shown
+
           print('=== SUCCESS DIALOG OK PRESSED - NAVIGATING ===');
           if (context.mounted) {
             context.go('/profile-sections');

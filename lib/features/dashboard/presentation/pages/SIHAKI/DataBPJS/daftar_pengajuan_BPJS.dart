@@ -5,7 +5,6 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
-// BPJSData Model
 class BPJSData {
   final String nama;
   final String noBPJS;
@@ -24,7 +23,6 @@ class BPJSData {
   });
 }
 
-// StateNotifier for managing BPJSData list
 class DataBpjsPage extends StateNotifier<List<BPJSData>> {
   DataBpjsPage()
     : super([
@@ -134,7 +132,6 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Data BPJS',
@@ -147,7 +144,6 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
             ),
             const SizedBox(height: 16),
 
-            // Add Button with modern styling
             Container(
               width: double.infinity,
               decoration: BoxDecoration(

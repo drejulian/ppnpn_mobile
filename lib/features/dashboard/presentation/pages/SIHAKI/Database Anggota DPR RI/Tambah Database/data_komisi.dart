@@ -42,7 +42,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
         });
       }
     }
-    // Memastikan state provider diperbarui
+ 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {});
     });
@@ -111,7 +111,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Section with modern styling
+      
                 SIHAKIDataCard(
                   title: 'Database Anggota DPR RI',
                   subtitle: 'Sistem Informasi Anggota (DASI)',
@@ -152,7 +152,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Navigation Cards with modern styling
+                // Navigation Cards 
                 _buildModernNavigationCard(
                   context,
                   theme,
@@ -249,7 +249,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                   isTablet: isTablet,
                 ),
                 const SizedBox(height: 24),
-                // Save Button with modern styling
+            
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -357,7 +357,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             padding: EdgeInsets.all(isTablet ? 20 : 16),
             child: Row(
               children: [
-                // Icon with gradient background
+              
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

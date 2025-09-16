@@ -110,7 +110,6 @@ class _BuktiPotongPajakFinalAnggotaPageState
     final paginatedData = _getPaginatedData(filteredData);
     final totalPages = (filteredData.length / _itemsPerPage).ceil();
 
-    // Check if there are active filters
     final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
@@ -137,7 +136,6 @@ class _BuktiPotongPajakFinalAnggotaPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SIHAKI Header
             SIHAKIPageHeader(
               title: 'PPF Anggota',
               subtitle: 'Bukti Potong Pajak Final',
@@ -179,7 +177,6 @@ class _BuktiPotongPajakFinalAnggotaPageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-            // Search + Filter using AppFilterBar
             AppFilterBar(
               controller: searchController,
               labelText: 'Pencarian PPF Anggota',
@@ -347,7 +344,6 @@ class _BuktiPotongPajakFinalAnggotaPageState
       '12': 'Desember',
     };
 
-    // Use new SIHAKI Dialog Component
     SIHAKIDetailDialog.show(
       context,
       SIHAKIDialogData(
@@ -406,7 +402,6 @@ class _BuktiPotongPajakFinalAnggotaPageState
   }
 
   String _formatCurrency(String amount) {
-    // Remove existing dots and parse the number
     final cleanAmount = amount.replaceAll('.', '');
     final num = int.tryParse(cleanAmount) ?? 0;
     return num.toString().replaceAllMapped(

@@ -79,15 +79,15 @@ class _TambahDataPendidikanPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section
+             
               _buildHeaderSection(theme),
               const SizedBox(height: 24),
 
-              // Form Section
+           
               _buildFormSection(theme),
               const SizedBox(height: 32),
 
-              // Save Button
+        
               _buildSaveButton(theme),
               const SizedBox(height: 20),
             ],
@@ -169,7 +169,7 @@ class _TambahDataPendidikanPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Jenis Pendidikan Dropdown
+          // Jenis Pendidikan 
           _buildDropdownField(
             theme,
             label: 'Jenis Pendidikan',
@@ -210,7 +210,7 @@ class _TambahDataPendidikanPageState
           ),
           const SizedBox(height: 20),
 
-          // Tahun Mulai (Start Year)
+          // Tahun Mulai 
           _buildTextFormField(
             theme,
             controller: _tahunMulaiController,
@@ -219,7 +219,7 @@ class _TambahDataPendidikanPageState
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+              LengthLimitingTextInputFormatter(4), 
             ],
             validator: (value) {
               if (value?.isEmpty == true) return 'Tahun mulai wajib diisi';
@@ -233,7 +233,7 @@ class _TambahDataPendidikanPageState
           ),
           const SizedBox(height: 20),
 
-          // Tahun Selesai (End Year)
+          // Tahun Selesai 
           _buildTextFormField(
             theme,
             controller: _tahunSelesaiController,
@@ -242,13 +242,13 @@ class _TambahDataPendidikanPageState
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+              LengthLimitingTextInputFormatter(4),
             ],
             validator: (value) {
               if (value?.isEmpty == true) return 'Tahun selesai wajib diisi';
               if (value!.length != 4) return 'Format tahun harus 4 digit';
 
-              // Compare with start year if both are filled
+         
               if (_tahunMulaiController.text.isNotEmpty) {
                 final startYear = int.tryParse(_tahunMulaiController.text);
                 final endYear = int.tryParse(value);
@@ -454,27 +454,20 @@ class _TambahDataPendidikanPageState
     setState(() => _isLoading = true);
 
     try {
-      // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
 
       final tahunMulai = _tahunMulaiController.text.trim();
       final tahunSelesai = _tahunSelesaiController.text.trim();
-
-      // Build new education entry with formatted years for display
       final newEducation = <String, String>{
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'jenjang': _selectedJenisPendidikan!,
         'jurusan': _programStudiController.text.trim().toUpperCase(),
         'institusi': _universitasController.text.trim().toUpperCase(),
-        'kota': 'JAKARTA', // Default value - could be another field
+        'kota': 'JAKARTA',
         'tahun_mulai': tahunMulai,
         'tahun_selesai': tahunSelesai,
-        // Add formatted display for the card
         'tahun': '$tahunMulai - $tahunSelesai',
       };
-
-      // DON'T update provider here - let the main page handle provider updates
-      // This ensures consistent data flow and prevents conflicts
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

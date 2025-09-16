@@ -93,7 +93,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
       
-      // Check apakah ada data yang valid disimpan
+
       final hasWorkHistoryUserSaved = prefs.getBool('work_history_user_saved') ?? false;
       final workHistoryDataList = prefs.getStringList('work_history_data') ?? [];
       final hasActualWorkData = workHistoryDataList.isNotEmpty;
