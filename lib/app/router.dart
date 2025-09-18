@@ -11,7 +11,6 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/absensi_page.dar
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/tambah_agenda_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/AgendaPribadiAnggota/DaftarAgenda/edit_agenda_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/login_page.dart';
-import 'package:ppnpm_dpr/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:ppnpm_dpr/features/auth/presentation/pages/lupa_password_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/data_lamaran_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/dokumen_page.dart';
@@ -117,19 +116,9 @@ GoRouter router(RouterRef ref) {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
-        path: '/sign-up',
-        name: Routes.signUp.name,
-        builder: (context, state) => const SignUpPage(),
-      ),
-      GoRoute(
         path: '/lupa-password',
         name: Routes.lupaPassword.name,
         builder: (context, state) => const LupaPasswordPage(),
-      ),
-      GoRoute(
-        path: '/guest',
-        name: Routes.guest.name,
-        builder: (_, __) => const MainLayout(),
       ),
       GoRoute(
         path: '/home',

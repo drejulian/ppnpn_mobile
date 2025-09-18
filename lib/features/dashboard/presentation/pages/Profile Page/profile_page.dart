@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../DataDiri/providers/profile_data_provider.dart'; 
 import '../DataDiri/keluarga_page.dart'; 
 import 'dart:io';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -601,10 +602,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       // Reset bottom navigation ke home tab
       ref.read(bottomNavIndexProvider.notifier).state = 0;
       
-      // Close loading dialog dan navigate ke login
+      // Perform logout using secure storage
+      await ref.read(authProvider.notifier).signOut();
+      
+      // Close loading dialog dan navigate ke welcome
       if (mounted) {
         NotificationUtils.hideLoadingDialog(context); // Close loading dialog
-        context.go('/login');
+        context.go('/welcome');
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Logout berhasil'),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
       
     } catch (e) {
@@ -1102,7 +1125,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: () => context.go('/lupa-password'),
+                onPressed: () => context.push('/lupa-password'),
                 icon: const Icon(Icons.lock_outline, color: Colors.white, size: 22),
                 label: const Text(
                   'Ubah Password',
