@@ -152,19 +152,11 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Ajukan Cuti',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ajukan Cuti',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         child: Padding(

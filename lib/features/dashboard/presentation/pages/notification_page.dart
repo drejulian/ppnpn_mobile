@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 
 class NotificationPage extends ConsumerStatefulWidget {
@@ -14,23 +15,23 @@ class NotificationPage extends ConsumerStatefulWidget {
 class _NotificationPageState extends ConsumerState<NotificationPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   void _markAsRead(String notificationId) {
     // Use provider to mark as read
     ref.read(notificationProvider.notifier).markAsRead(notificationId);
-    
+
     // Show snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -52,23 +53,11 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     final notificationState = ref.watch(notificationProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Notifications',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Notifikasi',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali',
       ),
       body: SafeArea(
         child: Column(
@@ -92,65 +81,65 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
-                unselectedLabelStyle: theme.typographyRegular.bodySmall.copyWith(
-                  fontSize: 13,
-                ),
+                unselectedLabelStyle: theme.typographyRegular.bodySmall
+                    .copyWith(fontSize: 13),
                 dividerColor: Colors.transparent,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                 tabs: [
                   Tab(
                     height: 40,
-                    child: notificationState.unreadNotifications.isNotEmpty
-                        ? Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              const Center(
-                                child: Text(
-                                  'Belum Dibaca',
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              Positioned(
-                                right: -8,
-                                top: -2,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                    child:
+                        notificationState.unreadNotifications.isNotEmpty
+                            ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Center(
                                   child: Text(
-                                    '${notificationState.unreadCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
+                                    'Belum Dibaca',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -8,
+                                  top: -2,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${notificationState.unreadCount}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
+                              ],
+                            )
+                            : const Center(
+                              child: Text(
+                                'Belum Dibaca',
+                                textAlign: TextAlign.center,
                               ),
-                            ],
-                          )
-                        : const Center(
-                            child: Text(
-                              'Belum Dibaca',
-                              textAlign: TextAlign.center,
                             ),
-                          ),
                   ),
                   const Tab(
                     height: 40,
                     child: Center(
-                      child: Text(
-                        'Sudah Dibaca',
-                        textAlign: TextAlign.center,
-                      ),
+                      child: Text('Sudah Dibaca', textAlign: TextAlign.center),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Tab Content
             Expanded(
               child: TabBarView(
@@ -167,36 +156,32 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     );
   }
 
-
-
   Widget _buildNotificationList({required bool isUnread}) {
     final notificationState = ref.watch(notificationProvider);
     // Use provider state instead of local state
-    final notifications = isUnread ? notificationState.unreadNotifications : notificationState.readNotifications;
-    
+    final notifications =
+        isUnread
+            ? notificationState.unreadNotifications
+            : notificationState.readNotifications;
+
     if (notifications.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.notifications_none,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              isUnread ? 'Tidak ada notifikasi yang belum dibaca' : 'Tidak ada notifikasi yang sudah dibaca',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
+              isUnread
+                  ? 'Tidak ada notifikasi yang belum dibaca'
+                  : 'Tidak ada notifikasi yang sudah dibaca',
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
             ),
           ],
         ),
       );
     }
-    
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: notifications.length,
@@ -207,9 +192,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     );
   }
 
-  Widget _buildNotificationItem(Map<String, dynamic> notification, bool isUnread) {
+  Widget _buildNotificationItem(
+    Map<String, dynamic> notification,
+    bool isUnread,
+  ) {
     final theme = ref.watch(themeProvider);
-    
+
     // Helper function to get icon from string
     IconData getIconFromString(String iconName) {
       switch (iconName) {
@@ -229,7 +217,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
           return Icons.notifications;
       }
     }
-    
+
     // Helper function to get color from string
     Color getColorFromString(String colorName) {
       switch (colorName) {
@@ -249,16 +237,20 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
           return theme.primarySwatch;
       }
     }
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: isUnread && notification['hasRedDot'] == true
-            ? Border.all(color: theme.primarySwatch.withOpacity(0.3), width: 1)
-            : null,
+        border:
+            isUnread && notification['hasRedDot'] == true
+                ? Border.all(
+                  color: theme.primarySwatch.withOpacity(0.3),
+                  width: 1,
+                )
+                : null,
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -276,29 +268,31 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: notification['avatarColor'] is String 
-                  ? getColorFromString(notification['avatarColor'])
-                  : notification['avatarColor'] ?? theme.primarySwatch,
+              color:
+                  notification['avatarColor'] is String
+                      ? getColorFromString(notification['avatarColor'])
+                      : notification['avatarColor'] ?? theme.primarySwatch,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: notification['avatar'] != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.asset(
-                      notification['avatar'],
-                      fit: BoxFit.cover,
+            child:
+                notification['avatar'] != null
+                    ? ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        notification['avatar'],
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                    : Icon(
+                      notification['icon'] is String
+                          ? getIconFromString(notification['icon'])
+                          : notification['icon'] ?? Icons.notifications,
+                      color: Colors.white,
+                      size: 20,
                     ),
-                  )
-                : Icon(
-                    notification['icon'] is String 
-                        ? getIconFromString(notification['icon'])
-                        : notification['icon'] ?? Icons.notifications,
-                    color: Colors.white,
-                    size: 20,
-                  ),
           ),
           const SizedBox(width: 12),
-          
+
           // Content
           Expanded(
             child: Column(
@@ -307,9 +301,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                 Text(
                   notification['title'] ?? '',
                   style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: isUnread && notification['hasRedDot'] == true 
-                        ? FontWeight.w700 
-                        : FontWeight.w600,
+                    fontWeight:
+                        isUnread && notification['hasRedDot'] == true
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                     color: Colors.grey[800],
                   ),
                 ),
@@ -332,14 +327,13 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                         fontSize: 12,
                       ),
                     ),
-                    if (isUnread && notification['hasRedDot'] == true) ...[
-                    ],
+                    if (isUnread && notification['hasRedDot'] == true) ...[],
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Status indicator and action button
           Column(
             children: [
@@ -381,5 +375,4 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
       ),
     );
   }
-
 }

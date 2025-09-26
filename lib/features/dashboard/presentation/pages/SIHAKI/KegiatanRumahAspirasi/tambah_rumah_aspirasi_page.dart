@@ -70,21 +70,11 @@ class _TambahRumahAspirasiPageState
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Tambah Kegiatan Rumah Aspirasi',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Tambah kegiatan Rumah Aspirasi',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

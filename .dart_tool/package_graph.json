@@ -12,6 +12,7 @@
         "flutter",
         "flutter_riverpod",
         "flutter_secure_storage",
+        "flutter_staggered_animations",
         "flutter_svg",
         "font_awesome_flutter",
         "geolocator",
@@ -231,6 +232,13 @@
         "test_api",
         "vector_math",
         "vm_service"
+      ]
+    },
+    {
+      "name": "flutter_staggered_animations",
+      "version": "1.1.1",
+      "dependencies": [
+        "flutter"
       ]
     },
     {

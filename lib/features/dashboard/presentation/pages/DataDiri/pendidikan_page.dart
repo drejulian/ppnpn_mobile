@@ -19,19 +19,20 @@ class PendidikanPage extends ConsumerStatefulWidget {
 
 class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Map<String, String>> _educationData = [];
-  
+
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
-  bool _freshLoginProcessed = false; // Flag to prevent data reload after fresh login reset
+  bool _freshLoginProcessed =
+      false; // Flag to prevent data reload after fresh login reset
   bool _isSaving = false; // Loading state for save button
 
   @override
   void initState() {
     super.initState();
     print('=== PENDIDIKAN initState CALLED ===');
-    
+
     // Check for fresh app restart or fresh login and reset data accordingly
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkFreshAppStartAndReset();
@@ -44,101 +45,113 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
       final educationUserSaved = prefs.getBool('education_user_saved') ?? false;
-      
+
       print('=== PENDIDIKAN FRESH APP START CHECK ===');
       print('isLoggedOut: $isLoggedOut');
       print('educationUserSaved: $educationUserSaved');
       print('Current _educationData BEFORE check: $_educationData');
-      print('Current _educationData.length BEFORE check: ${_educationData.length}');
-      
+      print(
+        'Current _educationData.length BEFORE check: ${_educationData.length}',
+      );
+
       // Jika user baru login setelah logout, clear semua data termasuk unsaved changes
       if (isLoggedOut) {
         print('Fresh login detected - clearing all education data and flags');
         print('BEFORE CLEAR: _educationData = $_educationData');
-        
+
         // Clear semua data dan flags
         await prefs.remove('education_data');
         await prefs.remove('education_user_saved');
         await prefs.remove('education_has_changes');
         await prefs.remove('education_just_saved');
-        
+
         // CRITICAL: Also clear StringList format
         await prefs.setStringList('education_data', []);
-        
+
         // Reset local state dan backup data di memori
         setState(() {
           _educationData.clear();
           _originalData.clear();
-          _dataLoaded = true; // Mark as loaded agar tidak reload di didChangeDependencies
-          _freshLoginProcessed = true; // Flag to prevent any further data loading
+          _dataLoaded =
+              true; // Mark as loaded agar tidak reload di didChangeDependencies
+          _freshLoginProcessed =
+              true; // Flag to prevent any further data loading
         });
-        
+
         // CRITICAL: Clear provider data untuk fresh login
         ref.read(pendidikanDataProvider.notifier).updateData(PendidikanData());
-        
+
         // CRITICAL: Clear completion status untuk fresh login
         final completionNotifier = ref.read(profileCompletionProvider.notifier);
         completionNotifier.markIncomplete('pendidikan');
-        
+
         print('AFTER CLEAR: _educationData = $_educationData');
         print('AFTER CLEAR: _educationData.length = ${_educationData.length}');
         print('AFTER CLEAR: _dataLoaded = $_dataLoaded');
         print('AFTER CLEAR: _freshLoginProcessed = $_freshLoginProcessed');
         print('Provider data cleared (pendidikanDataProvider reset to empty)');
         print('Completion status reset (pendidikan marked as incomplete)');
-        
+
         // Verify storage is really cleared
         final verifyData = prefs.getStringList('education_data');
         final verifyUserSaved = prefs.getBool('education_user_saved') ?? false;
-        final verifyHasChanges = prefs.getBool('education_has_changes') ?? false;
+        final verifyHasChanges =
+            prefs.getBool('education_has_changes') ?? false;
         final verifyJustSaved = prefs.getBool('education_just_saved') ?? false;
-        
+
         print('VERIFICATION AFTER FRESH LOGIN CLEAR:');
         print('  - education_data: $verifyData');
         print('  - education_user_saved: $verifyUserSaved');
         print('  - education_has_changes: $verifyHasChanges');
         print('  - education_just_saved: $verifyJustSaved');
         print('  - _educationData.length: ${_educationData.length}');
-        print('  - provider completion status reset: pendidikan marked incomplete');
-  
-        
-        print('All education data cleared for fresh login (storage, memory, provider, completion)');
+        print(
+          '  - provider completion status reset: pendidikan marked incomplete',
+        );
+
+        print(
+          'All education data cleared for fresh login (storage, memory, provider, completion)',
+        );
         return;
       }
-      
+
       if (!educationUserSaved) {
-        print('User never saved education and fresh app start - ensuring clean state');
-        
+        print(
+          'User never saved education and fresh app start - ensuring clean state',
+        );
+
         // Clear any temporary flags that might exist
         await prefs.remove('education_has_changes');
         await prefs.remove('education_just_saved');
-        
+
         // Reset local state ke kosong
         setState(() {
           _educationData = [];
           _dataLoaded = false;
-          _freshLoginProcessed = true; // Prevent reload for users who never saved
+          _freshLoginProcessed =
+              true; // Prevent reload for users who never saved
         });
-        
+
         // CRITICAL: Clear provider data untuk fresh app start
         ref.read(pendidikanDataProvider.notifier).updateData(PendidikanData());
-        
+
         // CRITICAL: Clear completion status untuk fresh app start
         final completionNotifier = ref.read(profileCompletionProvider.notifier);
         completionNotifier.markIncomplete('pendidikan');
-        
+
         print('Ensured clean state for user who never saved');
         print('Provider data cleared (pendidikanDataProvider reset to empty)');
         print('Completion status reset (pendidikan marked as incomplete)');
         return;
       }
-      
-      // Jika user sudah pernah save, tapi ini fresh app start, 
+
+      // Jika user sudah pernah save, tapi ini fresh app start,
       // clear unsaved changes flags untuk fresh start
-      print('User has saved before, clearing temporary flags for fresh app start');
+      print(
+        'User has saved before, clearing temporary flags for fresh app start',
+      );
       await prefs.remove('education_has_changes');
       await prefs.remove('education_just_saved');
-      
     } catch (e) {
       print('Error checking fresh app start: $e');
     }
@@ -147,19 +160,21 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     print('=== PENDIDIKAN didChangeDependencies CALLED ===');
     print('_dataLoaded: $_dataLoaded');
     print('_freshLoginProcessed: $_freshLoginProcessed');
     print('Current _educationData: $_educationData');
     print('_educationData.length: ${_educationData.length}');
-    
+
     // CRITICAL: Don't load data if fresh login was already processed
     if (_freshLoginProcessed) {
-      print('Fresh login already processed - skipping data load to preserve reset state');
+      print(
+        'Fresh login already processed - skipping data load to preserve reset state',
+      );
       return;
     }
-    
+
     // Only load data on first time AND when data is empty
     // This prevents losing temporary changes that haven't been saved yet
     if (!_dataLoaded && _educationData.isEmpty) {
@@ -180,11 +195,13 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasChanges = prefs.getBool('education_has_changes') ?? false;
-      
+
       print('Has unsaved education changes: $hasChanges');
-      
+
       if (hasChanges) {
-        print('User has unsaved education changes, preserving current _educationData');
+        print(
+          'User has unsaved education changes, preserving current _educationData',
+        );
         print('Preserved _educationData: $_educationData');
       } else {
         print('No unsaved education changes, safe to reload from storage');
@@ -197,64 +214,76 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
 
   Future<void> _loadEducationData() async {
     print('=== LOADING EDUCATION DATA ===');
-    
+
     // CRITICAL: Don't load if fresh login was processed
     if (_freshLoginProcessed) {
-      print('Fresh login processed - aborting data load to preserve reset state');
+      print(
+        'Fresh login processed - aborting data load to preserve reset state',
+      );
       return;
     }
-    
+
     try {
       final educationPrefs = await SharedPreferences.getInstance();
-      
+
       // Double check for fresh login flag before loading
       final isLoggedOut = educationPrefs.getBool('is_logged_out') ?? false;
       if (isLoggedOut) {
-        print('Found is_logged_out flag during data load - aborting load and calling reset');
+        print(
+          'Found is_logged_out flag during data load - aborting load and calling reset',
+        );
         await _checkFreshAppStartAndReset();
         return;
       }
-      
-      final savedEducationData = educationPrefs.getStringList('education_data') ?? [];
-      final hasEducationUserSaved = educationPrefs.getBool('education_user_saved') ?? false;
-      
+
+      final savedEducationData =
+          educationPrefs.getStringList('education_data') ?? [];
+      final hasEducationUserSaved =
+          educationPrefs.getBool('education_user_saved') ?? false;
+
       print('Saved education data from storage: $savedEducationData');
       print('savedEducationData.length: ${savedEducationData.length}');
       print('hasEducationUserSaved: $hasEducationUserSaved');
-      
+
       // IMPORTANT: If user has never saved education, start with empty state (fresh login behavior)
       if (!hasEducationUserSaved) {
-        print('User has never saved education - fresh login state, showing empty page');
-        
+        print(
+          'User has never saved education - fresh login state, showing empty page',
+        );
+
         // Clear any temporary changes flags karena user belum pernah save
         await educationPrefs.remove('education_has_changes');
         await educationPrefs.remove('education_just_saved');
-        
+
         setState(() {
           _educationData = [];
         });
-        
+
         // Backup original data for change detection
         _originalData = _getCurrentData();
-        
+
         setState(() {
           _dataLoaded = true;
         });
-        
+
         print('Starting with empty state for fresh user');
         return;
       }
-      
+
       // Clear current list
       _educationData.clear();
-      
+
       // Load user data from storage if any
       if (savedEducationData.isNotEmpty) {
         for (String jsonStr in savedEducationData) {
           try {
-            final Map<String, dynamic> educationMapDynamic = jsonDecode(jsonStr);
-            final Map<String, String> educationMap = educationMapDynamic.map((key, value) => MapEntry(key, value.toString()));
-            
+            final Map<String, dynamic> educationMapDynamic = jsonDecode(
+              jsonStr,
+            );
+            final Map<String, String> educationMap = educationMapDynamic.map(
+              (key, value) => MapEntry(key, value.toString()),
+            );
+
             // Filter out dummy data when loading from storage
             if (educationMap['isDummy'] != 'true') {
               _educationData.add(educationMap);
@@ -267,17 +296,17 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       } else {
         print('No user education data found in storage');
       }
-      
+
       print('Final _educationData.length: ${_educationData.length}');
-      
+
       // Backup original data for change detection
       _originalData = _getCurrentData();
-      
+
       // Mark data as loaded to prevent unnecessary reloads
       setState(() {
         _dataLoaded = true;
       });
-      
+
       print('Education data count: ${_educationData.length}');
       print('Original data backed up: $_originalData');
       print('Data marked as loaded: _dataLoaded = $_dataLoaded');
@@ -290,69 +319,76 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     }
   }
 
-  Future<void> _saveEducationDataToStorage([List<Map<String, String>>? dataToSave]) async {
+  Future<void> _saveEducationDataToStorage([
+    List<Map<String, String>>? dataToSave,
+  ]) async {
     try {
       print('=== SAVING EDUCATION TO STORAGE ===');
-      
+
       // Use provided data or fallback to _educationData
       final dataForSaving = dataToSave ?? _educationData;
       print('Data to save: $dataForSaving');
       print('Data count: ${dataForSaving.length}');
-      
+
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Convert to StringList format (each item as separate JSON string)
-      final List<String> educationJsonList = dataForSaving
-          .map((education) => jsonEncode(education))
-          .toList();
-      
+      final List<String> educationJsonList =
+          dataForSaving.map((education) => jsonEncode(education)).toList();
+
       print('JSON list to save: $educationJsonList');
-      
+
       // Save as StringList for consistency
       await prefs.setStringList('education_data', educationJsonList);
-      
+
       // Set education_user_saved flag
       await prefs.setBool('education_user_saved', true);
-      
+
       print('Education data saved to storage: ${dataForSaving.length} records');
       print('education_user_saved flag set to true');
-      
+
       // Verify data was saved
       final savedData = prefs.getStringList('education_data');
       print('Verification - data in storage: $savedData');
       print('Education data has been saved and will persist');
-      
     } catch (e) {
       print('Error saving education data: $e');
     }
   }
-  
+
   Map<String, dynamic> _getCurrentData() {
     return {
       'educationCount': _educationData.length,
       'educationData': List<Map<String, String>>.from(_educationData),
     };
   }
-  
+
   bool _hasUnsavedChanges() {
     final currentData = _getCurrentData();
     bool hasChanges = false;
-    
+
     print('=== CHECKING FOR UNSAVED CHANGES ===');
     print('Original: $_originalData');
     print('Current: $currentData');
-    
+
     // Check if education count changed
     if (_originalData['educationCount'] != currentData['educationCount']) {
-      print('Education count changed: ${_originalData['educationCount']} -> ${currentData['educationCount']}');
+      print(
+        'Education count changed: ${_originalData['educationCount']} -> ${currentData['educationCount']}',
+      );
       hasChanges = true;
     }
-    
+
     // Check if education data changed
-    if (_originalData['educationData'] != null && currentData['educationData'] != null) {
-      final originalList = List<Map<String, String>>.from(_originalData['educationData']);
-      final currentList = List<Map<String, String>>.from(currentData['educationData']);
-      
+    if (_originalData['educationData'] != null &&
+        currentData['educationData'] != null) {
+      final originalList = List<Map<String, String>>.from(
+        _originalData['educationData'],
+      );
+      final currentList = List<Map<String, String>>.from(
+        currentData['educationData'],
+      );
+
       if (originalList.length != currentList.length) {
         print('Education list length changed');
         hasChanges = true;
@@ -366,29 +402,33 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         }
       }
     }
-    
+
     print('Has unsaved changes from data comparison: $hasChanges');
     return hasChanges;
   }
-  
+
   Future<void> _restoreDataFromStorage() async {
     print('=== RESTORING DATA FROM STORAGE ===');
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedEducationData = prefs.getStringList('education_data') ?? [];
-      
+
       print('Restoring from storage: $savedEducationData');
-      
+
       // Clear current data
       _educationData.clear();
-      
+
       // Load saved data from storage if any
       if (savedEducationData.isNotEmpty) {
         for (String jsonStr in savedEducationData) {
           try {
-            final Map<String, dynamic> educationMapDynamic = jsonDecode(jsonStr);
-            final Map<String, String> educationMap = educationMapDynamic.map((key, value) => MapEntry(key, value.toString()));
-            
+            final Map<String, dynamic> educationMapDynamic = jsonDecode(
+              jsonStr,
+            );
+            final Map<String, String> educationMap = educationMapDynamic.map(
+              (key, value) => MapEntry(key, value.toString()),
+            );
+
             // Only load non-dummy data
             if (educationMap['isDummy'] != 'true') {
               _educationData.add(educationMap);
@@ -398,16 +438,18 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           }
         }
       }
-      
+
       // Clear the unsaved changes flag
       await prefs.setBool('education_has_changes', false);
-      
+
       // Update original data backup
       _originalData = _getCurrentData();
-      
+
       setState(() {});
-      
-      print('Data restored from storage. Current _educationData: $_educationData');
+
+      print(
+        'Data restored from storage. Current _educationData: $_educationData',
+      );
       print('Cleared education_has_changes flag');
     } catch (e) {
       print('Error restoring data from storage: $e');
@@ -424,7 +466,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   List<Map<String, String>> _getCombinedEducationData() {
     print('=== _getCombinedEducationData ===');
     print('_educationData.length: ${_educationData.length}');
-    
+
     // Return only user data (no dummy data)
     return List<Map<String, String>>.from(_educationData);
   }
@@ -459,17 +501,17 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) {
           print('=== PENDIDIKAN PAGE POPPED - NAVIGATION BACK ===');
-          
+
           // CRITICAL: Ensure flags are set immediately before navigation completes
           if (_hasUnsavedChanges()) {
             print('→ Setting education_has_changes = true before navigation');
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool('education_has_changes', true);
           }
-          
+
           return; // Allow normal pop navigation
         }
-        
+
         // Legacy fallback handling (shouldn't be reached with canPop: true)
         if (_hasUnsavedChanges()) {
           print('=== UNSAVED CHANGES DETECTED ON BACK ===');
@@ -524,107 +566,113 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
             },
           ),
         ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
-          vertical: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search + Filter using AppFilterBar
-            AppFilterBar(
-              controller: _searchController,
-              labelText: 'Pencarian Data Pendidikan',
-              hintText:
-                  'Cari berdasarkan jenjang, jurusan, institusi, atau kota...',
-              onChanged: (value) => setState(() {}),
-              onClear: () => setState(() {}),
-              headerTitle: 'Pencarian',
-              hasActiveFilters: hasActiveFilters,
-              onReset:
-                  hasActiveFilters
-                      ? () {
-                        _searchController.clear();
-                        setState(() {});
-                      }
-                      : null,
-            ),
-            const SizedBox(height: 20),
-
-            // Note Section
-            _buildNoteSection(theme),
-            const SizedBox(height: 20),
-
-            // Add Education Button
-            _buildAddEducationButton(theme),
-            const SizedBox(height: 20),
-
-            // Education Data Cards (replaces table)
-            _buildEducationCards(theme, filteredData, isTablet),
-
-            const SizedBox(height: 30),
-            
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : () {
-                  _saveData(context, theme);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primarySwatch,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isSaving
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'MENYIMPAN...',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text(
-                      'SIMPAN',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Search + Filter using AppSearchBar
+              AppSearchBar(
+                controller: _searchController,
+                hintText: 'Cari jenjang, jurusan, institusi...',
+                onChanged: (value) => setState(() {}),
+                onClear: () => setState(() {}),
+                hasActiveFilters: hasActiveFilters,
+                onFilterReset:
+                    hasActiveFilters
+                        ? () {
+                          _searchController.clear();
+                          setState(() {});
+                        }
+                        : null,
+                margin: EdgeInsets.zero,
               ),
-            ),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 20), // Bottom spacing
-          ],
+              // Note Section
+              _buildNoteSection(theme),
+              const SizedBox(height: 20),
+
+              // Add Education Button
+              _buildAddEducationButton(theme),
+              const SizedBox(height: 20),
+
+              // Education Data Cards (replaces table)
+              _buildEducationCards(theme, filteredData, isTablet),
+
+              const SizedBox(height: 30),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed:
+                      _isSaving
+                          ? null
+                          : () {
+                            _saveData(context, theme);
+                          },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primarySwatch,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child:
+                      _isSaving
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'MENYIMPAN...',
+                                style: theme.typographyRegular.bodyMedium
+                                    .copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                            ],
+                          )
+                          : Text(
+                            'SIMPAN',
+                            style: theme.typographyRegular.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                ),
+              ),
+
+              const SizedBox(height: 20), // Bottom spacing
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
-  
+
   Future<bool?> _showUnsavedChangesDialog() async {
     final result = await NotificationUtils.showConfirmationDialog(
       context,
       title: 'Perubahan Belum Disimpan',
-      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      message:
+          'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
       confirmButtonText: 'Keluar Tanpa Menyimpan',
       cancelButtonText: 'Batal',
       icon: Icons.warning_amber_rounded,
@@ -1046,7 +1094,7 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   Future<void> _addEducation() async {
     print('=== ADD EDUCATION BUTTON PRESSED ===');
     print('Current _educationData before add: $_educationData');
-    
+
     try {
       // Navigate to add education form page
       final result = await Navigator.push(
@@ -1055,29 +1103,33 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           builder: (context) => const TambahDataPendidikanPage(),
         ),
       );
-      
+
       if (!mounted) return;
-      
+
       print('Navigation result: $result');
-      
+
       if (result is Map && result['action'] == 'add' && result['data'] is Map) {
         final newEducation = Map<String, String>.from(result['data'] as Map);
         print('Adding new education data from navigation: $newEducation');
-        print('_educationData BEFORE add: $_educationData (${_educationData.length} items)');
-        
+        print(
+          '_educationData BEFORE add: $_educationData (${_educationData.length} items)',
+        );
+
         newEducation['isDummy'] = 'false';
-        
+
         setState(() {
           _educationData.add(newEducation);
           _dataLoaded = true;
         });
-        
-        print('_educationData AFTER add: $_educationData (${_educationData.length} items)');
+
+        print(
+          '_educationData AFTER add: $_educationData (${_educationData.length} items)',
+        );
         print('All items in _educationData:');
         for (int i = 0; i < _educationData.length; i++) {
           print('  [$i]: ${_educationData[i]}');
         }
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('education_has_changes', true);
         print('Set education_has_changes = true (data added but not saved)');
@@ -1100,45 +1152,50 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     print('=== EDITING EDUCATION ===');
     print('Education to edit: $education');
     print('Is dummy data: ${education['isDummy'] == 'true'}');
-    
 
-    bool isDummyData = education['isDummy'] == 'true' || 
-                       education['id']?.startsWith('dummy-') == true;
-    
+    bool isDummyData =
+        education['isDummy'] == 'true' ||
+        education['id']?.startsWith('dummy-') == true;
+
     if (isDummyData) {
       print('Cannot edit dummy data, showing message');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Data dummy tidak dapat diedit. Silakan tambah data baru.'),
+          content: Text(
+            'Data dummy tidak dapat diedit. Silakan tambah data baru.',
+          ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 2),
         ),
       );
       return;
     }
-    
-    try {
 
+    try {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => EditDataPendidikanPage(educationToEdit: education),
+          builder:
+              (context) => EditDataPendidikanPage(educationToEdit: education),
         ),
       );
-      
+
       if (!mounted) return;
-      
+
       print('Edit navigation result: $result');
-      
-  
-      if (result is Map && result['action'] == 'edit' && result['data'] is Map) {
+
+      if (result is Map &&
+          result['action'] == 'edit' &&
+          result['data'] is Map) {
         final updatedEducation = Map<String, String>.from(result['data']);
-        
+
         print('=== UPDATING EDUCATION AFTER EDIT ===');
         print('Updated education: $updatedEducation');
         print('_educationData BEFORE update: $_educationData');
-        
-        final idx = _educationData.indexWhere((e) => e['id'] == updatedEducation['id']);
+
+        final idx = _educationData.indexWhere(
+          (e) => e['id'] == updatedEducation['id'],
+        );
         if (idx != -1) {
           setState(() {
             _educationData[idx] = updatedEducation;
@@ -1146,8 +1203,12 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           print('Education updated at index $idx');
           print('_educationData AFTER update: $_educationData');
         } else {
-          print('ERROR: Could not find education with id ${updatedEducation['id']}');
-          print('Available IDs: ${_educationData.map((e) => e['id']).toList()}');
+          print(
+            'ERROR: Could not find education with id ${updatedEducation['id']}',
+          );
+          print(
+            'Available IDs: ${_educationData.map((e) => e['id']).toList()}',
+          );
         }
 
         final prefs = await SharedPreferences.getInstance();
@@ -1174,12 +1235,13 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     print('Education keys: ${education.keys.toList()}');
     print('isDummy field value: ${education['isDummy']}');
     print('isDummy check result: ${education['isDummy'] == 'true'}');
-    
-    bool isDummyData = education['isDummy'] == 'true' || 
-                       education['id']?.startsWith('dummy-') == true;
-    
+
+    bool isDummyData =
+        education['isDummy'] == 'true' ||
+        education['id']?.startsWith('dummy-') == true;
+
     print('Final isDummyData result: $isDummyData');
-    
+
     if (isDummyData) {
       print('Cannot delete dummy data, showing message');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1191,163 +1253,167 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       );
       return;
     }
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Data Pendidikan'),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus data ${education['jenjang'] ?? education['tingkat'] ?? 'pendidikan'} - ${education['jurusan'] ?? education['institusi'] ?? 'unknown'}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              setState(() {
-                _educationData.removeWhere(
-                  (e) => e['id'] == education['id'],
-                );
-              });
-              
-              print('Education deleted from _educationData');
-              print('Remaining _educationData length: ${_educationData.length}');
-              
-              // Set flag untuk detect unsaved changes
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('education_has_changes', true);
-              print('Set education_has_changes = true (data deleted but not saved)');
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text(
-              'Hapus',
-              style: TextStyle(color: Colors.white),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Hapus Data Pendidikan'),
+            content: Text(
+              'Apakah Anda yakin ingin menghapus data ${education['jenjang'] ?? education['tingkat'] ?? 'pendidikan'} - ${education['jurusan'] ?? education['institusi'] ?? 'unknown'}?',
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+
+                  setState(() {
+                    _educationData.removeWhere(
+                      (e) => e['id'] == education['id'],
+                    );
+                  });
+
+                  print('Education deleted from _educationData');
+                  print(
+                    'Remaining _educationData length: ${_educationData.length}',
+                  );
+
+                  // Set flag untuk detect unsaved changes
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('education_has_changes', true);
+                  print(
+                    'Set education_has_changes = true (data deleted but not saved)',
+                  );
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text(
+                  'Hapus',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _saveData(BuildContext context, dynamic theme) async {
-
     if (_isSaving) {
       print('Save already in progress, ignoring duplicate call');
       return;
     }
-    
+
     print('=== CALLING _saveData ===');
     print('_educationData to save: $_educationData');
     print('_educationData.length: ${_educationData.length}');
-    
+
     // Set loading state
     setState(() {
       _isSaving = true;
     });
-    
+
     try {
-
       await _saveEducationDataToStorage();
- 
-    if (_educationData.isNotEmpty) {
-      final latestEducation = _educationData.last;
-      final pendidikanData = PendidikanData(
-        tingkatPendidikan: latestEducation['jenjang'] ?? '',
-        namaInstitusi: latestEducation['institusi'] ?? '',
-        jurusan: latestEducation['jurusan'] ?? '',
-        tahunLulus: latestEducation['tahun_selesai'] ?? '',
-        ipk: '', // Could be added as a field later
-      );
-      ref.read(pendidikanDataProvider.notifier).updateData(pendidikanData);
-      print('Updated PendidikanDataProvider with latest education entry after save: ${latestEducation['institusi']} - ${latestEducation['jurusan']}');
-    }
- 
-    setState(() {});
-    
-   
-    final prefs = await SharedPreferences.getInstance();
-    
 
-    int maxRetries = 3;
-    bool flagsSetSuccessfully = false;
-    
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      print('=== FLAG SETTING ATTEMPT $attempt ===');
-      
-      try {
-        await prefs.setBool('education_just_saved', true);
-        await prefs.setBool('education_user_saved', true);
-        await prefs.setBool('education_has_changes', false);
-        
-  
-        await Future.delayed(const Duration(milliseconds: 100));
-        
-   
-        final verifyJustSaved = prefs.getBool('education_just_saved') ?? false;
-        final verifyUserSaved = prefs.getBool('education_user_saved') ?? false;
-        final verifyHasChanges = prefs.getBool('education_has_changes') ?? false;
-        
-        print('VERIFICATION ATTEMPT $attempt:');
-        print('  - education_just_saved: $verifyJustSaved');
-        print('  - education_user_saved: $verifyUserSaved'); 
-        print('  - education_has_changes: $verifyHasChanges');
-        
-        if (verifyJustSaved && verifyUserSaved && !verifyHasChanges) {
-          print('✅ All flags set correctly on attempt $attempt');
-          flagsSetSuccessfully = true;
-          break;
-        } else {
-          print('❌ Flags not set correctly on attempt $attempt, retrying...');
-          await Future.delayed(Duration(milliseconds: 50 * attempt)); 
-        }
-      } catch (e) {
-        print('❌ Error setting flags on attempt $attempt: $e');
-        await Future.delayed(Duration(milliseconds: 50 * attempt)); 
+      if (_educationData.isNotEmpty) {
+        final latestEducation = _educationData.last;
+        final pendidikanData = PendidikanData(
+          tingkatPendidikan: latestEducation['jenjang'] ?? '',
+          namaInstitusi: latestEducation['institusi'] ?? '',
+          jurusan: latestEducation['jurusan'] ?? '',
+          tahunLulus: latestEducation['tahun_selesai'] ?? '',
+          ipk: '', // Could be added as a field later
+        );
+        ref.read(pendidikanDataProvider.notifier).updateData(pendidikanData);
+        print(
+          'Updated PendidikanDataProvider with latest education entry after save: ${latestEducation['institusi']} - ${latestEducation['jurusan']}',
+        );
       }
-    }
-    
-    if (!flagsSetSuccessfully) {
-      print('⚠️ WARNING: Failed to set flags after $maxRetries attempts');
-    } else {
-      print('✅ SUCCESS: All flags set correctly and will trigger EDITED status in profile_sections');
-    }
 
-    if (_educationData.isNotEmpty) {
-      final completionNotifier = ref.read(profileCompletionProvider.notifier);
-      completionNotifier.markCompleted('pendidikan');
-    } else {
-      final completionNotifier = ref.read(profileCompletionProvider.notifier);
-      completionNotifier.markIncomplete('pendidikan');
-    }
+      setState(() {});
 
-    _originalData = _getCurrentData();
+      final prefs = await SharedPreferences.getInstance();
 
-    print('=== WAITING FOR SHAREDPREFERENCES OPERATIONS TO COMPLETE ===');
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    if (context.mounted) {
-      await NotificationUtils.showSuccessDialog(
-        context,
-        title: 'Simpan Data Pendidikan',
-        message: 'Data pendidikan berhasil disimpan.',
-        buttonText: 'OK',
-        onPressed: () {
+      int maxRetries = 3;
+      bool flagsSetSuccessfully = false;
 
-          print('=== SUCCESS DIALOG OK PRESSED - NAVIGATING ===');
-          if (context.mounted) {
-            context.go('/profile-sections');
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        print('=== FLAG SETTING ATTEMPT $attempt ===');
+
+        try {
+          await prefs.setBool('education_just_saved', true);
+          await prefs.setBool('education_user_saved', true);
+          await prefs.setBool('education_has_changes', false);
+
+          await Future.delayed(const Duration(milliseconds: 100));
+
+          final verifyJustSaved =
+              prefs.getBool('education_just_saved') ?? false;
+          final verifyUserSaved =
+              prefs.getBool('education_user_saved') ?? false;
+          final verifyHasChanges =
+              prefs.getBool('education_has_changes') ?? false;
+
+          print('VERIFICATION ATTEMPT $attempt:');
+          print('  - education_just_saved: $verifyJustSaved');
+          print('  - education_user_saved: $verifyUserSaved');
+          print('  - education_has_changes: $verifyHasChanges');
+
+          if (verifyJustSaved && verifyUserSaved && !verifyHasChanges) {
+            print('✅ All flags set correctly on attempt $attempt');
+            flagsSetSuccessfully = true;
+            break;
+          } else {
+            print('❌ Flags not set correctly on attempt $attempt, retrying...');
+            await Future.delayed(Duration(milliseconds: 50 * attempt));
           }
-        },
-      );
-    }
-    
+        } catch (e) {
+          print('❌ Error setting flags on attempt $attempt: $e');
+          await Future.delayed(Duration(milliseconds: 50 * attempt));
+        }
+      }
+
+      if (!flagsSetSuccessfully) {
+        print('⚠️ WARNING: Failed to set flags after $maxRetries attempts');
+      } else {
+        print(
+          '✅ SUCCESS: All flags set correctly and will trigger EDITED status in profile_sections',
+        );
+      }
+
+      if (_educationData.isNotEmpty) {
+        final completionNotifier = ref.read(profileCompletionProvider.notifier);
+        completionNotifier.markCompleted('pendidikan');
+      } else {
+        final completionNotifier = ref.read(profileCompletionProvider.notifier);
+        completionNotifier.markIncomplete('pendidikan');
+      }
+
+      _originalData = _getCurrentData();
+
+      print('=== WAITING FOR SHAREDPREFERENCES OPERATIONS TO COMPLETE ===');
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (context.mounted) {
+        await NotificationUtils.showSuccessDialog(
+          context,
+          title: 'Simpan Data Pendidikan',
+          message: 'Data pendidikan berhasil disimpan.',
+          buttonText: 'OK',
+          onPressed: () {
+            print('=== SUCCESS DIALOG OK PRESSED - NAVIGATING ===');
+            if (context.mounted) {
+              context.go('/profile-sections');
+            }
+          },
+        );
+      }
     } catch (e) {
       print('Error in _saveData: $e');
-      
+
       // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

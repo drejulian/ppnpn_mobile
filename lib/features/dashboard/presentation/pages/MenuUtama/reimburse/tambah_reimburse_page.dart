@@ -83,21 +83,11 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Ajukan Reimburse',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ajukan Reimburse',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

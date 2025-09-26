@@ -89,22 +89,41 @@ final kunkerDataProvider =
     );
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
+final kunkerStatusPengajuanFilterProvider = StateProvider<String>(
+  (ref) => 'Semua',
+);
+final kunkerStatusPencairanFilterProvider = StateProvider<String>(
+  (ref) => 'Semua',
+);
+
 final filteredKunkerProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final query = ref.watch(searchQueryProvider).toLowerCase().trim();
+  final statusPengajuan = ref.watch(kunkerStatusPengajuanFilterProvider);
+  final statusPencairan = ref.watch(kunkerStatusPencairanFilterProvider);
   final allItems = ref.watch(kunkerDataProvider);
 
-  if (query.isEmpty) return allItems;
-
   return allItems.where((item) {
-    return item['no_surat'].toString().toLowerCase().contains(query) ||
-        item['anggota'].toString().toLowerCase().contains(query) ||
-        item['tenaga_ahli'].toString().toLowerCase().contains(query) ||
-        item['dapil'].toString().toLowerCase().contains(query) ||
-        item['jenis_perjadin'].toString().toLowerCase().contains(query) ||
-        item['tanggal_awal'].toString().toLowerCase().contains(query) ||
-        item['tanggal_akhir'].toString().toLowerCase().contains(query) ||
-        item['status_pengajuan'].toString().toLowerCase().contains(query) ||
-        item['status_pencairan'].toString().toLowerCase().contains(query);
+    final matchesQuery =
+        query.isEmpty ||
+        (item['no_surat'].toString().toLowerCase().contains(query) ||
+            item['anggota'].toString().toLowerCase().contains(query) ||
+            item['tenaga_ahli'].toString().toLowerCase().contains(query) ||
+            item['dapil'].toString().toLowerCase().contains(query) ||
+            item['jenis_perjadin'].toString().toLowerCase().contains(query) ||
+            item['tanggal_awal'].toString().toLowerCase().contains(query) ||
+            item['tanggal_akhir'].toString().toLowerCase().contains(query) ||
+            item['status_pengajuan'].toString().toLowerCase().contains(query) ||
+            item['status_pencairan'].toString().toLowerCase().contains(query));
+
+    final matchesStatusPengajuan =
+        statusPengajuan == 'Semua' ||
+        item['status_pengajuan'] == statusPengajuan;
+
+    final matchesStatusPencairan =
+        statusPencairan == 'Semua' ||
+        item['status_pencairan'] == statusPencairan;
+
+    return matchesQuery && matchesStatusPengajuan && matchesStatusPencairan;
   }).toList();
 });
 
@@ -161,43 +180,112 @@ class _DaftarPengajuanKunkerPageState
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final filteredList = ref.watch(filteredKunkerProvider);
+    final statusPengajuan = ref.watch(kunkerStatusPengajuanFilterProvider);
+    final statusPencairan = ref.watch(kunkerStatusPencairanFilterProvider);
+    final hasActiveFilters =
+        statusPengajuan != 'Semua' || statusPencairan != 'Semua';
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Data Kunker Perorangan',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Data Kunker Perorangan',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-    
-            AppFilterBar(
+            AppSearchBar(
               controller: _searchController,
-              labelText: 'Cari Pengajuan Kunker',
-              hintText: 'No. surat, anggota, TA, dapil, tanggal, status...',
+              hintText: 'Cari no. surat, anggota, TA, dapil...',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.zero,
+              hasActiveFilters: hasActiveFilters,
+              onFilterReset: () {
+                _searchController.clear();
+                ref.read(searchQueryProvider.notifier).state = '';
+                ref.read(kunkerStatusPengajuanFilterProvider.notifier).state =
+                    'Semua';
+                ref.read(kunkerStatusPencairanFilterProvider.notifier).state =
+                    'Semua';
+              },
+              filterSection: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Status Pengajuan',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        ['Semua', 'Menunggu Konfirmasi', 'Konfirmasi']
+                            .map(
+                              (status) => FilterChip(
+                                label: Text(status),
+                                selected: statusPengajuan == status,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              kunkerStatusPengajuanFilterProvider
+                                                  .notifier,
+                                            )
+                                            .state = status,
+                                selectedColor: theme.primarySwatch.withOpacity(
+                                  0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Filter Status Pencairan',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        ['Semua', 'Disetujui', 'Ditolak', '-']
+                            .map(
+                              (status) => FilterChip(
+                                label: Text(
+                                  status == '-' ? 'Belum Ada' : status,
+                                ),
+                                selected: statusPencairan == status,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              kunkerStatusPencairanFilterProvider
+                                                  .notifier,
+                                            )
+                                            .state = status,
+                                selectedColor: theme.primarySwatch.withOpacity(
+                                  0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
 
-         
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -240,7 +328,6 @@ class _DaftarPengajuanKunkerPageState
               ),
             ),
             const SizedBox(height: 20),
-
 
             Row(
               children: [
@@ -546,9 +633,8 @@ class _DaftarPengajuanKunkerPageState
       actions: [
         if (!isSuccess)
           SIHAKIDialogAction(
-            label: 'Edit Pengajuan',
+            label: 'Ubah Pengajuan',
             icon: Icons.edit_rounded,
-            backgroundColor: Colors.orange[600],
             textColor: Colors.white,
             onTap: () {
               Navigator.pop(context);
@@ -593,7 +679,6 @@ class _DaftarPengajuanKunkerPageState
 
     SIHAKIDetailDialog.show(context, dialogData);
   }
-
 
   void _downloadBuktiTransfer(Map<String, dynamic> kunker) {
     ScaffoldMessenger.of(context).showSnackBar(

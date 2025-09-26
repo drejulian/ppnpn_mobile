@@ -136,34 +136,20 @@ class _BuktiPotongPajakA2PageState
     final paginatedData = _getPaginatedData(filteredData);
     final totalPages = (filteredData.length / _itemsPerPage).ceil();
 
-
     final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(
-          'Data Pajak Anggota',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Data Pajak Anggota',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(isTablet ? 24 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-   
             SIHAKIPageHeader(
               title: 'PPA Anggota',
               subtitle: 'Bukti Potong Pajak A2',
@@ -205,22 +191,20 @@ class _BuktiPotongPajakA2PageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-        
-            AppFilterBar(
+            AppSearchBar(
               controller: searchController,
-              labelText: 'Pencarian PPA Anggota',
-              hintText: 'Cari tahun, bulan, penghasilan, atau nominal...',
+              hintText: 'Cari tahun, bulan, penghasilan...',
               onChanged: (_) => setState(() => _currentPage = 1),
               onClear: () => setState(() => _currentPage = 1),
-              headerTitle: 'Pencarian',
               hasActiveFilters: hasActiveFilters,
-              onReset:
+              onFilterReset:
                   hasActiveFilters
                       ? () {
                         searchController.clear();
                         setState(() => _currentPage = 1);
                       }
                       : null,
+              margin: EdgeInsets.zero,
             ),
 
             SizedBox(height: isTablet ? 24 : 20),
@@ -444,7 +428,6 @@ class _BuktiPotongPajakA2PageState
   }
 
   String _formatCurrency(String amount) {
- 
     final cleanAmount = amount.replaceAll('.', '');
     final num = int.tryParse(cleanAmount) ?? 0;
     return num.toString().replaceAllMapped(

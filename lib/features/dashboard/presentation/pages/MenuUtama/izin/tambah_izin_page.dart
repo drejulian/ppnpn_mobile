@@ -20,11 +20,11 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
   final _awalCtrl = TextEditingController();
   final _akhirCtrl = TextEditingController();
   final _alasanCtrl = TextEditingController();
-  
+
   DateTime? _awalDate;
   DateTime? _akhirDate;
   PlatformFile? _selectedFile;
-  
+
   final List<String> _jenisIzinOptions = [
     'Izin Sakit',
     'Izin Pribadi',
@@ -36,9 +36,8 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStartDate
-          ? (_awalDate ?? now)
-          : (_akhirDate ?? _awalDate ?? now),
+      initialDate:
+          isStartDate ? (_awalDate ?? now) : (_akhirDate ?? _awalDate ?? now),
       firstDate: now,
       lastDate: DateTime(now.year + 1),
     );
@@ -67,11 +66,11 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
     if (_awalDate == null || _akhirDate == null) {
       return '';
     }
-    
+
     final difference = _akhirDate!.difference(_awalDate!).inDays + 1;
     final awalFormatted = DateFormat('dd MMM').format(_awalDate!);
     final akhirFormatted = DateFormat('dd MMM').format(_akhirDate!);
-    
+
     return '$difference hari ($awalFormatted - $akhirFormatted)';
   }
 
@@ -117,21 +116,13 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Ajukan Izin',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ajukan Izin',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -152,7 +143,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       isRequired: true,
                       options: _jenisIzinOptions,
                       value: _jenisCtrl.text.isEmpty ? null : _jenisCtrl.text,
-                      onChanged: (value) => setState(() => _jenisCtrl.text = value ?? ''),
+                      onChanged:
+                          (value) =>
+                              setState(() => _jenisCtrl.text = value ?? ''),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Pilih jenis izin';
@@ -170,7 +163,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: () => _pickDate(true),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _awalDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _awalDate == null) {
                           return 'Pilih tanggal mulai izin';
                         }
                         return null;
@@ -186,7 +181,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: () => _pickDate(false),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _akhirDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _akhirDate == null) {
                           return 'Pilih tanggal selesai izin';
                         }
                         if (_awalDate != null && _akhirDate != null) {
@@ -214,9 +211,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // File Upload Section
                 Container(
                   width: double.infinity,
@@ -286,31 +283,36 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile != null 
-                                          ? _selectedFile!.name 
+                                      _selectedFile != null
+                                          ? _selectedFile!.name
                                           : 'Upload file pendukung',
-                                      style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: _selectedFile != null 
-                                            ? Colors.grey[800] 
-                                            : Colors.grey[600],
-                                        fontWeight: _selectedFile != null 
-                                            ? FontWeight.w600 
-                                            : FontWeight.normal,
-                                      ),
+                                      style: theme.typographyRegular.bodyMedium
+                                          .copyWith(
+                                            color:
+                                                _selectedFile != null
+                                                    ? Colors.grey[800]
+                                                    : Colors.grey[600],
+                                            fontWeight:
+                                                _selectedFile != null
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                          ),
                                     ),
                                     if (_selectedFile == null)
                                       Text(
                                         'Format: PDF, JPG, PNG (Max 5MB)',
-                                        style: theme.typographyRegular.bodySmall.copyWith(
-                                          color: Colors.grey[500],
-                                        ),
+                                        style: theme.typographyRegular.bodySmall
+                                            .copyWith(color: Colors.grey[500]),
                                       ),
                                   ],
                                 ),
                               ),
                               if (_selectedFile != null)
                                 IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedFile = null;
@@ -324,9 +326,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
@@ -341,7 +343,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       elevation: 2,
                     ),
                     onPressed: () {
-                      if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
+                      if (_formKey.currentState!.validate() &&
+                          _awalDate != null &&
+                          _akhirDate != null) {
                         final newIzin = {
                           'id': _generateId(),
                           'type': _jenisCtrl.text,
@@ -349,24 +353,28 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                           'duration': _formatDuration(),
                           'reason': _alasanCtrl.text,
                           'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor('Menunggu Persetujuan'),
+                          'statusColor': _getStatusColor(
+                            'Menunggu Persetujuan',
+                          ),
                           'fileName': _selectedFile?.name,
                         };
-                        
+
                         ref.read(izinProvider.notifier).add(newIzin);
-                        
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Pengajuan izin berhasil dikirim'),
                             backgroundColor: Colors.green,
                           ),
                         );
-                        
+
                         context.pop();
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Pilih tanggal mulai dan selesai izin terlebih dahulu'),
+                            content: Text(
+                              'Pilih tanggal mulai dan selesai izin terlebih dahulu',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );

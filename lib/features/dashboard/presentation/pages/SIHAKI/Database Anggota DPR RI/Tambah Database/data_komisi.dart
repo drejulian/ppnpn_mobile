@@ -42,7 +42,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
         });
       }
     }
- 
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {});
     });
@@ -63,28 +63,17 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'DATA KOMISI',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'DATA KOMISI',
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        },
+        backTooltip: 'Kembali',
       ),
       body: Consumer(
         builder: (context, ref, child) {
@@ -111,7 +100,6 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-      
                 SIHAKIDataCard(
                   title: 'Database Anggota DPR RI',
                   subtitle: 'Sistem Informasi Anggota (DASI)',
@@ -152,7 +140,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Navigation Cards 
+                // Navigation Cards
                 _buildModernNavigationCard(
                   context,
                   theme,
@@ -249,7 +237,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                   isTablet: isTablet,
                 ),
                 const SizedBox(height: 24),
-            
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -357,7 +345,6 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             padding: EdgeInsets.all(isTablet ? 20 : 16),
             child: Row(
               children: [
-              
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

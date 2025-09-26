@@ -25,7 +25,6 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
   final _namaRekeningController = TextEditingController();
   bool _isEditing = false;
 
-  
   static final Map<String, String> _persistentData = {};
 
   @override
@@ -35,7 +34,6 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
   }
 
   Future<void> _loadSavedData() async {
-
     setState(() {
       _namaController.text = _persistentData['nama'] ?? '';
       _noAnggotaController.text = _persistentData['noAnggota'] ?? '';
@@ -105,7 +103,6 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
         return;
       }
 
-   
       _persistentData['nama'] = _namaController.text;
       _persistentData['noAnggota'] = _noAnggotaController.text;
       _persistentData['fraksi'] = _fraksiController.text;
@@ -183,24 +180,11 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Database Anggota DPR RI (DASI)',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go('/dataKomisi');
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Database Keanggotaan',
+        onBackPressed: () => context.go('/dataKomisi'),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,
@@ -212,14 +196,6 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Data Keanggotaan',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 20),
               AppFormCard(
                 title: 'Data Pribadi Anggota',
                 titleIcon: Icons.person_outline,

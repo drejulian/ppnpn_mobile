@@ -63,7 +63,8 @@ final filteredIzinProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final q = ref.watch(izinSearchProvider).toLowerCase().trim();
   final status = ref.watch(izinStatusFilterProvider);
   return list.where((e) {
-    final matchesQuery = q.isEmpty ||
+    final matchesQuery =
+        q.isEmpty ||
         (e['type']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['reason']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['id']?.toString().toLowerCase().contains(q) ?? false);
@@ -101,15 +102,20 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
 
   void _showDetailDialog(Map<String, dynamic> izin) {
     final theme = ref.read(themeProvider);
-    final statusColor = izin['statusColor'] as Color? ?? _statusColor(izin['status']);
+    final statusColor =
+        izin['statusColor'] as Color? ?? _statusColor(izin['status']);
     final canEdit = _canEdit(izin);
-    
+
     // Validasi kelengkapan data
     final List<String> missingFields = [];
-    if (izin['id'] == null || izin['id'].toString().isEmpty) missingFields.add('ID');
-    if (izin['type'] == null || izin['type'].toString().isEmpty) missingFields.add('Jenis Izin');
-    if (izin['reason'] == null || izin['reason'].toString().isEmpty) missingFields.add('Alasan');
-    if (izin['duration'] == null || izin['duration'].toString().isEmpty) missingFields.add('Durasi');
+    if (izin['id'] == null || izin['id'].toString().isEmpty)
+      missingFields.add('ID');
+    if (izin['type'] == null || izin['type'].toString().isEmpty)
+      missingFields.add('Jenis Izin');
+    if (izin['reason'] == null || izin['reason'].toString().isEmpty)
+      missingFields.add('Alasan');
+    if (izin['duration'] == null || izin['duration'].toString().isEmpty)
+      missingFields.add('Durasi');
 
     // Status field untuk header
     final statusField = SIHAKIDialogField(
@@ -121,33 +127,19 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
 
     // Data fields
     final dataFields = [
-      SIHAKIDialogField(
-        label: 'ID Izin',
-        value: izin['id'] ?? 'N/A',
-      ),
-      SIHAKIDialogField(
-        label: 'Jenis Izin',
-        value: izin['type'] ?? 'N/A',
-      ),
+      SIHAKIDialogField(label: 'ID Izin', value: izin['id'] ?? 'N/A'),
+      SIHAKIDialogField(label: 'Jenis Izin', value: izin['type'] ?? 'N/A'),
       SIHAKIDialogField(
         label: 'Tanggal Izin',
-        value: izin['date'] != null 
-            ? DateFormat('dd MMMM yyyy', 'id_ID').format(izin['date'])
-            : 'N/A',
+        value:
+            izin['date'] != null
+                ? DateFormat('dd MMMM yyyy', 'id_ID').format(izin['date'])
+                : 'N/A',
       ),
-      SIHAKIDialogField(
-        label: 'Durasi',
-        value: izin['duration'] ?? 'N/A',
-      ),
-      SIHAKIDialogField(
-        label: 'Alasan',
-        value: izin['reason'] ?? 'N/A',
-      ),
+      SIHAKIDialogField(label: 'Durasi', value: izin['duration'] ?? 'N/A'),
+      SIHAKIDialogField(label: 'Alasan', value: izin['reason'] ?? 'N/A'),
       if (izin['fileName'] != null)
-        SIHAKIDialogField(
-          label: 'Berkas Lampiran',
-          value: izin['fileName'],
-        ),
+        SIHAKIDialogField(label: 'Berkas Lampiran', value: izin['fileName']),
     ];
 
     // Gabungkan semua fields
@@ -155,11 +147,11 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
 
     // Actions
     final actions = <SIHAKIDialogAction>[];
-    
+
     if (canEdit) {
       actions.addAll([
         SIHAKIDialogAction(
-          label: 'Edit Izin',
+          label: 'Ubah Izin',
           icon: Icons.edit,
           onTap: () {
             Navigator.of(context).pop();
@@ -248,7 +240,9 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
       isDestructive: true,
       onConfirm: () {
         final izinList = ref.read(izinProvider.notifier);
-        final index = ref.read(izinProvider).indexWhere((item) => item['id'] == izin['id']);
+        final index = ref
+            .read(izinProvider)
+            .indexWhere((item) => item['id'] == izin['id']);
         if (index != -1) {
           izinList.removeAt(index);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -274,74 +268,76 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
     final statusFilter = ref.watch(izinStatusFilterProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Daftar Izin',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Daftar Izin',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Column(
         children: [
-          // Filter Section
+          // Search Section with Filter
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: Column(
-              children: [
-                AppFilterBar(
-                  controller: _searchController,
-                  labelText: 'Cari izin...',
-                  hintText: 'Masukkan ID, jenis, atau alasan izin',
-                  headerTitle: 'Pencarian & Filter',
-                  hasActiveFilters: statusFilter != 'Semua',
-                  onChanged: (value) => ref.read(izinSearchProvider.notifier).state = value,
-                  onReset: () {
-                    _searchController.clear();
-                    ref.read(izinSearchProvider.notifier).state = '';
-                    ref.read(izinStatusFilterProvider.notifier).state = 'Semua';
-                  },
-                  filterSection: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Filter Status',
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: ['Semua', 'Menunggu Persetujuan', 'Disetujui', 'Ditolak']
-                            .map((status) => FilterChip(
-                                  label: Text(status),
-                                  selected: statusFilter == status,
-                                  onSelected: (_) => ref.read(izinStatusFilterProvider.notifier).state = status,
-                                  selectedColor: theme.primarySwatch.withOpacity(0.2),
-                                  checkmarkColor: theme.primarySwatch,
-                                ))
-                            .toList(),
-                      ),
-                    ],
+            child: AppSearchBar(
+              controller: _searchController,
+              hintText: 'Cari ID, jenis, atau alasan izin...',
+              margin: const EdgeInsets.all(16),
+              hasActiveFilters: statusFilter != 'Semua',
+              onChanged:
+                  (value) =>
+                      ref.read(izinSearchProvider.notifier).state = value,
+              onFilterReset: () {
+                _searchController.clear();
+                ref.read(izinSearchProvider.notifier).state = '';
+                ref.read(izinStatusFilterProvider.notifier).state = 'Semua';
+              },
+              filterSection: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Status',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        [
+                              'Semua',
+                              'Menunggu Persetujuan',
+                              'Disetujui',
+                              'Ditolak',
+                            ]
+                            .map(
+                              (status) => FilterChip(
+                                label: Text(status),
+                                selected: statusFilter == status,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              izinStatusFilterProvider.notifier,
+                                            )
+                                            .state = status,
+                                selectedColor: theme.primarySwatch.withOpacity(
+                                  0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ),
             ),
           ),
-          
+
           // Tambah Izin button
           Container(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            color: Colors.white,
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -366,70 +362,77 @@ class _DaftarIzinPageState extends ConsumerState<DaftarIzinPage> {
               ),
             ),
           ),
-          
+
           // List Section
           Expanded(
-            child: filteredList.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.event_busy, size: 48, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Tidak ada data izin',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      final izin = filteredList[index];
-                      final statusColor = izin['statusColor'] as Color? ?? _statusColor(izin['status']);
-                      
-                      return AppListCard(
-                        title: izin['type'] ?? 'N/A',
-                        subtitle: izin['id'] ?? 'N/A',
-                        leading: CircleAvatar(
-                          backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                          child: Icon(
-                            Icons.assignment_ind,
-                            color: theme.primarySwatch,
-                            size: 20,
+            child:
+                filteredList.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 48,
+                            color: Colors.grey[400],
                           ),
-                        ),
-                        trailing: AppStatusChip(
-                          label: izin['status'] ?? 'N/A',
-                          color: statusColor,
-                        ),
-                        chips: [
-                          AppPillChip(
-                            icon: Icons.calendar_today,
-                            label: izin['duration'] ?? 'N/A',
-                          ),
-                          AppPillChip(
-                            icon: Icons.description,
-                            label: izin['reason'] ?? 'N/A',
-                          ),
-                        ],
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.visibility, size: 20),
-                            onPressed: () => _showDetailDialog(izin),
-                            tooltip: 'Lihat Detail',
-                            style: IconButton.styleFrom(
-                              backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                              foregroundColor: theme.primarySwatch,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak ada data izin',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
                             ),
                           ),
                         ],
-                        onTap: () => _showDetailDialog(izin),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final izin = filteredList[index];
+                        final statusColor =
+                            izin['statusColor'] as Color? ??
+                            _statusColor(izin['status']);
+
+                        return AppListCard(
+                          title: izin['type'] ?? 'N/A',
+                          subtitle: izin['id'] ?? 'N/A',
+                          leading: CircleAvatar(
+                            backgroundColor: theme.primarySwatch.withOpacity(
+                              0.1,
+                            ),
+                            child: Icon(
+                              Icons.assignment_ind,
+                              color: theme.primarySwatch,
+                              size: 20,
+                            ),
+                          ),
+                          trailing: AppStatusChip(
+                            label: izin['status'] ?? 'N/A',
+                            color: statusColor,
+                          ),
+                          chips: [
+                            AppPillChip(
+                              icon: Icons.calendar_today,
+                              label: izin['duration'] ?? 'N/A',
+                            ),
+                            AppPillChip(
+                              icon: Icons.description,
+                              label: izin['reason'] ?? 'N/A',
+                            ),
+                          ],
+                          actions: [
+                            AppViewDetailButton(
+                              onPressed: () => _showDetailDialog(izin),
+                              tooltip: 'Lihat Detail',
+                            ),
+                          ],
+                          onTap: () => _showDetailDialog(izin),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

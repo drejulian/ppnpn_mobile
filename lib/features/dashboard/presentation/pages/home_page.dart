@@ -217,7 +217,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       right: 6,
                       top: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(10),
@@ -227,8 +230,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                           minHeight: 16,
                         ),
                         child: Text(
-                          notificationState.unreadCount > 99 
-                              ? '99+' 
+                          notificationState.unreadCount > 99
+                              ? '99+'
                               : '${notificationState.unreadCount}',
                           style: const TextStyle(
                             color: Colors.white,
@@ -359,8 +362,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-
-
 
   Widget _buildKalenderSection(
     dynamic theme,

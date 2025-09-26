@@ -164,7 +164,7 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     if (canEdit) {
       actions.addAll([
         SIHAKIDialogAction(
-          label: 'Edit Reimburse',
+          label: 'Ubah Reimburse',
           icon: Icons.edit,
           onTap: () {
             Navigator.of(context).pop();
@@ -301,94 +301,78 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     print('Status filter: $statusFilter');
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Daftar Reimburse',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Daftar Reimburse',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Column(
         children: [
-          // Filter Section
+          // Search Section with Filter
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: Column(
-              children: [
-                AppFilterBar(
-                  controller: _searchController,
-                  labelText: 'Cari reimburse...',
-                  hintText: 'Masukkan ID, kategori, atau deskripsi reimburse',
-                  headerTitle: 'Pencarian & Filter',
-                  hasActiveFilters: statusFilter != 'Semua',
-                  onChanged:
-                      (value) =>
-                          ref.read(reimburseSearchProvider.notifier).state =
-                              value,
-                  onReset: () {
-                    _searchController.clear();
-                    ref.read(reimburseSearchProvider.notifier).state = '';
-                    ref.read(reimburseStatusFilterProvider.notifier).state =
-                        'Semua';
-                  },
-                  filterSection: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Filter Status',
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children:
-                            [
-                                  'Semua',
-                                  'Menunggu Persetujuan',
-                                  'Disetujui',
-                                  'Ditolak',
-                                ]
-                                .map(
-                                  (statusOption) => FilterChip(
-                                    label: Text(statusOption),
-                                    selected: statusFilter == statusOption,
-                                    onSelected:
-                                        (_) =>
-                                            ref
-                                                .read(
-                                                  reimburseStatusFilterProvider
-                                                      .notifier,
-                                                )
-                                                .state = statusOption,
-                                    selectedColor: theme.primarySwatch
-                                        .withValues(alpha: 0.2),
-                                    checkmarkColor: theme.primarySwatch,
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                    ],
+            child: AppSearchBar(
+              controller: _searchController,
+              hintText: 'Cari ID, kategori, atau deskripsi...',
+              margin: const EdgeInsets.all(16),
+              hasActiveFilters: statusFilter != 'Semua',
+              onChanged:
+                  (value) =>
+                      ref.read(reimburseSearchProvider.notifier).state = value,
+              onFilterReset: () {
+                _searchController.clear();
+                ref.read(reimburseSearchProvider.notifier).state = '';
+                ref.read(reimburseStatusFilterProvider.notifier).state =
+                    'Semua';
+              },
+              filterSection: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Status',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        [
+                              'Semua',
+                              'Menunggu Persetujuan',
+                              'Disetujui',
+                              'Ditolak',
+                            ]
+                            .map(
+                              (statusOption) => FilterChip(
+                                label: Text(statusOption),
+                                selected: statusFilter == statusOption,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              reimburseStatusFilterProvider
+                                                  .notifier,
+                                            )
+                                            .state = statusOption,
+                                selectedColor: theme.primarySwatch.withValues(
+                                  alpha: 0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Tambah Reimburse button
           Container(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            color: Colors.white,
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -490,15 +474,9 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
                               ),
                           ],
                           actions: [
-                            IconButton(
-                              icon: const Icon(Icons.visibility, size: 20),
+                            AppViewDetailButton(
                               onPressed: () => _showDetailDialog(reimburse),
                               tooltip: 'Lihat Detail',
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.primarySwatch
-                                    .withOpacity(0.1),
-                                foregroundColor: theme.primarySwatch,
-                              ),
                             ),
                           ],
                           onTap: () => _showDetailDialog(reimburse),

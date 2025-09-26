@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 
 // Field types for form card components
@@ -58,7 +57,6 @@ class FormFieldConfig {
   });
 }
 
-// Reusable Form Card Component with consistent styling and multiple field types
 class AppFormCard extends ConsumerWidget {
   final String title;
   final IconData titleIcon;
@@ -1030,140 +1028,243 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// A reusable search/filter bar for app pages.
-class AppFilterBar extends ConsumerWidget {
+class AppSearchBar extends StatefulWidget {
   final TextEditingController controller;
-  final String labelText;
-  final String? hintText;
+  final String hintText;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onClear;
+  final EdgeInsetsGeometry margin;
   final EdgeInsetsGeometry padding;
-  final EdgeInsetsGeometry cardMargin;
-  final Widget? prefixIcon;
-
-  final String? headerTitle;
-  final bool? showHeader;
-  final bool hasActiveFilters;
-  final VoidCallback? onReset;
   final Widget? filterSection;
+  final bool hasActiveFilters;
+  final VoidCallback? onFilterReset;
 
-  const AppFilterBar({
+  const AppSearchBar({
     super.key,
     required this.controller,
-    required this.labelText,
-    this.hintText,
+    this.hintText = 'Search...',
     this.onChanged,
     this.onClear,
-    this.padding = const EdgeInsets.all(16),
-    this.cardMargin = EdgeInsets.zero,
-    this.prefixIcon,
-    this.headerTitle,
-    this.showHeader,
-    this.hasActiveFilters = false,
-    this.onReset,
+    this.margin = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     this.filterSection,
+    this.hasActiveFilters = false,
+    this.onFilterReset,
   });
 
-  bool get _computedShowHeader =>
-      (showHeader ?? false) ||
-      headerTitle != null ||
-      filterSection != null ||
-      onReset != null;
+  @override
+  State<AppSearchBar> createState() => _AppSearchBarState();
+}
+
+class _AppSearchBarState extends State<AppSearchBar>
+    with SingleTickerProviderStateMixin {
+  bool _isFilterExpanded = false;
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
-    final color = theme.primarySwatch;
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
 
-    return Card(
-      margin: cardMargin,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_computedShowHeader) ...[
-              Row(
-                children: [
-                  Icon(Icons.filter_list_rounded, color: color, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    headerTitle ?? 'Pencarian & Filter',
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[800],
-                    ),
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFilter() {
+    setState(() {
+      _isFilterExpanded = !_isFilterExpanded;
+    });
+
+    if (_isFilterExpanded) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: widget.margin,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Main search bar
+          Container(
+            padding: widget.padding,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                // Search icon
+                Icon(Icons.search, color: Colors.grey[600], size: 20),
+                const SizedBox(width: 12),
+                // Text field
+                Expanded(
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: widget.controller,
+                    builder: (context, value, _) {
+                      return TextField(
+                        controller: widget.controller,
+                        decoration: InputDecoration(
+                          hintText: widget.hintText,
+                          hintStyle: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                        onChanged: widget.onChanged,
+                      );
+                    },
                   ),
-                  const Spacer(),
-                  if (hasActiveFilters && onReset != null)
-                    TextButton.icon(
-                      onPressed: onReset,
-                      icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Reset'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: color,
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                // Clear button (if has text)
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.controller,
+                  builder: (context, value, _) {
+                    if (value.text.isEmpty) return const SizedBox.shrink();
+                    return GestureDetector(
+                      onTap: () {
+                        widget.controller.clear();
+                        widget.onClear?.call();
+                        widget.onChanged?.call('');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.grey[600],
+                          size: 18,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                // Filter button (if has filter section)
+                if (widget.filterSection != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _toggleFilter,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      child: AnimatedRotation(
+                        turns: _isFilterExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Stack(
+                          children: [
+                            Icon(
+                              Icons.tune, // Filter icon similar to the image
+                              color: Colors.grey[600],
+                              size: 20,
+                            ),
+                            if (widget.hasActiveFilters)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, _) {
-                final hasText = value.text.isNotEmpty;
-                return TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: labelText,
-                    hintText: hintText,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[400]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[400]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: color, width: 1.5),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    prefixIcon:
-                        prefixIcon ?? const Icon(Icons.search, size: 20),
-                    suffixIcon:
-                        hasText
-                            ? IconButton(
-                              icon: const Icon(Icons.clear, size: 20),
-                              onPressed: () {
-                                controller.clear();
-                                onClear?.call();
-                                onChanged?.call('');
-                              },
-                            )
-                            : null,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
                   ),
-                  onChanged: onChanged,
-                );
-              },
+                ],
+              ],
             ),
-            if (filterSection != null) ...[
-              const SizedBox(height: 12),
-              filterSection!,
-            ],
-          ],
-        ),
+          ),
+          // Animated filter section
+          if (widget.filterSection != null)
+            SizeTransition(
+              sizeFactor: _expandAnimation,
+              child: Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Filter header
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.filter_list_rounded,
+                          color: Colors.grey[700],
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Filter',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (widget.hasActiveFilters &&
+                            widget.onFilterReset != null)
+                          TextButton.icon(
+                            onPressed: widget.onFilterReset,
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('Reset'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(context).primaryColor,
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Filter content
+                    widget.filterSection!,
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1346,6 +1447,38 @@ class AppStatusChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Reusable button component for viewing details in list cards
+class AppViewDetailButton extends ConsumerWidget {
+  const AppViewDetailButton({
+    super.key,
+    required this.onPressed,
+    this.tooltip = 'Lihat Detail',
+    this.size = 20,
+  });
+
+  final VoidCallback onPressed;
+  final String tooltip;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(themeProvider);
+
+    return IconButton(
+      icon: Icon(Icons.visibility, size: size),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: theme.primarySwatch.withValues(alpha: 0.1),
+        foregroundColor: theme.primarySwatch,
+        padding: const EdgeInsets.all(8),
+        minimumSize: const Size(32, 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -3400,4 +3533,64 @@ class SIHAKIConfirmationDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+// Global AppBar Component
+class AppCustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
+  final String title;
+  final VoidCallback? onBackPressed;
+  final String backTooltip;
+  final Color? backgroundColor;
+  final double elevation;
+  final bool centerTitle;
+  final IconData backIcon;
+  final Color? titleColor;
+  final Color? iconColor;
+  final List<Widget>? actions;
+
+  const AppCustomAppBar({
+    super.key,
+    required this.title,
+    this.onBackPressed,
+    this.backTooltip = 'Kembali',
+    this.backgroundColor = Colors.white,
+    this.elevation = 0,
+    this.centerTitle = true,
+    this.backIcon = Icons.arrow_back_ios_sharp,
+    this.titleColor,
+    this.iconColor,
+    this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(themeProvider);
+    final effectiveTitleColor = titleColor ?? theme.primarySwatch;
+    final effectiveIconColor = iconColor ?? theme.primarySwatch;
+
+    return AppBar(
+      title: Text(
+        title,
+        style: theme.typographyBold.bodyLarge.copyWith(
+          fontWeight: FontWeight.w600,
+          color: effectiveTitleColor,
+        ),
+      ),
+      centerTitle: centerTitle,
+      backgroundColor: backgroundColor,
+      elevation: elevation,
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          child: Icon(backIcon, color: effectiveIconColor, size: 20),
+        ),
+        onPressed: onBackPressed,
+        tooltip: backTooltip,
+      ),
+      actions: actions,
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

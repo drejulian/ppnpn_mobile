@@ -157,24 +157,11 @@ class _DataFeedbackKomisiPageState
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Database Anggota DPR RI (DASI)',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go('/dataKomisi');
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Data Feedback Komisi',
+        onBackPressed: () => context.go('/dataKomisi'),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,
@@ -186,14 +173,6 @@ class _DataFeedbackKomisiPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Data Feedback Komisi',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 20),
               AppFormCard(
                 title: 'Feedback Komisi',
                 titleIcon: Icons.feedback,

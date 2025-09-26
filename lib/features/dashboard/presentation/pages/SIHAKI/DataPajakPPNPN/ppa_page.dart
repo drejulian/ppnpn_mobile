@@ -140,22 +140,10 @@ class _BuktiPotongPajakA2PageState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(
-          'Data Pajak PPNPN',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Data Pajak PPNPN',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(isTablet ? 24 : 16),
@@ -203,21 +191,20 @@ class _BuktiPotongPajakA2PageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-            AppFilterBar(
+            AppSearchBar(
               controller: searchController,
-              labelText: 'Pencarian PPA',
-              hintText: 'Cari tahun, bulan, penghasilan, atau nominal...',
+              hintText: 'Cari tahun, bulan, penghasilan...',
               onChanged: (_) => setState(() => _currentPage = 1),
               onClear: () => setState(() => _currentPage = 1),
-              headerTitle: 'Pencarian',
               hasActiveFilters: hasActiveFilters,
-              onReset:
+              onFilterReset:
                   hasActiveFilters
                       ? () {
                         searchController.clear();
                         setState(() => _currentPage = 1);
                       }
                       : null,
+              margin: EdgeInsets.zero,
             ),
 
             SizedBox(height: isTablet ? 24 : 20),

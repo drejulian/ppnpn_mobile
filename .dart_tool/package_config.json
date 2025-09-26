@@ -308,6 +308,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "flutter_staggered_animations",
+      "rootUri": "file:///C:/Users/derbi/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_staggered_animations-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
       "name": "flutter_svg",
       "rootUri": "file:///C:/Users/derbi/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_svg-2.2.0",
       "packageUri": "lib/",
