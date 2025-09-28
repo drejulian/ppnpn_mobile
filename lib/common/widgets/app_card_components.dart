@@ -58,7 +58,6 @@ class FormFieldConfig {
   });
 }
 
-// Reusable Form Card Component with consistent styling and multiple field types
 class AppFormCard extends ConsumerWidget {
   final String title;
   final IconData titleIcon;
@@ -68,6 +67,7 @@ class AppFormCard extends ConsumerWidget {
   final bool showSaveButton;
   final EdgeInsets? padding;
   final EdgeInsets? margin;
+  final String? infoText;
 
   const AppFormCard({
     super.key,
@@ -79,6 +79,7 @@ class AppFormCard extends ConsumerWidget {
     this.showSaveButton = true,
     this.padding,
     this.margin,
+    this.infoText,
   });
 
   @override
@@ -1502,20 +1503,26 @@ class HeaderCardComponent extends StatelessWidget {
   final String title;
   final String subtitle;
   final String description;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? leadingWidget; 
   final bool isTablet;
   final bool isLargeTablet;
   final dynamic theme;
+  final Widget? additionalInfo;
+  final String? nik;
 
   const HeaderCardComponent({
     super.key,
     required this.title,
     required this.subtitle,
     required this.description,
-    required this.icon,
+    this.icon,
+    this.leadingWidget,
     this.isTablet = false,
     this.isLargeTablet = false,
     required this.theme,
+    this.additionalInfo,
+    this.nik,
   });
 
   @override
@@ -1561,6 +1568,8 @@ class HeaderCardComponent extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  if (leadingWidget != null) leadingWidget!,
+                  if (leadingWidget == null && icon != null)
                   Container(
                     padding: EdgeInsets.all(isTablet ? 20 : 16),
                     decoration: BoxDecoration(
@@ -1606,6 +1615,185 @@ class HeaderCardComponent extends StatelessWidget {
                 ],
               ),
               SizedBox(height: isTablet ? 28 : 24),
+               if (additionalInfo != null) additionalInfo!,
+              Container(
+                padding: EdgeInsets.all(isTablet ? 20 : 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: isTablet ? 24 : 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: isTablet ? 16 : 12),
+                    Expanded(
+                      child: Text(
+                        description,
+                        style: theme.typographyRegular.bodySmall.copyWith(
+                          color: Colors.white.withOpacity(0.95),
+                          fontSize: isTablet ? 16.0 : 14.0,
+                          height: 1.4,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HeaderCardProfileComponent extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String description;
+  final IconData? icon;
+  final Widget? leadingWidget;
+  final bool isTablet;
+  final bool isLargeTablet;
+  final dynamic theme;
+  final Widget? additionalInfo;
+  final String? nik;
+
+  const HeaderCardProfileComponent({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    this.icon,
+    this.leadingWidget,
+    this.isTablet = false,
+    this.isLargeTablet = false,
+    required this.theme,
+    this.additionalInfo,
+    this.nik,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.primarySwatch,
+            theme.secondarySwatch,
+            theme.primarySwatch.shade300,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primarySwatch.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: EdgeInsets.all(isTablet ? 32 : 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Foto profil di tengah atas
+              Center(
+                child: leadingWidget ?? (icon != null
+                    ? Container(
+                        padding: EdgeInsets.all(isTablet ? 20 : 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          icon,
+                          size: isTablet ? 44 : 36,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null),
+              ),
+              const SizedBox(height: 16),
+              // Nama di tengah
+              Center(
+                child: Text(
+                  title,
+                  style: theme.typographyRegular.bodyLarge.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: isTablet ? 40.0 : 32.0,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Bidang keahlian di tengah
+              Center(
+                child: Text(
+                  subtitle,
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: isTablet ? 18.0 : 15.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // NIK di tengah
+              if (nik != null && nik!.isNotEmpty)
+                Center(
+                  child: Text(
+                    'NIK: $nik',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: isTablet ? 14.0 : 12.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              SizedBox(height: isTablet ? 28 : 24),
+              if (additionalInfo != null) additionalInfo!,
               Container(
                 padding: EdgeInsets.all(isTablet ? 20 : 16),
                 decoration: BoxDecoration(
@@ -3393,6 +3581,265 @@ class SIHAKIConfirmationDialog extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileCompletionNotifierCard extends StatelessWidget {
+  final String title;
+  final String message;
+  final VoidCallback? onConfirm;
+  final IconData? icon;
+  final Color? iconColor;
+  final bool isDestructive;
+
+  const ProfileCompletionNotifierCard({
+    super.key,
+    required this.title,
+    required this.message,
+    this.onConfirm,
+    this.icon,
+    this.iconColor,
+    this.isDestructive = false,
+  });
+
+  static Future<bool?> show(
+    BuildContext context, {
+    required String title,
+    required String message,
+    VoidCallback? onConfirm,
+    IconData? icon,
+    Color? iconColor,
+    bool isDestructive = false,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => ProfileCompletionNotifierCard(
+        title: title,
+        message: message,
+        onConfirm: onConfirm,
+        icon: icon,
+        iconColor: iconColor,
+        isDestructive: isDestructive,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: Colors.white,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: isTablet ? 400 : double.infinity),
+        child: Padding(
+          padding: EdgeInsets.all(isTablet ? 24 : 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isTablet ? 16 : 14),
+                decoration: BoxDecoration(
+                  color: Colors.green[50], // Latar belakang hijau muda
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  icon ?? Icons.check_circle_rounded,
+                  size: isTablet ? 32 : 28,
+                  color: Colors.green[600], // Ikon hijau
+                ),
+              ),
+
+              SizedBox(height: isTablet ? 20 : 18),
+
+              // Title
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                  fontSize: isTablet ? 20.0 : 18.0,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: isTablet ? 12 : 10),
+
+              // Message
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                  fontSize: isTablet ? 15.0 : 14.0,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: isTablet ? 24 : 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                    onConfirm?.call();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 178, 0, 191), // Warna manual dari MyTheme
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical: isTablet ? 14 : 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'OK',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: isTablet ? 15.0 : 14.0,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ErrorUploadDialogCard extends StatelessWidget {
+  final String title;
+  final String message;
+  final VoidCallback? onConfirm;
+  final IconData? icon;
+  final Color? iconColor;
+
+  const ErrorUploadDialogCard({
+    super.key,
+    required this.title,
+    required this.message,
+    this.onConfirm,
+    this.icon,
+    this.iconColor,
+  });
+
+  static Future<bool?> show(
+    BuildContext context, {
+    required String title,
+    required String message,
+    VoidCallback? onConfirm,
+    IconData? icon,
+    Color? iconColor,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => ErrorUploadDialogCard(
+        title: title,
+        message: message,
+        onConfirm: onConfirm,
+        icon: icon,
+        iconColor: iconColor,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: Colors.white,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: isTablet ? 400 : double.infinity),
+        child: Padding(
+          padding: EdgeInsets.all(isTablet ? 24 : 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isTablet ? 16 : 14),
+                decoration: BoxDecoration(
+                  color: Colors.red[50], // Latar belakang merah muda untuk error
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  icon ?? Icons.error_outline_rounded,
+                  size: isTablet ? 32 : 28,
+                  color: iconColor ?? Colors.red[600], // Ikon merah
+                ),
+              ),
+
+              SizedBox(height: isTablet ? 20 : 18),
+
+              // Title
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                  fontSize: isTablet ? 20.0 : 18.0,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: isTablet ? 12 : 10),
+
+              // Message
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                  fontSize: isTablet ? 15.0 : 14.0,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: isTablet ? 24 : 20),
+
+              // Confirm Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                    onConfirm?.call();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600], // Warna merah untuk error
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical: isTablet ? 14 : 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'OK',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: isTablet ? 15.0 : 14.0,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

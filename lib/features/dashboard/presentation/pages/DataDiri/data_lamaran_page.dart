@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
-import 'providers/profile_data_provider.dart'; 
-
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/profile_data_provider.dart';
 
 const List<String> positions = [
   'Tenaga Ahli',
@@ -29,7 +30,6 @@ const List<String> subPlacements = [
   'DONI SAPUTRA, M.Kom',
 ];
 
-
 final selectedStartDateProvider = StateProvider<DateTime?>((ref) => null);
 final selectedLetterDateProvider = StateProvider<DateTime?>((ref) => null);
 final selectedPlacementDateProvider = StateProvider<DateTime?>((ref) => null);
@@ -38,27 +38,24 @@ class ApplicationDataPage extends ConsumerStatefulWidget {
   const ApplicationDataPage({super.key});
 
   @override
-  ConsumerState<ApplicationDataPage> createState() =>
-      _ApplicationDataPageState();
+  ConsumerState<ApplicationDataPage> createState() => _ApplicationDataPageState();
 }
 
 class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
   final _formKey = GlobalKey<FormState>();
-
   String? _selectedPosition;
   String? _selectedPlacement;
   late TextEditingController _subPlacementController;
-  late TextEditingController _otherPositionController; 
-  late TextEditingController
-  _otherPlacementController; 
-  late TextEditingController
-  _notesController; 
-
+  late TextEditingController _otherPositionController;
+  late TextEditingController _otherPlacementController;
+  late TextEditingController _notesController;
   final List<String> _existingPositions = [
     'Manajer Proyek - PT ABC (2020-2023)',
     'Analis Data - CV XYZ (2018-2020)',
   ];
   String? _selectedExistingPosition;
+  bool _hasUnsavedChanges = false;
+  Map<String, dynamic> _originalData = {};
 
   @override
   void initState() {
@@ -67,23 +64,26 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
     _otherPositionController = TextEditingController();
     _otherPlacementController = TextEditingController();
     _notesController = TextEditingController();
+
+    _subPlacementController.addListener(_updateUnsavedChanges);
+    _otherPositionController.addListener(_updateUnsavedChanges);
+    _otherPlacementController.addListener(_updateUnsavedChanges);
+    _notesController.addListener(_updateUnsavedChanges);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-  
     final savedData = ref.read(dataLamaranDataProvider);
-    
-    if (_selectedPosition == null && savedData.position.isNotEmpty) {
-      _selectedPosition = savedData.position;
-      if (savedData.otherPosition.isNotEmpty) {
-        _otherPositionController.text = savedData.otherPosition;
-      }
+
+    if (_selectedPosition == null) {
+      _selectedPosition = savedData.position.isNotEmpty ? savedData.position : null;
+      _otherPositionController.text = savedData.otherPosition;
       _selectedPlacement = savedData.placement.isNotEmpty ? savedData.placement : null;
+      _otherPlacementController.text = savedData.placement == 'Lainnya' ? savedData.placement : '';
       _subPlacementController.text = savedData.subPlacement;
-      
-      // Set dates to providers
+      _notesController.text = savedData.notes ?? '';
+
       if (savedData.startDate != null) {
         ref.read(selectedStartDateProvider.notifier).state = savedData.startDate;
       }
@@ -93,11 +93,17 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
       if (savedData.placementDate != null) {
         ref.read(selectedPlacementDateProvider.notifier).state = savedData.placementDate;
       }
+
+      _originalData = _getCurrentData();
     }
   }
 
   @override
   void dispose() {
+    _subPlacementController.removeListener(_updateUnsavedChanges);
+    _otherPositionController.removeListener(_updateUnsavedChanges);
+    _otherPlacementController.removeListener(_updateUnsavedChanges);
+    _notesController.removeListener(_updateUnsavedChanges);
 
     try {
       _subPlacementController.dispose();
@@ -105,9 +111,102 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
       _otherPlacementController.dispose();
       _notesController.dispose();
     } catch (e) {
-      print('Error disposing controllers: $e');
+      if (context.mounted) {
+        notification.NotificationUtils.showError(
+          context,
+          'Gagal menutup controller: $e',
+        );
+      }
     }
     super.dispose();
+  }
+
+  Map<String, dynamic> _getCurrentData() {
+    final savedData = ref.read(dataLamaranDataProvider);
+    return {
+      'position': _selectedPosition ?? savedData.position,
+      'otherPosition': _otherPositionController.text,
+      'placement': _selectedPlacement ?? savedData.placement,
+      'otherPlacement': _otherPlacementController.text,
+      'subPlacement': _subPlacementController.text,
+      'notes': _notesController.text,
+      'startDate': ref.read(selectedStartDateProvider),
+      'letterDate': ref.read(selectedLetterDateProvider),
+      'placementDate': ref.read(selectedPlacementDateProvider),
+      'existingPosition': _selectedExistingPosition,
+    };
+  }
+
+  bool _hasUnsavedChangesInternal() {
+    final currentData = _getCurrentData();
+    bool hasChanges = false;
+
+    _originalData.forEach((key, value) {
+      if (key == 'startDate' || key == 'letterDate' || key == 'placementDate') {
+        if ((value == null && currentData[key] != null) ||
+            (value != null && currentData[key] == null) ||
+            (value != null &&
+                currentData[key] != null &&
+                value.millisecondsSinceEpoch !=
+                    currentData[key].millisecondsSinceEpoch)) {
+          hasChanges = true;
+        }
+      } else if (currentData[key] != value) {
+        hasChanges = true;
+      }
+    });
+
+    return hasChanges;
+  }
+
+  void _updateUnsavedChanges() {
+    setState(() {
+      _hasUnsavedChanges = _hasUnsavedChangesInternal();
+    });
+  }
+
+  Future<bool> _showUnsavedChangesDialog() async {
+    final theme = ref.read(themeProvider);
+    return await SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Batalkan Perubahan Data Lamaran',
+      message:
+          'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmText: 'Batalkan',
+      cancelText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () {
+        _restoreOriginalData();
+        if (context.mounted) {
+          notification.NotificationUtils.showWarning(
+            context,
+            'Perubahan pada data lamaran telah dibatalkan',
+          );
+        }
+      },
+      onCancel: () {},
+    ) ?? false;
+  }
+
+  void _restoreOriginalData() {
+    final savedData = ref.read(dataLamaranDataProvider);
+    setState(() {
+      _selectedPosition = savedData.position.isNotEmpty ? savedData.position : null;
+      _otherPositionController.text = savedData.otherPosition;
+      _selectedPlacement = savedData.placement.isNotEmpty ? savedData.placement : null;
+      _otherPlacementController.text = savedData.placement == 'Lainnya' ? savedData.placement : '';
+      _subPlacementController.text = savedData.subPlacement;
+      _notesController.text = savedData.notes ?? '';
+      _selectedExistingPosition = null;
+
+      ref.read(selectedStartDateProvider.notifier).state = savedData.startDate;
+      ref.read(selectedLetterDateProvider.notifier).state = savedData.letterDate;
+      ref.read(selectedPlacementDateProvider.notifier).state = savedData.placementDate;
+
+      _hasUnsavedChanges = false;
+    });
   }
 
   Future<void> _selectDate(
@@ -122,26 +221,21 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
     );
     if (picked != null) {
       ref.read(provider.notifier).state = picked;
+      _updateUnsavedChanges();
     }
   }
 
-  void _submitApplicationData() {
+  Future<void> _submitApplicationData() async {
     if (_formKey.currentState!.validate()) {
-      // Collect all form data
       final String? position =
-          _selectedPosition == 'Lainnya'
-              ? _otherPositionController.text
-              : _selectedPosition;
+          _selectedPosition == 'Lainnya' ? _otherPositionController.text : _selectedPosition;
       final String? placement =
-          _selectedPlacement == 'Lainnya'
-              ? _otherPlacementController.text
-              : _selectedPlacement;
+          _selectedPlacement == 'Lainnya' ? _otherPlacementController.text : _selectedPlacement;
       final String subPlacement = _subPlacementController.text;
       final DateTime? startDate = ref.read(selectedStartDateProvider);
       final DateTime? letterDate = ref.read(selectedLetterDateProvider);
       final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
 
-      // Save data to provider
       final dataLamaranData = DataLamaranData(
         position: position ?? '',
         placement: placement ?? '',
@@ -150,257 +244,315 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         startDate: startDate,
         letterDate: letterDate,
         placementDate: placementDate,
+        notes: _notesController.text,
       );
-      
+
       ref.read(dataLamaranDataProvider.notifier).updateData(dataLamaranData);
 
-      // Show success dialog
-      NotificationUtils.showSuccessDialog(
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.setBool('data_lamaran_has_changes', false),
+        prefs.setBool('data_lamaran_just_saved', true),
+        prefs.setBool('data_lamaran_user_saved', true),
+      ]);
+
+      await ProfileCompletionNotifierCard.show(
         context,
-        title: 'Simpan Data Lamaran',
-        message: 'Data lamaran berhasil disimpan.',
-        onPressed: () => context.pop('saved'),
+        title: 'Berhasil Menyimpan Data Lamaran',
+        message: 'Data lamaran Anda telah diperbarui dan tersimpan dengan sukses.',
+        onConfirm: () {
+          if (context.mounted) {
+            notification.NotificationUtils.showSuccess(
+              context,
+              'Data lamaran telah disimpan',
+            );
+            context.pop('saved');
+          }
+        },
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green[600],
       );
-    }
-  }
 
-  void _saveAllApplicationData() {
-    if (_formKey.currentState!.validate()) {
-      // Collect all form data
-      final String? position =
-          _selectedPosition == 'Lainnya'
-              ? _otherPositionController.text
-              : _selectedPosition;
-      final String? placement =
-          _selectedPlacement == 'Lainnya'
-              ? _otherPlacementController.text
-              : _selectedPlacement;
-      final String subPlacement = _subPlacementController.text;
-      final DateTime? startDate = ref.read(selectedStartDateProvider);
-      final DateTime? letterDate = ref.read(selectedLetterDateProvider);
-      final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
-
-      // Save data to provider
-      final dataLamaranData = DataLamaranData(
-        position: position ?? '',
-        placement: placement ?? '',
-        subPlacement: subPlacement,
-        otherPosition: _selectedPosition == 'Lainnya' ? _otherPositionController.text : '',
-        startDate: startDate,
-        letterDate: letterDate,
-        placementDate: placementDate,
-      );
-      
-      ref.read(dataLamaranDataProvider.notifier).updateData(dataLamaranData);
-
-      // Show success dialog
-      NotificationUtils.showSuccessDialog(
-        context,
-        title: 'Simpan Data Lamaran',
-        message: 'Semua data lamaran berhasil disimpan.',
-        onPressed: () => context.pop('saved'), // Return 'saved' to indicate data was saved
-      );
+      setState(() {
+        _hasUnsavedChanges = false;
+        _originalData = _getCurrentData();
+      });
     } else {
-      // Show validation error
-      NotificationUtils.showError(
+      await ErrorUploadDialogCard.show(
         context,
-        'Mohon lengkapi semua field yang diperlukan.',
+        title: 'Gagal Menyimpan',
+        message: 'Mohon lengkapi semua field yang diperlukan.',
+        onConfirm: () {
+        },
+      );
+    }
+  }
+
+  Future<void> _saveAllApplicationData() async {
+    if (_formKey.currentState!.validate()) {
+      final String? position =
+          _selectedPosition == 'Lainnya' ? _otherPositionController.text : _selectedPosition;
+      final String? placement =
+          _selectedPlacement == 'Lainnya' ? _otherPlacementController.text : _selectedPlacement;
+      final String subPlacement = _subPlacementController.text;
+      final DateTime? startDate = ref.read(selectedStartDateProvider);
+      final DateTime? letterDate = ref.read(selectedLetterDateProvider);
+      final DateTime? placementDate = ref.read(selectedPlacementDateProvider);
+
+      final dataLamaranData = DataLamaranData(
+        position: position ?? '',
+        placement: placement ?? '',
+        subPlacement: subPlacement,
+        otherPosition: _selectedPosition == 'Lainnya' ? _otherPositionController.text : '',
+        startDate: startDate,
+        letterDate: letterDate,
+        placementDate: placementDate,
+        notes: _notesController.text,
+      );
+
+      ref.read(dataLamaranDataProvider.notifier).updateData(dataLamaranData);
+      ref.read(profileCompletionProvider.notifier).markCompleted('dataLamaran');
+
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.setBool('data_lamaran_has_changes', false),
+        prefs.setBool('data_lamaran_just_saved', true),
+        prefs.setBool('data_lamaran_user_saved', true),
+      ]);
+
+      await ProfileCompletionNotifierCard.show(
+        context,
+        title: 'Berhasil Menyimpan Semua Data Lamaran',
+        message: 'Semua data lamaran Anda telah diperbarui dan tersimpan dengan sukses.',
+        onConfirm: () {
+          if (context.mounted) {
+            notification.NotificationUtils.showSuccess(
+              context,
+              'Semua data lamaran telah disimpan',
+            );
+            context.pop('saved');
+          }
+        },
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green[600],
+      );
+
+      setState(() {
+        _hasUnsavedChanges = false;
+        _originalData = _getCurrentData();
+      });
+    } else {
+      await ErrorUploadDialogCard.show(
+        context,
+        title: 'Gagal Menyimpan',
+        message: 'Mohon lengkapi semua field yang diperlukan.',
+        onConfirm: () {
+        },
       );
     }
   }
 
   void _downloadTransferData() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Mendownload data transfer...'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-    // Logic to initiate file download
+    if (context.mounted) {
+      notification.NotificationUtils.showSuccess(
+        context,
+        'Mendownload data transfer...',
+      );
+    }
   }
 
   void _printApplicationFiles() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Mencetak berkas lamaran dalam format PDF...'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-    // Logic to generate and initiate PDF download/print
+    if (context.mounted) {
+      notification.NotificationUtils.showSuccess(
+        context,
+        'Mencetak berkas lamaran dalam format PDF...',
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final isTablet = MediaQuery.of(context).size.width > 600;
-
-    // Watch date providers to update UI
     final selectedStartDate = ref.watch(selectedStartDateProvider);
     final selectedLetterDate = ref.watch(selectedLetterDateProvider);
     final selectedPlacementDate = ref.watch(selectedPlacementDateProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Data Lamaran',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
+          final shouldLeave = await _showUnsavedChangesDialog();
+          if (shouldLeave && context.mounted) {
+            context.pop();
+          }
+        } else if (context.mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          title: Text(
+            'Data Lamaran',
+            style: theme.typographyRegular.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: theme.primarySwatch,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
+                final shouldLeave = await _showUnsavedChangesDialog();
+                if (shouldLeave && context.mounted) {
+                  context.pop();
+                }
+              } else if (context.mounted) {
+                context.pop();
+              }
+            },
           ),
         ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context, false), // Return false (not completed)
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
-          vertical: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- Data Lamaran Section ---
-            _buildSectionHeader(
-              theme,
-              'Data Lamaran',
-              Icons.assignment,
-              theme.primarySwatch,
-            ),
-            const SizedBox(height: 16),
-            _buildInfoCard(
-              theme,
-              'Laman data hanya diisi bila Anda akan mengajukan lamaran untuk menempati posisi baru baik sebagai Tenaga Ahli, Staf Administrasi maupun Staf Sus.',
-              Colors.blue[50]!,
-              Colors.blue[700]!,
-              Icons.info_outline,
-            ),
-            const SizedBox(height: 20),
-            _buildApplicationForm(
-              theme,
-              selectedStartDate,
-              selectedLetterDate,
-              selectedPlacementDate,
-            ),
-            const SizedBox(height: 30),
-
-          
-            _buildSectionHeader(
-              theme,
-              'Data Pergantian / Posisi Baru',
-              Icons.swap_horiz,
-              Colors.purple,
-            ),
-            const SizedBox(height: 16),
-            _buildReplacementPositionSection(theme),
-            const SizedBox(height: 30),
-
-
-            _buildSectionHeader(
-              theme,
-              'Pernyataan Pengisian Data',
-              Icons.gavel,
-              Colors.teal,
-            ),
-            const SizedBox(height: 16),
-            _buildStatementSection(theme),
-            const SizedBox(height: 30),
-
-   
-            _buildSectionHeader(
-              theme,
-              'Transfer Data',
-              Icons.upload_file,
-              Colors.orange,
-            ),
-            const SizedBox(height: 16),
-            _buildTransferDataSection(theme),
-            const SizedBox(height: 30),
-
-       
-            _buildSectionHeader(
-              theme,
-              'Cetak Berkas Lamaran',
-              Icons.picture_as_pdf,
-              Colors.red,
-            ),
-            const SizedBox(height: 16),
-            _buildPrintFilesSection(theme),
-            const SizedBox(height: 30),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                theme,
+                'Data Lamaran',
+                Icons.assignment,
+                theme.primarySwatch,
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.save_outlined,
-                    size: 48,
-                    color: theme.primarySwatch,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Simpan Semua Data Lamaran',
-                    style: theme.typographyRegular.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[800],
+              const SizedBox(height: 16),
+              _buildInfoCard(
+                theme,
+                'Laman data hanya diisi bila Anda akan mengajukan lamaran untuk menempati posisi baru baik sebagai Tenaga Ahli, Staf Administrasi maupun Staf Sus.',
+                Colors.blue[50]!,
+                Colors.blue[700]!,
+                Icons.info_outline,
+              ),
+              const SizedBox(height: 20),
+              _buildApplicationForm(
+                theme,
+                selectedStartDate,
+                selectedLetterDate,
+                selectedPlacementDate,
+              ),
+              const SizedBox(height: 30),
+              _buildSectionHeader(
+                theme,
+                'Data Pergantian / Posisi Baru',
+                Icons.swap_horiz,
+                Colors.purple,
+              ),
+              const SizedBox(height: 16),
+              _buildReplacementPositionSection(theme),
+              const SizedBox(height: 30),
+              _buildSectionHeader(
+                theme,
+                'Pernyataan Pengisian Data',
+                Icons.gavel,
+                Colors.teal,
+              ),
+              const SizedBox(height: 16),
+              _buildStatementSection(theme),
+              const SizedBox(height: 30),
+              _buildSectionHeader(
+                theme,
+                'Transfer Data',
+                Icons.upload_file,
+                Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              _buildTransferDataSection(theme),
+              const SizedBox(height: 30),
+              _buildSectionHeader(
+                theme,
+                'Cetak Berkas Lamaran',
+                Icons.picture_as_pdf,
+                Colors.red,
+              ),
+              const SizedBox(height: 16),
+              _buildPrintFilesSection(theme),
+              const SizedBox(height: 30),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pastikan semua data telah diisi dengan benar sebelum menyimpan.',
-                    style: theme.typographyRegular.bodyMedium.copyWith(
-                      color: Colors.grey[600],
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.save_outlined,
+                      size: 48,
+                      color: theme.primarySwatch,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _saveAllApplicationData,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primarySwatch,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 2,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Simpan Semua Data Lamaran',
+                      style: theme.typographyRegular.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey[800],
                       ),
-                      icon: const Icon(Icons.save, size: 22),
-                      label: Text(
-                        'SIMPAN DATA LAMARAN',
-                        style: theme.typographyRegular.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pastikan semua data telah diisi dengan benar sebelum menyimpan.',
+                      style: theme.typographyRegular.bodyMedium.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _saveAllApplicationData,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primarySwatch,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                          ),
+                          elevation: 2,
+                        ),
+                        icon: const Icon(Icons.save, size: 22),
+                        label: Text(
+                          'SIMPAN DATA LAMARAN',
+                          style: theme.typographyRegular.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 30), 
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
@@ -418,7 +570,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.all(Radius.circular(12.0)),
           ),
           child: Icon(icon, color: color, size: 20),
         ),
@@ -445,7 +597,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12.0)),
         border: Border.all(color: textColor.withOpacity(0.5), width: 1),
       ),
       child: Row(
@@ -471,7 +623,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12.0)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -498,7 +650,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Text(
               'Posisi',
               style: theme.typographyRegular.bodySmall.copyWith(
@@ -514,15 +665,15 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedPosition = newValue;
+                  _updateUnsavedChanges();
                 });
               },
-              items:
-                  positions.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
+              items: positions.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Posisi tidak boleh kosong';
@@ -534,9 +685,9 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _otherPositionController,
-                decoration: _inputDecoration(
-                  theme,
-                ).copyWith(labelText: 'Masukkan Posisi Lainnya'),
+                decoration: _inputDecoration(theme).copyWith(
+                  labelText: 'Masukkan Posisi Lainnya',
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Posisi lainnya tidak boleh kosong';
@@ -546,7 +697,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               ),
             ],
             const SizedBox(height: 16),
-
             Text(
               'Penempatan',
               style: theme.typographyRegular.bodySmall.copyWith(
@@ -562,15 +712,15 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedPlacement = newValue;
+                  _updateUnsavedChanges();
                 });
               },
-              items:
-                  placements.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
+              items: placements.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Penempatan tidak boleh kosong';
@@ -582,9 +732,9 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _otherPlacementController,
-                decoration: _inputDecoration(
-                  theme,
-                ).copyWith(labelText: 'Masukkan Penempatan Lainnya'),
+                decoration: _inputDecoration(theme).copyWith(
+                  labelText: 'Masukkan Penempatan Lainnya',
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Penempatan lainnya tidak boleh kosong';
@@ -594,8 +744,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               ),
             ],
             const SizedBox(height: 16),
-
-            // Sub Penempatan
             Text(
               'Sub Penempatan',
               style: theme.typographyRegular.bodySmall.copyWith(
@@ -617,7 +765,8 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               },
               onSelected: (String selection) {
                 setState(() {
-                  _subPlacementController.text = selection; 
+                  _subPlacementController.text = selection;
+                  _updateUnsavedChanges();
                 });
               },
               fieldViewBuilder: (
@@ -626,22 +775,21 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 FocusNode focusNode,
                 VoidCallback onFieldSubmitted,
               ) {
-                _subPlacementController =
-                    textEditingController; 
+                _subPlacementController = textEditingController;
                 return TextFormField(
                   controller: textEditingController,
                   focusNode: focusNode,
                   decoration: _inputDecoration(theme).copyWith(
                     hintText: 'Cari atau ketik sub penempatan',
-                    suffixIcon:
-                        textEditingController.text.isNotEmpty
-                            ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                textEditingController.clear();
-                              },
-                            )
-                            : null,
+                    suffixIcon: textEditingController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              textEditingController.clear();
+                              _updateUnsavedChanges();
+                            },
+                          )
+                        : null,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -685,8 +833,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Tanggal Mulai
             _buildDateFormField(
               theme,
               'Tanggal Mulai',
@@ -695,8 +841,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               'Tanggal Mulai tidak boleh kosong',
             ),
             const SizedBox(height: 16),
-
-            // Tanggal Surat
             _buildDateFormField(
               theme,
               'Tanggal Surat',
@@ -705,8 +849,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               'Tanggal Surat tidak boleh kosong',
             ),
             const SizedBox(height: 16),
-
-            // Tanggal Penempatan
             _buildDateFormField(
               theme,
               'Tanggal Penempatan',
@@ -715,7 +857,6 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
               'Tanggal Penempatan tidak boleh kosong',
             ),
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -725,7 +866,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.all(Radius.circular(12.0)),
                   ),
                   elevation: 2,
                 ),
@@ -749,15 +890,15 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
     return InputDecoration(
       labelText: labelText,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.all(Radius.circular(12.0)),
         borderSide: BorderSide(color: Colors.grey[300]!),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.all(Radius.circular(12.0)),
         borderSide: BorderSide(color: Colors.grey[300]!),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.all(Radius.circular(12.0)),
         borderSide: BorderSide(color: theme.primarySwatch),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -827,25 +968,22 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             onChanged: (String? newValue) {
               setState(() {
                 _selectedExistingPosition = newValue;
+                _updateUnsavedChanges();
               });
             },
-            items:
-                _existingPositions.map<DropdownMenuItem<String>>((
-                  String value,
-                ) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 200),
-                      child: Text(
-                        value,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  );
-                }).toList(),
+            items: _existingPositions.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 200),
+                  child: Text(
+                    value,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              );
+            }).toList(),
             validator: (value) {
-
               return null;
             },
           ),
@@ -855,20 +993,19 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             child: ElevatedButton.icon(
               onPressed: () {
                 if (_selectedExistingPosition != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Mengajukan lamaran untuk posisi yang sudah ada: $_selectedExistingPosition',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  if (context.mounted) {
+                    notification.NotificationUtils.showSuccess(
+                      context,
+                      'Mengajukan lamaran untuk posisi yang sudah ada: $_selectedExistingPosition',
+                    );
+                  }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pilih posisi terlebih dahulu.'),
-                      backgroundColor: Colors.red,
-                    ),
+                  ErrorUploadDialogCard.show(
+                    context,
+                    title: 'Gagal Mengajukan',
+                    message: 'Pilih posisi terlebih dahulu.',
+                    onConfirm: () {
+                    },
                   );
                 }
               },
@@ -877,7 +1014,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                 ),
                 elevation: 2,
               ),
@@ -921,21 +1058,19 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Pernyataan data berhasil disimpan secara digital.',
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                if (context.mounted) {
+                  notification.NotificationUtils.showSuccess(
+                    context,
+                    'Pernyataan data berhasil disimpan secara digital.',
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                 ),
                 elevation: 2,
               ),
@@ -986,7 +1121,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                 ),
                 elevation: 2,
               ),
@@ -1027,7 +1162,7 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                 ),
                 elevation: 2,
               ),

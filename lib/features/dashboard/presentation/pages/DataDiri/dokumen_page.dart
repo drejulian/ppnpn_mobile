@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/profile_data_provider.dart';
 
 class DokumenPage extends ConsumerStatefulWidget {
@@ -17,18 +19,17 @@ class DokumenPage extends ConsumerStatefulWidget {
 class _DokumenPageState extends ConsumerState<DokumenPage> {
   final Map<String, File?> _uploadedFiles = {};
   final Map<String, bool> _uploading = {};
-  
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
+  bool _hasUnsavedChanges = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
-    if (!_dataLoaded) {
 
+    if (!_dataLoaded) {
       final savedData = ref.read(dokumenDataProvider);
-      
+
       if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
       if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
       if (savedData.ijazahUploaded) _uploadedFiles['ijazah'] = File('dummy_ijazah.pdf');
@@ -37,15 +38,12 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       if (savedData.suratLamaranUploaded) _uploadedFiles['surat_lamaran'] = File('dummy_surat_lamaran.pdf');
       if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
       if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
-      
+
       _originalData = _getCurrentData();
       _dataLoaded = true;
-      
-      print('=== DOKUMEN PAGE LOADED ===');
-      print('Original data backed up: $_originalData');
     }
   }
-  
+
   Map<String, dynamic> _getCurrentData() {
     final dokumenData = ref.read(dokumenDataProvider);
     return {
@@ -60,32 +58,29 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       'uploadedFilesCount': _uploadedFiles.length,
     };
   }
-  
-  bool _hasUnsavedChanges() {
+
+  bool _hasUnsavedChangesInternal() {
     final currentData = _getCurrentData();
     bool hasChanges = false;
-    
-    print('=== CHECKING FOR UNSAVED CHANGES ===');
-    print('Original: $_originalData');
-    print('Current: $currentData');
-    
+
     _originalData.forEach((key, value) {
       if (currentData[key] != value) {
-        print('$key changed: $value -> ${currentData[key]}');
         hasChanges = true;
       }
     });
-    
-    print('Has unsaved changes: $hasChanges');
+
     return hasChanges;
   }
-  
-  void _restoreOriginalData() {
-    print('=== RESTORING ORIGINAL DATA ===');
-    
 
+  void _updateUnsavedChanges() {
+    setState(() {
+      _hasUnsavedChanges = _hasUnsavedChangesInternal();
+    });
+  }
+
+  void _restoreOriginalData() {
     _uploadedFiles.clear();
-    
+
     final savedData = ref.read(dokumenDataProvider);
     if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
     if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
@@ -95,9 +90,10 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     if (savedData.suratLamaranUploaded) _uploadedFiles['surat_lamaran'] = File('dummy_surat_lamaran.pdf');
     if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
     if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
-    
-    setState(() {});
-    print('Data restored successfully');
+
+    setState(() {
+      _hasUnsavedChanges = false;
+    });
   }
 
   final List<DocumentItem> _documents = [
@@ -134,7 +130,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     DocumentItem('lainnya', 'Lain-lain (Others)', false),
   ];
 
-  Future<void> _pickFile(String documentId) async {
+ Future<void> _pickFile(String documentId) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -144,16 +140,29 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       if (result != null) {
         setState(() {
           _uploadedFiles[documentId] = File(result.files.single.path!);
+          _hasUnsavedChanges = _hasUnsavedChangesInternal();
         });
       }
     } catch (e) {
-      _showErrorDialog('Gagal memilih file: $e');
+      ErrorUploadDialogCard.show(
+        context,
+        title: 'Gagal Memilih File',
+        message: 'Terjadi kesalahan saat memilih file: $e',
+        onConfirm: () {
+        },
+      );
     }
   }
 
   Future<void> _uploadFile(String documentId) async {
     if (_uploadedFiles[documentId] == null) {
-      _showErrorDialog('Silakan pilih file terlebih dahulu');
+      ErrorUploadDialogCard.show(
+        context,
+        title: 'File Belum Dipilih',
+        message: 'Silakan pilih file terlebih dahulu',
+        onConfirm: () {
+        },
+      );
       return;
     }
 
@@ -163,12 +172,26 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
 
     try {
       await Future.delayed(const Duration(seconds: 2));
-
-      print('=== FILE UPLOADED: $documentId ===');
-
-      _showSuccessDialog('File berhasil diupload');
+      await ProfileCompletionNotifierCard.show(
+        context,
+        title: 'Upload Berhasil',
+        message: 'File berhasil diupload.',
+        icon: Icons.check_circle_rounded,
+        iconColor: Colors.green[600],
+        onConfirm: () {
+        },
+      );
+      setState(() {
+        _hasUnsavedChanges = _hasUnsavedChangesInternal();
+      });
     } catch (e) {
-      _showErrorDialog('Gagal mengupload file: $e');
+      ErrorUploadDialogCard.show(
+        context,
+        title: 'Gagal Mengupload File',
+        message: 'Terjadi kesalahan saat mengupload file: $e',
+        onConfirm: () {
+        },
+      );
     } finally {
       setState(() {
         _uploading[documentId] = false;
@@ -176,53 +199,26 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     }
   }
 
-  void _showErrorDialog(String message) {
+  Future<bool> _showUnsavedChangesDialog() async {
     final theme = ref.read(themeProvider);
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Error',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.red[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showSuccessDialog(String message) {
-    final theme = ref.read(themeProvider);
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: Text(
-          'Upload Berhasil',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.green[700],
-          ),
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    return await SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Batalkan Perubahan Dokumen',
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmText: 'Batalkan',
+      cancelText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () {
+        _restoreOriginalData();
+        notification.NotificationUtils.showWarning(
+          context,
+          'Perubahan pada data dokumen telah dibatalkan',
+        );
+      },
+      onCancel: () {},
+    ) ?? false;
   }
 
   @override
@@ -235,18 +231,14 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
-        if (_hasUnsavedChanges()) {
-          print('=== UNSAVED CHANGES DETECTED ON BACK ===');
+
+        if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
           final shouldLeave = await _showUnsavedChangesDialog();
-          if (shouldLeave == true && context.mounted) {
-            Navigator.pop(context, false);
+          if (shouldLeave && context.mounted) {
+            context.pop();
           }
-        } else {
-          print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
-          if (context.mounted) {
-            Navigator.pop(context, false);
-          }
+        } else if (context.mounted) {
+          context.pop();
         }
       },
       child: Scaffold(
@@ -265,15 +257,13 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
-              if (_hasUnsavedChanges()) {
-                print('=== UNSAVED CHANGES DETECTED ON BACK BUTTON ===');
+              if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
                 final shouldLeave = await _showUnsavedChangesDialog();
-                if (shouldLeave == true && context.mounted) {
-                  Navigator.pop(context, false);
+                if (shouldLeave && context.mounted) {
+                  context.pop();
                 }
-              } else {
-                print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
-                Navigator.pop(context, false);
+              } else if (context.mounted) {
+                context.pop();
               }
             },
           ),
@@ -290,12 +280,10 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
               const SizedBox(height: 20),
               _buildDocumentSection(theme),
               const SizedBox(height: 30),
-              
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    print('=== SAVE BUTTON CLICKED ===');
                     _saveData(context, theme);
                   },
                   style: ElevatedButton.styleFrom(
@@ -318,57 +306,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-  
-  Future<bool?> _showUnsavedChangesDialog() async {
-    final theme = ref.read(themeProvider);
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Perubahan Belum Disimpan',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.orange[700],
-          ),
-        ),
-        content: Text(
-          'Anda memiliki perubahan yang belum disimpan. Apa yang ingin Anda lakukan?',
-          style: theme.typographyRegular.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Batal',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              _restoreOriginalData();
-              Navigator.pop(context, true);
-            },
-            child: Text(
-              'Buang Perubahan',
-              style: TextStyle(color: Colors.red[600]),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, false);
-              _saveData(context, theme);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.primarySwatch,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Simpan'),
-          ),
-        ],
       ),
     );
   }
@@ -430,7 +367,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title
           Row(
             children: [
               Container(
@@ -457,9 +393,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-
-          // File Format Info
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -484,8 +418,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Document List
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -515,7 +447,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Document Title
           Row(
             children: [
               Expanded(
@@ -549,8 +480,6 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
             ],
           ),
           const SizedBox(height: 12),
-
-          // Upload Section
           Row(
             children: [
               Expanded(
@@ -572,8 +501,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
                     foregroundColor:
                         isUploaded ? Colors.green[600] : theme.primarySwatch,
                     side: BorderSide(
-                      color:
-                          isUploaded ? Colors.green[300]! : theme.primarySwatch,
+                      color: isUploaded ? Colors.green[300]! : theme.primarySwatch,
                     ),
                     padding: const EdgeInsets.symmetric(
                       vertical: 8,
@@ -589,8 +517,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
               SizedBox(
                 width: 100,
                 child: ElevatedButton(
-                  onPressed:
-                      isUploading ? null : () => _uploadFile(document.id),
+                  onPressed: isUploading ? null : () => _uploadFile(document.id),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primarySwatch,
                     foregroundColor: Colors.white,
@@ -599,23 +526,22 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
-                  child:
-                      isUploading
-                          ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                          : Text(
-                            'UPLOAD',
-                            style: theme.typographyRegular.bodySmall.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 10.0,
-                            ),
+                  child: isUploading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
                           ),
+                        )
+                      : Text(
+                          'UPLOAD',
+                          style: theme.typographyRegular.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10.0,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -625,10 +551,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     );
   }
 
-  void _saveData(BuildContext context, dynamic theme) {
-    print('=== CALLING _saveData ===');
-    
-    // Save current upload status to provider
+  Future<void> _saveData(BuildContext context, dynamic theme) async {
     final currentData = ref.read(dokumenDataProvider);
     DokumenData newData = currentData.copyWith(
       cvUploaded: _uploadedFiles.containsKey('cv'),
@@ -640,58 +563,41 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       fotoUploaded: _uploadedFiles.containsKey('foto'),
       sertifikatUploaded: _uploadedFiles.containsKey('sertifikat'),
     );
-    
-    ref.read(dokumenDataProvider.notifier).updateData(newData);
-    
-    print('=== SAVED DOKUMEN DATA ===');
-    print('CV: ${newData.cvUploaded}');
-    print('Ijazah: ${newData.ijazahUploaded}');
-    print('Transkrip: ${newData.transkripUploaded}');
-    print('KTP: ${newData.ktpUploaded}');
-    print('KK: ${newData.kkUploaded}');
-    print('Surat Lamaran: ${newData.suratLamaranUploaded}');
-    print('Foto: ${newData.fotoUploaded}');
-    print('Sertifikat: ${newData.sertifikatUploaded}');
-    print('==========================');
 
-    // Show immediate feedback with SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ Data dokumen berhasil disimpan'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+    ref.read(dokumenDataProvider.notifier).updateData(newData);
+    ref.read(profileCompletionProvider.notifier).markCompleted('dokumen');
+
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setBool('dokumen_has_changes', false),
+      prefs.setBool('dokumen_just_saved', true),
+      prefs.setBool('dokumen_user_saved', true),
+    ]);
+
+    _originalData = _getCurrentData();
+
+    await ProfileCompletionNotifierCard.show(
+      context,
+      title: 'Berhasil Menyimpan Dokumen',
+      message: 'Data dokumen Anda telah diperbarui dan tersimpan dengan sukses.',
+      onConfirm: () {
+        notification.NotificationUtils.showSuccess(
+          context,
+          'Data dokumen telah disimpan',
+        );
+        if (context.mounted) {
+          context.pop('saved');
+        }
+      },
+      icon: Icons.check_circle_rounded,
+      iconColor: Colors.green[600],
     );
 
-    print('=== SHOWING SUCCESS DIALOG ===');
-    // Show success dialog with delay to ensure SnackBar is visible first
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && context.mounted) {
-        NotificationUtils.showSuccessDialog(
-          context,
-          title: 'Simpan Data Dokumen',
-          message: 'Data dokumen berhasil disimpan.',
-          onPressed: () {
-            print('=== SUCCESS DIALOG BUTTON PRESSED ===');
-            
-            _originalData = _getCurrentData();
-            
-            // Safe navigation back to previous page
-            if (Navigator.canPop(context)) {
-              print('Using Navigator.pop');
-              Navigator.pop(context, 'saved');
-            } else {
-              print('Using context.go to profile-sections');
-              context.go('/profile-sections');
-            }
-          },
-        );
-        print('=== SUCCESS DIALOG COMPLETED ===');
-      } else {
-        print('=== CONTEXT NOT MOUNTED, SKIPPING DIALOG ===');
-      }
-    });
+    if (context.mounted) {
+      setState(() {
+        _hasUnsavedChanges = false;
+      });
+    }
   }
 }
 

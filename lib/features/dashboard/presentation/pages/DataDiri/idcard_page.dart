@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'providers/profile_data_provider.dart';
 
 class IdCardPage extends ConsumerStatefulWidget {
@@ -18,7 +19,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   
-  // Backup data for unsaved changes detection
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
 
@@ -35,9 +35,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         final File savedFile = File(savedData.fotoPath);
         if (_isValidImageFile(savedFile)) {
           _selectedImage = savedFile;
-          print('Loaded valid image from provider: ${savedData.fotoPath}');
         } else {
-          print('Saved image path is invalid, clearing: ${savedData.fotoPath}');
           // Clear invalid path from provider
           ref.read(idCardDataProvider.notifier).updateData(
             IdCardData(fotoPath: '', isUploaded: false)
@@ -48,9 +46,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       // Backup original data for change detection
       _originalData = _getCurrentData();
       _dataLoaded = true;
-      
-      print('=== ID CARD PAGE LOADED ===');
-      print('Original data backed up: $_originalData');
     }
   }
   
@@ -65,7 +60,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     try {
       // Check if file exists and is readable
       if (!file.existsSync()) {
-        print('File does not exist: ${file.path}');
         return false;
       }
       
@@ -74,59 +68,36 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       if (!extension.endsWith('.jpg') && 
           !extension.endsWith('.jpeg') && 
           !extension.endsWith('.png')) {
-        print('Invalid file extension: $extension');
         return false;
       }
       
       return true;
     } catch (e) {
-      print('Error validating image file: $e');
       return false;
     }
   }
   
   bool _hasUnsavedChanges() {
     final currentData = _getCurrentData();
-    bool hasChanges = false;
-    
-    print('=== CHECKING FOR UNSAVED CHANGES ===');
-    print('Original: $_originalData');
-    print('Current: $currentData');
-    
-    // Check foto path
-    if (_originalData['fotoPath'] != currentData['fotoPath']) {
-      print('Foto path changed: ${_originalData['fotoPath']} -> ${currentData['fotoPath']}');
-      hasChanges = true;
-    }
-    
-    // Check upload status
-    if (_originalData['isUploaded'] != currentData['isUploaded']) {
-      print('Upload status changed: ${_originalData['isUploaded']} -> ${currentData['isUploaded']}');
-      hasChanges = true;
-    }
-    
-    print('Has unsaved changes: $hasChanges');
-    return hasChanges;
+    return _originalData['fotoPath'] != currentData['fotoPath'] ||
+           _originalData['isUploaded'] != currentData['isUploaded'];
   }
   
   void _restoreOriginalData() {
-    print('=== RESTORING ORIGINAL DATA ===');
     if (_originalData['fotoPath'].isNotEmpty) {
       final File potentialFile = File(_originalData['fotoPath']);
       if (_isValidImageFile(potentialFile)) {
         _selectedImage = potentialFile;
       } else {
-        print('Original file is not valid, clearing selection');
         _selectedImage = null;
       }
     } else {
       _selectedImage = null;
     }
     setState(() {});
-    print('Data restored successfully');
   }
 
-  Future<void> _pickImage() async {
+ Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -136,19 +107,27 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       if (image != null) {
         final File imageFile = File(image.path);
         
-        // Validate file first
         if (!_isValidImageFile(imageFile)) {
-          _showErrorDialog('File yang dipilih tidak valid atau rusak. Silakan pilih file gambar lain.');
+          ErrorUploadDialogCard.show(
+            context,
+            title: 'File Tidak Valid',
+            message: 'File yang dipilih tidak valid atau rusak. Silakan pilih file gambar lain.',
+            onConfirm: () {
+            },
+          );
           return;
         }
         
         final int fileSizeInBytes = await imageFile.length();
         final double fileSizeInKB = fileSizeInBytes / 1024;
 
-        // Check file size (must be above 500 KB)
         if (fileSizeInKB < 500) {
-          _showErrorDialog(
-            'Ukuran file harus di atas 500 KB. Ukuran file saat ini: ${fileSizeInKB.toStringAsFixed(2)} KB',
+          ErrorUploadDialogCard.show(
+            context,
+            title: 'Ukuran File Tidak Memenuhi Syarat',
+            message: 'Ukuran file harus di atas 500 KB.\nUkuran file saat ini: ${fileSizeInKB.toStringAsFixed(2)} KB',
+            onConfirm: () {
+            },
           );
           return;
         }
@@ -158,34 +137,14 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         });
       }
     } catch (e) {
-      _showErrorDialog('Gagal memilih gambar: $e');
+      ErrorUploadDialogCard.show(
+        context,
+        title: 'Gagal Memilih Gambar',
+        message: 'Terjadi kesalahan saat memilih gambar: $e',
+        onConfirm: () {
+        },
+      );
     }
-  }
-
-
-
-  void _showErrorDialog(String message) {
-    final theme = ref.read(themeProvider);
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Error',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.red[700],
-              ),
-            ),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
   }
 
   @override
@@ -200,15 +159,13 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         if (didPop) return;
         
         if (_hasUnsavedChanges()) {
-          print('=== UNSAVED CHANGES DETECTED ON BACK ===');
-          final shouldLeave = await _showUnsavedChangesDialog();
-          if (shouldLeave == true && context.mounted) {
-            Navigator.pop(context, false);
+          final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+          if (shouldLeave && context.mounted) {
+            context.pop();
           }
         } else {
-          print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
           if (context.mounted) {
-            Navigator.pop(context, false);
+            context.pop();
           }
         }
       },
@@ -229,14 +186,12 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
               if (_hasUnsavedChanges()) {
-                print('=== UNSAVED CHANGES DETECTED ON BACK BUTTON ===');
-                final shouldLeave = await _showUnsavedChangesDialog();
-                if (shouldLeave == true && context.mounted) {
-                  Navigator.pop(context, false);
+                final shouldLeave = await _showUnsavedChangesDialog(context, theme);
+                if (shouldLeave && context.mounted) {
+                  context.pop();
                 }
               } else {
-                print('=== NO UNSAVED CHANGES, SAFE TO LEAVE ===');
-                Navigator.pop(context, false);
+                context.pop();
               }
             },
           ),
@@ -257,55 +212,27 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     );
   }
   
-  Future<bool?> _showUnsavedChangesDialog() async {
-    final theme = ref.read(themeProvider);
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Perubahan Belum Disimpan',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.orange[700],
-          ),
-        ),
-        content: Text(
-          'Anda memiliki perubahan yang belum disimpan. Apa yang ingin Anda lakukan?',
-          style: theme.typographyRegular.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Batal',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              _restoreOriginalData();
-              Navigator.pop(context, true);
-            },
-            child: Text(
-              'Buang Perubahan',
-              style: TextStyle(color: Colors.red[600]),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, false);
-              _saveData(context, theme);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.primarySwatch,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
+  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+    final result = await SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Batalkan Perubahan ID Card', 
+      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      confirmText: 'Batalkan',
+      cancelText: 'Batal',
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.red[600], 
+      isDestructive: true, 
+      onConfirm: () {
+        _restoreOriginalData();
+        if (context.mounted) {
+          notification.NotificationUtils.showWarning(
+            context,
+            'Perubahan pada ID Card telah dibatalkan',
+          );
+        }
+      },
     );
+    return result ?? false;
   }
 
   Widget _buildIdCardForm(dynamic theme) {
@@ -355,15 +282,12 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           ),
           const SizedBox(height: 20),
 
-          // Current Photo Section
           _buildCurrentPhotoSection(theme),
           const SizedBox(height: 24),
 
-          // Photo Requirements
           _buildPhotoRequirements(theme),
           const SizedBox(height: 24),
 
-          // Upload Section
           _buildUploadSection(theme),
         ],
       ),
@@ -426,8 +350,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
                         _selectedImage!, 
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          print('Error loading image: $error');
-                          // Clear invalid image
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             setState(() {
                               _selectedImage = null;
@@ -625,7 +547,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              print('=== SAVE BUTTON CLICKED ===');
               _saveData(context, theme);
             },
             style: ElevatedButton.styleFrom(
@@ -650,8 +571,6 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   }
 
   void _saveData(BuildContext context, dynamic theme) {
-    print('=== CALLING _saveData ===');
-    
     // Validate image before saving
     String validatedPath = '';
     bool isValidImage = false;
@@ -660,10 +579,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       if (_isValidImageFile(_selectedImage!)) {
         validatedPath = _selectedImage!.path;
         isValidImage = true;
-        print('Image is valid: $validatedPath');
       } else {
-        print('Image is invalid, not saving path');
-        // Clear invalid image
         setState(() {
           _selectedImage = null;
         });
@@ -677,49 +593,32 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     );
     
     ref.read(idCardDataProvider.notifier).updateData(idCardData);
-    
-    print('=== SAVED ID CARD DATA ===');
-    print('Foto Path: ${idCardData.fotoPath}');
-    print('Is Uploaded: ${idCardData.isUploaded}');
-    print('==========================');
 
     // Show immediate feedback with SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ Data ID Card berhasil disimpan'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+    notification.NotificationUtils.showSuccess(
+      context,
+      'Data ID Card telah disimpan',
     );
 
-    print('=== SHOWING SUCCESS DIALOG ===');
     // Show success dialog with delay to ensure SnackBar is visible first
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted && context.mounted) {
-        NotificationUtils.showSuccessDialog(
+        ProfileCompletionNotifierCard.show(
           context,
-          title: 'Simpan Data ID Card',
-          message: 'Data ID Card berhasil disimpan.',
-          onPressed: () {
-            print('=== SUCCESS DIALOG BUTTON PRESSED ===');
-            
+          title: 'Berhasil Menyimpan ID Card',
+          message: 'Data ID Card Anda telah diperbarui dan tersimpan dengan sukses.',
+          onConfirm: () {
             // Update original data to clear unsaved changes flag
             _originalData = _getCurrentData();
             
             // Safe navigation back to previous page
             if (Navigator.canPop(context)) {
-              print('Using Navigator.pop');
               Navigator.pop(context, 'saved');
             } else {
-              print('Using context.go');
               context.go('/profile-sections');
             }
           },
         );
-        print('=== SUCCESS DIALOG COMPLETED ===');
-      } else {
-        print('=== CONTEXT NOT MOUNTED, SKIPPING DIALOG ===');
       }
     });
   }

@@ -173,7 +173,6 @@ class PribadiData {
   }
 }
 
-// Data Lamaran model
 class DataLamaranData {
   final String position;
   final String placement;
@@ -182,6 +181,7 @@ class DataLamaranData {
   final DateTime? startDate;
   final DateTime? letterDate;
   final DateTime? placementDate;
+  final String? notes; // Ditambahkan
 
   DataLamaranData({
     this.position = '',
@@ -191,6 +191,7 @@ class DataLamaranData {
     this.startDate,
     this.letterDate,
     this.placementDate,
+    this.notes = '', // Ditambahkan
   });
 
   DataLamaranData copyWith({
@@ -201,6 +202,7 @@ class DataLamaranData {
     DateTime? startDate,
     DateTime? letterDate,
     DateTime? placementDate,
+    String? notes, // Ditambahkan
   }) {
     return DataLamaranData(
       position: position ?? this.position,
@@ -210,11 +212,11 @@ class DataLamaranData {
       startDate: startDate ?? this.startDate,
       letterDate: letterDate ?? this.letterDate,
       placementDate: placementDate ?? this.placementDate,
+      notes: notes ?? this.notes, // Ditambahkan
     );
   }
 }
 
-// Dokumen data model  
 class DokumenData {
   final bool cvUploaded;
   final bool ijazahUploaded;
@@ -259,7 +261,6 @@ class DokumenData {
   }
 }
 
-// Keluarga data model
 class KeluargaData {
   final String namaAyah;
   final String namaIbu;
@@ -300,7 +301,6 @@ class KeluargaData {
   }
 }
 
-// Pendidikan data model
 class PendidikanData {
   final String tingkatPendidikan;
   final String namaInstitusi;
@@ -333,7 +333,6 @@ class PendidikanData {
   }
 }
 
-// Riwayat Pekerjaan data model
 class RiwayatPekerjaanData {
   final String namaPerusahaan;
   final String posisi;
@@ -366,7 +365,6 @@ class RiwayatPekerjaanData {
   }
 }
 
-// ID Card data model
 class IdCardData {
   final String fotoPath;
   final bool isUploaded;
@@ -528,7 +526,6 @@ class PribadiNotifier extends StateNotifier<PribadiData> {
   }
 }
 
-// Data Lamaran Notifier
 class DataLamaranNotifier extends StateNotifier<DataLamaranData> {
   DataLamaranNotifier() : super(DataLamaranData());
 
@@ -559,11 +556,13 @@ class DataLamaranNotifier extends StateNotifier<DataLamaranData> {
       case 'placementDate':
         state = state.copyWith(placementDate: value as DateTime?);
         break;
+      case 'notes':
+        state = state.copyWith(notes: value as String?);
+        break;
     }
   }
 }
 
-// Dokumen Notifier
 class DokumenNotifier extends StateNotifier<DokumenData> {
   DokumenNotifier() : super(DokumenData());
 
@@ -601,7 +600,6 @@ class DokumenNotifier extends StateNotifier<DokumenData> {
   }
 }
 
-// Keluarga Notifier
 class KeluargaNotifier extends StateNotifier<KeluargaData> {
   KeluargaNotifier() : super(KeluargaData());
 
@@ -636,7 +634,6 @@ class KeluargaNotifier extends StateNotifier<KeluargaData> {
   }
 }
 
-// Pendidikan Notifier
 class PendidikanNotifier extends StateNotifier<PendidikanData> {
   PendidikanNotifier() : super(PendidikanData());
 
@@ -665,7 +662,6 @@ class PendidikanNotifier extends StateNotifier<PendidikanData> {
   }
 }
 
-// Riwayat Pekerjaan Notifier
 class RiwayatPekerjaanNotifier extends StateNotifier<RiwayatPekerjaanData> {
   RiwayatPekerjaanNotifier() : super(RiwayatPekerjaanData());
 
@@ -694,7 +690,6 @@ class RiwayatPekerjaanNotifier extends StateNotifier<RiwayatPekerjaanData> {
   }
 }
 
-// ID Card Notifier
 class IdCardNotifier extends StateNotifier<IdCardData> {
   IdCardNotifier() : super(IdCardData());
 
@@ -703,35 +698,29 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
       try {
         final file = File(newData.fotoPath);
         if (!file.existsSync()) {
-          print('IdCard: Invalid file path, clearing data: ${newData.fotoPath}');
           state = IdCardData(fotoPath: '', isUploaded: false);
           return;
         }
       } catch (e) {
-        print('IdCard: Error validating file, clearing data: $e');
         state = IdCardData(fotoPath: '', isUploaded: false);
         return;
       }
     }
-    
     state = newData;
   }
 
   void updateField(String field, dynamic value) {
     switch (field) {
       case 'fotoPath':
-   
         final String path = value as String;
         if (path.isNotEmpty) {
           try {
             final file = File(path);
             if (file.existsSync()) {
               state = state.copyWith(fotoPath: path);
-            } else {
-              print('IdCard: File does not exist, not updating: $path');
             }
           } catch (e) {
-            print('IdCard: Error validating file path: $e');
+            // Tidak update jika file tidak valid
           }
         } else {
           state = state.copyWith(fotoPath: path);
@@ -742,17 +731,15 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
         break;
     }
   }
-  
+
   void validateAndCleanData() {
     if (state.fotoPath.isNotEmpty) {
       try {
         final file = File(state.fotoPath);
         if (!file.existsSync()) {
-          print('IdCard: Cleaning invalid file path: ${state.fotoPath}');
           state = IdCardData(fotoPath: '', isUploaded: false);
         }
       } catch (e) {
-        print('IdCard: Error during validation, clearing data: $e');
         state = IdCardData(fotoPath: '', isUploaded: false);
       }
     }

@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/nav_bar.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../DataDiri/providers/profile_data_provider.dart';
 import 'dart:io';
+import 'dart:convert';
 
-// Lifecycle observer for detecting when app resumes
 class _AppLifecycleObserver extends WidgetsBindingObserver {
   final VoidCallback onResume;
 
@@ -27,918 +28,366 @@ class ProfileSectionsPage extends ConsumerStatefulWidget {
   const ProfileSectionsPage({super.key});
 
   @override
-  ConsumerState<ProfileSectionsPage> createState() =>
-      _ProfileSectionsPageState();
+  ConsumerState<ProfileSectionsPage> createState() => _ProfileSectionsPageState();
 }
 
 class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
   final Set<String> _editedSections = {};
   final Set<String> _completedSections = {};
   bool _hasUnsavedChanges = false;
-  bool _isProcessingImmediateFlagDetection = false; // Protection flag
-
-  // CRITICAL FIX: Track sections that were just edited via navigation
-  // to prevent _loadCompletionStatus from overriding them
-  final Set<String> _recentlyEditedViNavigation = {};
-
-  late final Map<String, dynamic> _originalData = {};
+  bool _isProcessingImmediateFlagDetection = false;
+  final Map<String, Object> _originalData = {};
   late final _AppLifecycleObserver _lifecycleObserver;
 
   @override
   void initState() {
     super.initState();
-    print('=== PROFILE SECTIONS initState CALLED ===');
-
-    // Setup lifecycle observer untuk mendeteksi app resume
     _lifecycleObserver = _AppLifecycleObserver(onResume: _handleAppResume);
     WidgetsBinding.instance.addObserver(_lifecycleObserver);
 
-    _loadCompletionStatus();
-    _saveOriginalData();
-    _validateIdCardData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _loadCompletionStatus();
+      _saveOriginalData();
+      _validateIdCardData();
+    });
   }
 
   @override
   void dispose() {
-    // Remove lifecycle observer saat widget di-dispose
     WidgetsBinding.instance.removeObserver(_lifecycleObserver);
     super.dispose();
   }
 
-  // Handle app resume - reset data jika fresh login
-  void _handleAppResume() async {
-    print('=== APP RESUMED - CHECKING FOR FRESH LOGIN ===');
+  Future<void> _handleAppResume() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
-
-      if (isLoggedOut) {
-        print('🔄 FRESH LOGIN DETECTED ON APP RESUME');
-        print('→ Clearing all profile data and flags');
-
-        // Clear semua flags untuk fresh start
-        await prefs.remove('education_has_changes');
-        await prefs.remove('education_just_saved');
-        await prefs.remove('education_user_saved');
-        await prefs.remove('education_data');
-        await prefs.remove('work_history_has_changes');
-        await prefs.remove('work_history_just_saved');
-        await prefs.remove('work_history_user_saved');
-        await prefs.remove('work_history_data');
-        await prefs.remove('family_has_changes');
-        await prefs.remove('family_just_saved');
-        await prefs.remove('family_user_saved');
-        await prefs.remove('family_data');
-
-        // Clear temporary flags juga
-        await prefs.remove('_temp_skip_work_history_processing');
-
-        // Clear completion provider - reset semua section ke incomplete
-        final completionNotifier = ref.read(profileCompletionProvider.notifier);
-        completionNotifier.markIncomplete('editProfile');
-        completionNotifier.markIncomplete('identitasDiri');
-        completionNotifier.markIncomplete('honorarium');
-        completionNotifier.markIncomplete('keluarga');
-        completionNotifier.markIncomplete('pasFoto');
-        completionNotifier.markIncomplete('dokumen');
-        completionNotifier.markIncomplete('pendidikan');
-        completionNotifier.markIncomplete('riwayatPekerjaan');
-        completionNotifier.markIncomplete('dataLamaran');
-
-        // Reset provider data ke kondisi awal (empty)
-        ref.read(pendidikanDataProvider.notifier).updateData(PendidikanData());
-        ref
-            .read(riwayatPekerjaanDataProvider.notifier)
-            .updateData(RiwayatPekerjaanData());
-        ref.read(keluargaDataProvider.notifier).updateData(KeluargaData());
-
-        // Reset UI state
-        if (mounted) {
-          setState(() {
-            _editedSections.clear();
-            _completedSections.clear();
-            _hasUnsavedChanges = false;
-          });
-        }
-
-        // Clear flag is_logged_out setelah cleanup selesai
-        await prefs.setBool('is_logged_out', false);
-
-        // Reload completion status untuk fresh start
-        _loadCompletionStatus();
-
-        print('✅ Fresh login reset completed - all data cleared');
-        print('→ Profile sections page ready for fresh user session');
-      } else {
-        print('📱 App resumed - no fresh login detected');
-      }
-    } catch (e) {
-      print('❌ Error during app resume fresh login check: $e');
+    if (!isLoggedOut) {
+      await _loadCompletionStatus();
+      return;
     }
 
-    print('=== END APP RESUME CHECK ===');
+    await _clearSharedPreferences(prefs);
+    _resetProviders();
+    await prefs.setBool('is_logged_out', false);
+
+    if (mounted) {
+      setState(() {
+        _editedSections.clear();
+        _completedSections.clear();
+        _hasUnsavedChanges = false;
+      });
+    }
+
+    await _loadCompletionStatus();
+  }
+
+  Future<void> _clearSharedPreferences(SharedPreferences prefs) async {
+    await Future.wait([
+      prefs.remove('education_has_changes'),
+      prefs.remove('education_just_saved'),
+      prefs.remove('pendidikan_user_saved'),
+      prefs.remove('education_data'),
+      prefs.remove('work_history_has_changes'),
+      prefs.remove('work_history_just_saved'),
+      prefs.remove('work_history_user_saved'),
+      prefs.remove('work_history_data'),
+      prefs.remove('family_has_changes'),
+      prefs.remove('family_just_saved'),
+      prefs.remove('family_user_saved'),
+      prefs.remove('family_data'),
+      prefs.remove('_temp_skip_work_history_processing'),
+      prefs.remove('honorarium_has_changes'),
+      prefs.remove('honorarium_just_saved'),
+      prefs.remove('honorarium_user_saved'),
+      prefs.remove('edit_profile_has_changes'),
+      prefs.remove('edit_profile_just_saved'),
+      prefs.remove('edit_profile_user_saved'),
+      prefs.remove('pribadi_has_changes'),
+      prefs.remove('pribadi_just_saved'),
+      prefs.remove('pribadi_user_saved'),
+      prefs.remove('pas_foto_has_changes'),
+      prefs.remove('pas_foto_just_saved'),
+      prefs.remove('pas_foto_user_saved'),
+      prefs.remove('dokumen_has_changes'),
+      prefs.remove('dokumen_just_saved'),
+      prefs.remove('dokumen_user_saved'),
+      prefs.remove('data_lamaran_has_changes'),
+      prefs.remove('data_lamaran_just_saved'),
+      prefs.remove('data_lamaran_user_saved'),
+      // Menghapus flag riwayat_pekerjaan_* untuk konsistensi
+      prefs.remove('riwayat_pekerjaan_has_changes'),
+      prefs.remove('riwayat_pekerjaan_just_saved'),
+      prefs.remove('riwayat_pekerjaan_user_saved'),
+    ]);
+  }
+
+  void _resetProviders() {
+    final completionNotifier = ref.read(profileCompletionProvider.notifier);
+    const sections = [
+      'editProfile',
+      'identitasDiri',
+      'honorarium',
+      'keluarga',
+      'pasFoto',
+      'dokumen',
+      'pendidikan',
+      'riwayatPekerjaan',
+      'dataLamaran'
+    ];
+    for (var section in sections) {
+      completionNotifier.markIncomplete(section);
+    }
+    ref.read(editProfileDataProvider.notifier).updateData(EditProfileData());
+    ref.read(pribadiDataProvider.notifier).updateData(PribadiData());
+    ref.read(honorariumDataProvider.notifier).updateData(HonorariumData());
+    ref.read(keluargaDataProvider.notifier).updateData(KeluargaData());
+    ref.read(dokumenDataProvider.notifier).updateData(DokumenData());
+    ref.read(pendidikanDataProvider.notifier).updateData(PendidikanData());
+    ref.read(riwayatPekerjaanDataProvider.notifier).updateData(RiwayatPekerjaanData());
+    ref.read(dataLamaranDataProvider.notifier).updateData(DataLamaranData());
+    ref.read(idCardDataProvider.notifier).updateData(IdCardData(fotoPath: '', isUploaded: false));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    print('=== PROFILE SECTIONS didChangeDependencies CALLED ===');
-
     ref.invalidate(pendidikanDataProvider);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      if (mounted && !_isProcessingImmediateFlagDetection) {
-        print(
-          '→ didChangeDependencies calling _loadCompletionStatus after delay',
-        );
-        _loadCompletionStatus();
-      } else {
-        print(
-          '→ didChangeDependencies skipped _loadCompletionStatus (immediate detection in progress)',
-        );
-      }
-    });
+    _loadCompletionStatus();
   }
 
   void _validateIdCardData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      try {
-        // Direct validation to avoid method lookup issues
-        final idCardData = ref.read(idCardDataProvider);
-        if (idCardData.fotoPath.isNotEmpty) {
-          try {
-            final file = File(idCardData.fotoPath);
-            if (!file.existsSync()) {
-              print(
-                'IdCard: Cleaning invalid file path: ${idCardData.fotoPath}',
-              );
-              ref
-                  .read(idCardDataProvider.notifier)
-                  .updateData(IdCardData(fotoPath: '', isUploaded: false));
-            } else {
-              print('IdCard: File path is valid: ${idCardData.fotoPath}');
-            }
-          } catch (e) {
-            print('IdCard: Error during file validation, clearing data: $e');
-            ref
-                .read(idCardDataProvider.notifier)
-                .updateData(IdCardData(fotoPath: '', isUploaded: false));
-          }
-        } else {
-          print('IdCard: No file path to validate');
+      final idCardData = ref.read(idCardDataProvider);
+      if (idCardData.fotoPath.isNotEmpty) {
+        final file = File(idCardData.fotoPath);
+        if (!file.existsSync()) {
+          ref.read(idCardDataProvider.notifier).updateData(IdCardData(fotoPath: '', isUploaded: false));
         }
-        print('IdCard data validation completed');
-      } catch (e) {
-        print('Error during IdCard validation: $e');
       }
     });
   }
 
-  // Simpan data asli saat pertama kali load page
   void _saveOriginalData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return; // Add mounted check
-
-      _originalData['editProfile'] = ref.read(editProfileDataProvider);
-      _originalData['identitasDiri'] = ref.read(pribadiDataProvider);
-      _originalData['honorarium'] = ref.read(honorariumDataProvider);
-      _originalData['dataLamaran'] = ref.read(dataLamaranDataProvider);
-      _originalData['dokumen'] = ref.read(dokumenDataProvider);
-      _originalData['keluarga'] = ref.read(keluargaDataProvider);
-      _originalData['pendidikan'] = ref.read(pendidikanDataProvider);
-      _originalData['riwayatPekerjaan'] = ref.read(
-        riwayatPekerjaanDataProvider,
-      );
-      _originalData['idCard'] = ref.read(idCardDataProvider);
+      if (!mounted) return;
+      _originalData
+        ..['editProfile'] = ref.read(editProfileDataProvider)
+        ..['identitasDiri'] = ref.read(pribadiDataProvider)
+        ..['honorarium'] = ref.read(honorariumDataProvider)
+        ..['dataLamaran'] = ref.read(dataLamaranDataProvider)
+        ..['dokumen'] = ref.read(dokumenDataProvider)
+        ..['keluarga'] = ref.read(keluargaDataProvider)
+        ..['pendidikan'] = ref.read(pendidikanDataProvider)
+        ..['riwayatPekerjaan'] = ref.read(riwayatPekerjaanDataProvider)
+        ..['pasFoto'] = ref.read(idCardDataProvider);
     });
   }
 
-  // Load status completion dari provider
-  void _loadCompletionStatus() {
-    print('=== _loadCompletionStatus START ===');
-
-    // Check if immediate flag detection is in progress
-    if (_isProcessingImmediateFlagDetection) {
-      print(
-        '⚠️ SKIPPING _loadCompletionStatus: Immediate flag detection in progress',
-      );
-      return;
-    }
+  Future<void> _loadCompletionStatus() async {
+    if (_isProcessingImmediateFlagDetection) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return; // Add mounted check
+      if (!mounted) return;
 
-      // Double check protection flag inside postFrameCallback
-      if (_isProcessingImmediateFlagDetection) {
-        print(
-          '⚠️ SKIPPING postFrameCallback: Immediate flag detection still in progress',
-        );
-        return;
-      }
-
-      // SAFETY CHECK: Pastikan kita tidak dalam kondisi fresh login atau data inconsistent
-      final prefsCheck = await SharedPreferences.getInstance();
-      final isLoggedOut = prefsCheck.getBool('is_logged_out') ?? false;
-      final safetyWorkHistoryUserSaved =
-          prefsCheck.getBool('work_history_user_saved') ?? false;
-      final safetyWorkHistoryDataList =
-          prefsCheck.getStringList('work_history_data') ?? [];
-
-      print('=== SAFETY CHECK ===');
-      print('isLoggedOut: $isLoggedOut');
-      print('safetyWorkHistoryUserSaved: $safetyWorkHistoryUserSaved');
-      print('safetyWorkHistoryDataList: $safetyWorkHistoryDataList');
-
-      if (isLoggedOut) {
-        print('=== FRESH LOGIN DETECTED - SKIPPING COMPLETION STATUS LOAD ===');
-        // Jangan load completion status saat fresh login, tunggu sampai data di-clear dulu
-        return;
-      }
-
-      // REMOVED AGGRESSIVE SAFETY CHECK: This was causing data loss during normal save operations
-      // The aggressive clearing of work history data was interfering with legitimate save operations
-      // Work history data management should only happen in riwayat_pekerjaan_page.dart
-
-      print(
-        'SAFETY CHECK: work_history_user_saved = $safetyWorkHistoryUserSaved',
-      );
-      print(
-        'SAFETY CHECK: Allowing normal completion status processing to continue',
-      );
-      print(
-        'SAFETY CHECK: Work history data management is handled by riwayat_pekerjaan_page only',
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
+      if (isLoggedOut) return;
 
       final completionStatus = ref.read(profileCompletionProvider);
+      final data = {
+        'editProfile': ref.read(editProfileDataProvider),
+        'identitasDiri': ref.read(pribadiDataProvider),
+        'honorarium': ref.read(honorariumDataProvider),
+        'dataLamaran': ref.read(dataLamaranDataProvider),
+        'dokumen': ref.read(dokumenDataProvider),
+        'keluarga': ref.read(keluargaDataProvider),
+        'pendidikan': ref.read(pendidikanDataProvider),
+        'riwayatPekerjaan': ref.read(riwayatPekerjaanDataProvider),
+        'pasFoto': ref.read(idCardDataProvider),
+      };
 
-      // DEBUG: Print completion status after potential clear
-      print('=== COMPLETION STATUS DEBUG ===');
-      print('completionStatus keys: ${completionStatus.keys.toList()}');
-      print('riwayat_pekerjaan: ${completionStatus['riwayat_pekerjaan']}');
-      print('riwayatPekerjaan: ${completionStatus['riwayatPekerjaan']}');
-      print('=== END COMPLETION STATUS DEBUG ===');
+      final flags = {
+        'Edit Profil': {
+          'userSaved': prefs.getBool('edit_profile_user_saved') ?? false,
+          'hasChanges': prefs.getBool('edit_profile_has_changes') ?? false,
+          'justSaved': prefs.getBool('edit_profile_just_saved') ?? false,
+        },
+        'Identitas Diri': {
+          'userSaved': prefs.getBool('pribadi_user_saved') ?? false,
+          'hasChanges': prefs.getBool('pribadi_has_changes') ?? false,
+          'justSaved': prefs.getBool('pribadi_just_saved') ?? false,
+        },
+        'Honorarium': {
+          'userSaved': prefs.getBool('honorarium_user_saved') ?? false,
+          'hasChanges': prefs.getBool('honorarium_has_changes') ?? false,
+          'justSaved': prefs.getBool('honorarium_just_saved') ?? false,
+        },
+        'Keluarga': {
+          'userSaved': prefs.getBool('keluarga_user_saved') ?? false,
+          'hasChanges': prefs.getBool('keluarga_has_changes') ?? false,
+          'justSaved': prefs.getBool('keluarga_just_saved') ?? false,
+        },
+        'PAS Foto': {
+          'userSaved': prefs.getBool('pas_foto_user_saved') ?? false,
+          'hasChanges': prefs.getBool('pas_foto_has_changes') ?? false,
+          'justSaved': prefs.getBool('pas_foto_just_saved') ?? false,
+        },
+        'Dokumen': {
+          'userSaved': prefs.getBool('dokumen_user_saved') ?? false,
+          'hasChanges': prefs.getBool('dokumen_has_changes') ?? false,
+          'justSaved': prefs.getBool('dokumen_just_saved') ?? false,
+        },
+        'Pendidikan': {
+          'userSaved': prefs.getBool('pendidikan_user_saved') ?? false,
+          'hasChanges': prefs.getBool('pendidikan_has_changes') ?? false,
+          'justSaved': prefs.getBool('pendidikan_just_saved') ?? false,
+        },
+        'Riwayat Pekerjaan': {
+          'userSaved': prefs.getBool('work_history_user_saved') ?? false,
+          'hasChanges': prefs.getBool('work_history_has_changes') ?? false,
+          'justSaved': prefs.getBool('work_history_just_saved') ?? false,
+        },
+        'Data Lamaran': {
+          'userSaved': prefs.getBool('data_lamaran_user_saved') ?? false,
+          'hasChanges': prefs.getBool('data_lamaran_has_changes') ?? false,
+          'justSaved': prefs.getBool('data_lamaran_just_saved') ?? false,
+        },
+      };
 
-      final editProfileData = ref.read(editProfileDataProvider);
-      final pribadiData = ref.read(pribadiDataProvider);
-      final honorariumData = ref.read(honorariumDataProvider);
-      final dataLamaranData = ref.read(dataLamaranDataProvider);
-      final dokumenData = ref.read(dokumenDataProvider);
-      final keluargaData = ref.read(keluargaDataProvider);
-      final pendidikanData = ref.read(
-        pendidikanDataProvider,
-      ); // Kembali ke read, sudah di-invalidate
-      // final riwayatPekerjaanData = ref.read(riwayatPekerjaanDataProvider); // Tidak digunakan lagi
-      final idCardData = ref.read(idCardDataProvider);
+      setState(() {
+        _completedSections.clear();
+        _editedSections.clear();
 
-      // Load user saved flags for education and work history
-      final prefs = await SharedPreferences.getInstance();
-      final educationUserSaved = prefs.getBool('education_user_saved') ?? false;
-      final workHistoryUserSaved =
-          prefs.getBool('work_history_user_saved') ?? false;
-      final familyUserSaved = prefs.getBool('family_user_saved') ?? false;
+        for (var section in data.keys) {
+          final sectionName = _getSectionNameFromKey(section);
+          final sectionData = data[section]!;
+          final sectionFlags = flags[sectionName] ?? {
+            'userSaved': false,
+            'hasChanges': false,
+            'justSaved': false,
+          };
 
-      // Check jika ada perubahan dari individual pages
-      final educationHasChanges =
-          prefs.getBool('education_has_changes') ?? false;
-      final workHistoryHasChanges =
-          prefs.getBool('work_history_has_changes') ?? false;
-      final familyHasChanges = prefs.getBool('family_has_changes') ?? false;
-
-      print('=== FLAGS CHECK SIMPLE ===');
-      print('educationHasChanges: $educationHasChanges');
-      print('workHistoryHasChanges: $workHistoryHasChanges');
-      print('familyHasChanges: $familyHasChanges');
-      print('==========================');
-
-      // DEBUG: Print flags untuk work history
-      print('=== WORK HISTORY FLAGS DEBUG ===');
-      print('workHistoryUserSaved: $workHistoryUserSaved');
-      print('workHistoryHasChanges: $workHistoryHasChanges');
-      print(
-        'work_history_data in storage: ${prefs.getStringList('work_history_data')}',
-      );
-      print('=== END DEBUG ===');
-
-      print('=== FLAGS CHECK ===');
-      print('educationUserSaved: $educationUserSaved');
-      print('educationHasChanges: $educationHasChanges');
-      print('workHistoryUserSaved: $workHistoryUserSaved');
-      print('workHistoryHasChanges: $workHistoryHasChanges');
-      print('familyUserSaved: $familyUserSaved');
-      print('familyHasChanges: $familyHasChanges');
-      print('==================');
-
-      // Check jika user baru saja save dari individual pages
-      final educationJustSaved = prefs.getBool('education_just_saved') ?? false;
-      final workHistoryJustSaved =
-          prefs.getBool('work_history_just_saved') ?? false;
-      final familyJustSaved = prefs.getBool('family_just_saved') ?? false;
-
-      print('=== CRITICAL EDUCATION FLAGS CHECK ===');
-      print(
-        'educationJustSaved: $educationJustSaved (this should trigger EDITED if true)',
-      );
-      print('educationHasChanges: $educationHasChanges');
-      print('educationUserSaved: $educationUserSaved');
-      print('========================================');
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-
-        setState(() {
-          final currentCompletedSections = Set<String>.from(_completedSections);
-          print('=== DEBUG STATUS CHECK ===');
-          print('Current completed sections: $currentCompletedSections');
-          print('Current edited sections: $_editedSections');
-          print('educationHasChanges: $educationHasChanges');
-          print('workHistoryHasChanges: $workHistoryHasChanges');
-          print('completionStatus: $completionStatus');
-
-          _completedSections.clear();
-
-          if (familyJustSaved) {
-            if (!_editedSections.contains('Keluarga')) {
-              _editedSections.add('Keluarga');
-              _hasUnsavedChanges = true;
-            }
-            print(
-              '→ Family just saved from individual page, marked as edited for profile sections save',
-            );
-          }
-
-          if (editProfileData.nama.isNotEmpty ||
-              editProfileData.nik.isNotEmpty) {
-            if (_hasDataChangedSync('editProfile', editProfileData, true)) {
-              if (!_editedSections.contains('Edit Profil')) {
-                _editedSections.add('Edit Profil');
-              }
-            } else {
-              if (completionStatus['editProfile'] == true) {
-                _completedSections.add('Edit Profil');
-              }
-            }
-          }
-
-          if (pribadiData.tempatLahir.isNotEmpty ||
-              pribadiData.email.isNotEmpty) {
-            if (_hasDataChangedSync('identitasDiri', pribadiData, true)) {
-              if (!_editedSections.contains('Identitas Diri')) {
-                _editedSections.add('Identitas Diri');
-              }
-            } else {
-              if (completionStatus['identitasDiri'] == true) {
-                _completedSections.add('Identitas Diri');
-              }
-            }
-          }
-
-          if (honorariumData.kartuKeluarga.isNotEmpty ||
-              honorariumData.ktp.isNotEmpty) {
-            if (_hasDataChangedSync('honorarium', honorariumData, true)) {
-              if (!_editedSections.contains('Honorarium')) {
-                _editedSections.add('Honorarium');
-              }
-            } else {
-              if (completionStatus['honorarium'] == true) {
-                _completedSections.add('Honorarium');
-              }
-            }
-          }
-
-          if (dataLamaranData.position.isNotEmpty ||
-              dataLamaranData.placement.isNotEmpty) {
-            if (_hasDataChangedSync('dataLamaran', dataLamaranData, true)) {
-              if (!_editedSections.contains('Data Lamaran')) {
-                _editedSections.add('Data Lamaran');
-              }
-            } else {
-              if (completionStatus['dataLamaran'] == true) {
-                _completedSections.add('Data Lamaran');
-              }
-            }
-          }
-
-          if (dokumenData.cvUploaded || dokumenData.ktpUploaded) {
-            if (_hasDataChangedSync('dokumen', dokumenData, true)) {
-              if (!_editedSections.contains('Dokumen')) {
-                _editedSections.add('Dokumen');
-              }
-            } else {
-              if (completionStatus['dokumen'] == true) {
-                _completedSections.add('Dokumen');
-              }
-            }
-          }
-
-          if (keluargaData.namaAyah.isNotEmpty ||
-              keluargaData.namaIbu.isNotEmpty) {
-            print('=== KELUARGA STATUS CHECK ===');
-            print(
-              'completionStatus[keluarga]: ${completionStatus['keluarga']}',
-            );
-            print('familyHasChanges: $familyHasChanges');
-
-            if (completionStatus['keluarga'] == true) {
-              _completedSections.add('Keluarga');
-              print('→ Added to COMPLETED (provider status = true)');
-            } else if (familyHasChanges) {
-              if (!_editedSections.contains('Keluarga')) {
-                _editedSections.add('Keluarga');
-                _hasUnsavedChanges = true;
-                print('→ Added to EDITED (flag = true)');
-              }
-            } else if (_hasDataChangedSync(
-              'keluarga',
-              keluargaData,
-              familyUserSaved,
-            )) {
-              if (!_editedSections.contains('Keluarga')) {
-                _editedSections.add('Keluarga');
-                _hasUnsavedChanges = true;
-                print('→ Added to EDITED (sync check = true)');
-              }
-            } else {
-              print('→ No status (no conditions met)');
-            }
-          }
-
-          print('=== PENDIDIKAN STATUS CHECK START ===');
-          print(
-            'completionStatus[pendidikan]: ${completionStatus['pendidikan']}',
+          _updateSectionStatus(
+            sectionName,
+            sectionData,
+            completionStatus,
+            userSaved: sectionFlags['userSaved'] as bool,
+            hasChanges: sectionFlags['hasChanges'] as bool,
+            justSaved: sectionFlags['justSaved'] as bool,
           );
-          print('educationHasChanges: $educationHasChanges');
-          print('educationJustSaved: $educationJustSaved');
-          print('educationUserSaved: $educationUserSaved');
-          print(
-            'pendidikanData: ${pendidikanData.tingkatPendidikan} - ${pendidikanData.namaInstitusi}',
-          );
-          print(
-            '_editedSections contains Pendidikan: ${_editedSections.contains('Pendidikan')}',
-          );
-          print(
-            '_completedSections contains Pendidikan: ${_completedSections.contains('Pendidikan')}',
-          );
-          print('Current _editedSections before check: $_editedSections');
-          print('Current _completedSections before check: $_completedSections');
+        }
 
-          final educationDataList = prefs.getStringList('education_data');
-          final hasActualEducationData =
-              educationDataList != null && educationDataList.isNotEmpty;
-          print('hasActualEducationData in storage: $hasActualEducationData');
-          print('educationDataList: $educationDataList');
-
-          if (_recentlyEditedViNavigation.contains('Pendidikan')) {
-            print(
-              '→ PRESERVED: Pendidikan recently edited via navigation, keeping EDITED status',
-            );
-            if (!_editedSections.contains('Pendidikan')) {
-              _editedSections.add('Pendidikan');
-              _hasUnsavedChanges = true;
-            }
-          } else if (educationHasChanges) {
-            print('→ CONDITION 1: educationHasChanges = true');
-            if (!_editedSections.contains('Pendidikan')) {
-              _editedSections.add('Pendidikan');
-              _hasUnsavedChanges = true;
-              print('→ Added Pendidikan to EDITED (has unsaved changes)');
-            } else {
-              print('→ Pendidikan already in EDITED sections');
-            }
-          } else if (educationJustSaved) {
-            print('→ CONDITION 2: educationJustSaved = true');
-            if (!_editedSections.contains('Pendidikan')) {
-              _editedSections.add('Pendidikan');
-              _hasUnsavedChanges = true;
-              print(
-                '→ Added Pendidikan to EDITED (just saved from individual page, need profile sections save)',
-              );
-            } else {
-              print('→ Pendidikan already in EDITED sections');
-            }
-          } else if (educationUserSaved &&
-              hasActualEducationData &&
-              completionStatus['pendidikan'] == true) {
-            print(
-              '→ CONDITION 3: educationUserSaved = true AND hasActualEducationData = true AND completionStatus = true',
-            );
-            _completedSections.add('Pendidikan');
-            print(
-              '→ Added Pendidikan to COMPLETED (user has saved, has data, and provider status = true)',
-            );
-          } else {
-            print('→ NO CONDITIONS MET - No status assigned');
-            print('  - educationUserSaved: $educationUserSaved');
-            print('  - educationHasChanges: $educationHasChanges');
-            print('  - educationJustSaved: $educationJustSaved');
-            print(
-              '  - completionStatus[pendidikan]: ${completionStatus['pendidikan']}',
-            );
-            print(
-              '  - has provider data: ${pendidikanData.tingkatPendidikan.isNotEmpty || pendidikanData.namaInstitusi.isNotEmpty}',
-            );
-          }
-
-          print('FINAL AFTER PENDIDIKAN CHECK:');
-          print('→ _editedSections: $_editedSections');
-          print('→ _completedSections: $_completedSections');
-          print('→ _hasUnsavedChanges: $_hasUnsavedChanges');
-          print('=== PENDIDIKAN STATUS CHECK END ===');
-
-          final skipWorkHistoryProcessing =
-              prefs.getBool('_temp_skip_work_history_processing') ?? false;
-          if (skipWorkHistoryProcessing) {
-            Future.microtask(() async {
-              await prefs.remove('_temp_skip_work_history_processing');
-            });
-            print('=== SKIPPING WORK HISTORY PROCESSING (TEMPORARY FLAG) ===');
-            print('→ NOT added to any sections (temporary skip)');
-          } else {
-            print('=== RIWAYAT PEKERJAAN STATUS CHECK START ===');
-            print('workHistoryHasChanges: $workHistoryHasChanges');
-            print('workHistoryUserSaved: $workHistoryUserSaved');
-            print('workHistoryJustSaved: $workHistoryJustSaved');
-            print(
-              'completionStatus[riwayatPekerjaan]: ${completionStatus['riwayatPekerjaan']}',
-            );
-
-            final workHistoryDataList = prefs.getStringList(
-              'work_history_data',
-            );
-            final hasActualData =
-                workHistoryDataList != null && workHistoryDataList.isNotEmpty;
-
-            print('hasActualData in storage: $hasActualData');
-            print('workHistoryDataList: $workHistoryDataList');
-            print(
-              '_editedSections contains Riwayat Pekerjaan: ${_editedSections.contains('Riwayat Pekerjaan')}',
-            );
-            print(
-              '_completedSections contains Riwayat Pekerjaan: ${_completedSections.contains('Riwayat Pekerjaan')}',
-            );
-            print('Current _editedSections before check: $_editedSections');
-            print(
-              'Current _completedSections before check: $_completedSections',
-            );
-
-            // SAMA DENGAN PENDIDIKAN - Prioritas: work_history_has_changes > work_history_just_saved > work_history_user_saved + actual data + completed
-            // Prioritas 1: Jika ada flag work_history_has_changes, mark as edited (perubahan baru yang belum disimpan)
-            if (workHistoryHasChanges) {
-              print('→ CONDITION 1: workHistoryHasChanges = true');
-              if (!_editedSections.contains('Riwayat Pekerjaan')) {
-                _editedSections.add('Riwayat Pekerjaan');
-                _hasUnsavedChanges = true;
-                print(
-                  '→ Added Riwayat Pekerjaan to EDITED (has unsaved changes)',
-                );
-              } else {
-                print('→ Riwayat Pekerjaan already in EDITED sections');
-              }
-            } else if (workHistoryJustSaved) {
-              print('→ CONDITION 2: workHistoryJustSaved = true');
-              if (!_editedSections.contains('Riwayat Pekerjaan')) {
-                _editedSections.add('Riwayat Pekerjaan');
-                _hasUnsavedChanges = true;
-                print(
-                  '→ Added Riwayat Pekerjaan to EDITED (just saved from individual page, need profile sections save)',
-                );
-              } else {
-                print('→ Riwayat Pekerjaan already in EDITED sections');
-              }
-            } else if (workHistoryUserSaved &&
-                hasActualData &&
-                completionStatus['riwayatPekerjaan'] == true) {
-              print(
-                '→ CONDITION 3: workHistoryUserSaved = true AND hasActualData = true AND completionStatus = true',
-              );
-              _completedSections.add('Riwayat Pekerjaan');
-              print(
-                '→ Added Riwayat Pekerjaan to COMPLETED (user has saved, has data, and provider status = true)',
-              );
-            } else {
-              print('→ NO CONDITIONS MET - No status assigned');
-              print('  - workHistoryUserSaved: $workHistoryUserSaved');
-              print('  - workHistoryHasChanges: $workHistoryHasChanges');
-              print('  - workHistoryJustSaved: $workHistoryJustSaved');
-              print(
-                '  - completionStatus[riwayatPekerjaan]: ${completionStatus['riwayatPekerjaan']}',
-              );
-              print('  - hasActualData: $hasActualData');
-            }
-
-            print('FINAL AFTER RIWAYAT PEKERJAAN CHECK:');
-            print('→ _editedSections: $_editedSections');
-            print('→ _completedSections: $_completedSections');
-            print('=== RIWAYAT PEKERJAAN STATUS CHECK END ===');
-          }
-
-          if (idCardData.fotoPath.isNotEmpty || idCardData.isUploaded) {
-            if (_hasDataChangedSync('pasFoto', idCardData, true)) {
-              if (!_editedSections.contains('PAS Foto')) {
-                _editedSections.add('PAS Foto');
-              }
-            } else {
-              if (completionStatus['pasFoto'] == true) {
-                _completedSections.add('PAS Foto');
-              }
-            }
-          }
-
-          _hasUnsavedChanges = _editedSections.isNotEmpty;
-
-          completionStatus.forEach((key, value) {
-            if (value) {
-              final sectionName = _getSectionNameFromKey(key);
-
-              if (!_editedSections.contains(sectionName)) {
-                _completedSections.add(sectionName);
-              }
-            }
-          });
-
-          for (String sectionName in currentCompletedSections) {
-            if (!_editedSections.contains(sectionName)) {
-              _completedSections.add(sectionName);
-            }
-          }
-
-          print('=== FINAL STATUS ===');
-          print('Final completed sections: $_completedSections');
-          print('Final edited sections: $_editedSections');
-          print('===================');
-        });
+        _hasUnsavedChanges = _editedSections.isNotEmpty;
+        debugPrint('ProfileSectionsPage: Loaded completion status - completedSections=$_completedSections, editedSections=$_editedSections, hasUnsavedChanges=$_hasUnsavedChanges');
       });
+
+      await Future.wait([
+        prefs.setBool('edit_profile_just_saved', false),
+        prefs.setBool('pribadi_just_saved', false),
+        prefs.setBool('honorarium_just_saved', false),
+        prefs.setBool('keluarga_just_saved', false),
+        prefs.setBool('pas_foto_just_saved', false),
+        prefs.setBool('dokumen_just_saved', false),
+        prefs.setBool('pendidikan_just_saved', false),
+        prefs.setBool('work_history_just_saved', false),
+        prefs.setBool('data_lamaran_just_saved', false),
+      ]);
     });
   }
 
-  // Helper method untuk cek apakah data berubah dari status yang tersimpan (sync version)
-  bool _hasDataChangedSync(
-    String section,
-    dynamic currentData,
-    bool userHasSaved,
-  ) {
-    print('=== _hasDataChangedSync DEBUG ===');
-    print('section: $section');
-    print('userHasSaved: $userHasSaved');
-
-    // Cek apakah ada data yang diisi
-    if (!_hasNonEmptyData(section, currentData)) {
-      print('→ No non-empty data, returning false');
-      return false; // Tidak ada data, tidak dalam status edited
-    }
-    print('→ Has non-empty data');
-
-    // Untuk section pendidikan dan riwayat pekerjaan, cek flag user_saved
-    if ((section == 'pendidikan' || section == 'riwayatPekerjaan') &&
-        !userHasSaved) {
-      print('→ User has not saved yet, returning false');
-      return false; // Data dummy ada tapi user belum save = tidak ada status
-    }
-    print('→ User has saved');
-
-    // Cek apakah section sudah di-mark completed di provider
-    final completionStatus = ref.read(profileCompletionProvider);
-    final isMarkedCompleted = completionStatus[section] == true;
-    print('→ completionStatus[$section]: ${completionStatus[section]}');
-    print('→ isMarkedCompleted: $isMarkedCompleted');
-
-    // Jika sudah completed, maka section ini tidak dalam status "edited" lagi
-    if (isMarkedCompleted) {
-      print('→ Already completed, returning false');
-      return false; // Sudah completed, tidak edited
-    }
-
-    // Jika belum completed dan ada data, maka statusnya edited
-    print('→ Not completed but has data, returning true (EDITED)');
-    return true; // Ada data tapi belum completed = edited
-  }
-
-  // Helper method untuk cek apakah data tidak kosong (indicating ada data baru)
-  bool _hasNonEmptyData(String section, dynamic data) {
-    try {
-      switch (section) {
-        case 'editProfile':
-          return data.nama.isNotEmpty ||
-              data.nik.isNotEmpty ||
-              data.bidangKeahlian.isNotEmpty ||
-              data.toefl.isNotEmpty;
-        case 'identitasDiri':
-          return data.tempatLahir.isNotEmpty ||
-              data.email.isNotEmpty ||
-              data.handphone.isNotEmpty ||
-              data.address.isNotEmpty;
-        case 'honorarium':
-          return data.kartuKeluarga.isNotEmpty ||
-              data.ktp.isNotEmpty ||
-              data.rekening.isNotEmpty;
-        case 'dataLamaran':
-          return data.position.isNotEmpty || data.placement.isNotEmpty;
-        case 'dokumen':
-          return data.cvUploaded || data.ktpUploaded || data.kkUploaded;
-        case 'keluarga':
-          return data.namaAyah.isNotEmpty || data.namaIbu.isNotEmpty;
-        case 'pendidikan':
-          return data.tingkatPendidikan.isNotEmpty ||
-              data.namaInstitusi.isNotEmpty;
-        case 'riwayatPekerjaan':
-          return data.namaPerusahaan.isNotEmpty || data.posisi.isNotEmpty;
-        case 'pasFoto':
-          return data.fotoPath.isNotEmpty || data.isUploaded;
-        default:
-          return false;
-      }
-    } catch (e) {
-      print('Error checking non-empty data for section $section: $e');
-      return false;
-    }
-  }
-
-  // Helper untuk convert completion key ke section name
-  String _getSectionNameFromKey(String key) {
-    switch (key) {
-      case 'editProfile':
-        return 'Edit Profil';
-      case 'identitasDiri':
-        return 'Identitas Diri';
-      case 'honorarium':
-        return 'Honorarium';
-      case 'keluarga':
-        return 'Keluarga';
-      case 'pasFoto':
-        return 'PAS Foto';
-      case 'dokumen':
-        return 'Dokumen';
-      case 'pendidikan':
-        return 'Pendidikan';
-      case 'riwayatPekerjaan':
-        return 'Riwayat Pekerjaan';
-      case 'dataLamaran':
-        return 'Data Lamaran';
-      default:
-        return key;
-    }
-  }
-
-  // Fungsi untuk navigasi dengan callback
-  Future<void> _navigateToSection(String routeName, String sectionName) async {
-    print('=== NAVIGATING TO SECTION: $sectionName ===');
-
-    // Store status sebelum navigasi
-    final completionStatus = ref.read(profileCompletionProvider);
-    final wasCompleted =
-        completionStatus[_getSectionKeyFromName(sectionName)] == true;
-
-    print('Section before navigation - wasCompleted: $wasCompleted');
-    print('_editedSections before: $_editedSections');
-    print('_completedSections before: $_completedSections');
-
-    // Navigasi ke halaman form
-    final result = await context.pushNamed(routeName);
-
-    print('Navigation result: $result');
-
-    // CRITICAL FIX: Add longer delay to ensure SharedPreferences operations from child pages are completed
-    // This is especially important for card-based pages that do async operations
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    // CRITICAL FIX: SELALU panggil immediate flag detection, regardless of return value
-    // Ini untuk mendeteksi add/edit/delete yang tidak return value tapi sudah set flag
-    print('→ Calling immediate flag detection for $sectionName...');
-    await _checkFlagsImmediatelyAfterNavigation(sectionName);
-
-    // Jika form mengembalikan 'saved', berarti user menyimpan data (legacy support)
-    if (result == 'saved' || result == true) {
-      print('→ Legacy return value detected, additional handling...');
-      setState(() {
-        // Jika section sebelumnya sudah completed, ubah ke edited
-        if (wasCompleted) {
-          _completedSections.remove(sectionName);
-          _editedSections.add(sectionName);
-          _hasUnsavedChanges = true;
-
-          // Unmark completed status
-          final completionNotifier = ref.read(
-            profileCompletionProvider.notifier,
-          );
-          completionNotifier.markIncomplete(
-            _getSectionKeyFromName(sectionName),
-          );
-
-          // Reset flag user_saved untuk pendidikan dan riwayat pekerjaan jika mereka di-edit ulang
-          _resetUserSavedFlagIfNeeded(sectionName);
-        } else {
-          // Jika belum completed, tambahkan ke edited
-          _editedSections.add(sectionName);
-          _hasUnsavedChanges = true;
+  Future<bool> _hasNonEmptyData(String section, dynamic data) async {
+    final prefs = await SharedPreferences.getInstance();
+    switch (section) {
+      case 'Edit Profil':
+        return data.nama?.isNotEmpty == true || data.nik?.isNotEmpty == true || data.bidangKeahlian?.isNotEmpty == true || data.toefl?.isNotEmpty == true;
+      case 'Identitas Diri':
+        return data.tempatLahir?.isNotEmpty == true || data.email?.isNotEmpty == true || data.handphone?.isNotEmpty == true || data.address?.isNotEmpty == true;
+      case 'Honorarium':
+        return data.kartuKeluarga?.isNotEmpty == true || data.ktp?.isNotEmpty == true || data.rekening?.isNotEmpty == true;
+      case 'Data Lamaran':
+        return data.position?.isNotEmpty == true || data.placement?.isNotEmpty == true;
+      case 'Dokumen':
+        return data.cvUploaded == true || data.ktpUploaded == true || data.kkUploaded == true;
+      case 'Keluarga':
+        return data.namaAyah?.isNotEmpty == true || 
+               data.namaIbu?.isNotEmpty == true || 
+               data.namaPasangan?.isNotEmpty == true || 
+               (data.namaAnak != null && (data.namaAnak is String ? data.namaAnak.isNotEmpty : (data.namaAnak is List ? (data.namaAnak as List).any((e) => e.isNotEmpty) : false)));
+      case 'Pendidikan':
+        final savedEducationData = prefs.getStringList('education_data') ?? [];
+        bool hasSavedData = false;
+        if (savedEducationData.isNotEmpty) {
+          try {
+            for (String jsonStr in savedEducationData) {
+              final Map<String, dynamic> educationMap = jsonDecode(jsonStr);
+              if (educationMap['jenjang']?.toString().isNotEmpty == true || educationMap['institusi']?.toString().isNotEmpty == true) {
+                hasSavedData = true;
+                break;
+              }
+            }
+          } catch (e) {
+            debugPrint('ProfileSectionsPage: Error parsing education_data: $e');
+          }
         }
-      });
+        bool hasProviderData = data.tingkatPendidikan?.isNotEmpty == true || data.namaInstitusi?.isNotEmpty == true;
+        debugPrint('ProfileSectionsPage: Pendidikan - hasSavedData=$hasSavedData, hasProviderData=$hasProviderData, education_data=$savedEducationData');
+        return hasSavedData || hasProviderData;
+      case 'Riwayat Pekerjaan':
+        final savedWorkHistoryData = prefs.getStringList('work_history_data') ?? [];
+        bool hasSavedData = false;
+        if (savedWorkHistoryData.isNotEmpty) {
+          try {
+            for (String jsonStr in savedWorkHistoryData) {
+              final Map<String, dynamic> workMap = jsonDecode(jsonStr);
+              if (workMap['position']?.toString().isNotEmpty == true || workMap['company']?.toString().isNotEmpty == true) {
+                hasSavedData = true;
+                break;
+              }
+            }
+          } catch (e) {
+            debugPrint('ProfileSectionsPage: Error parsing work_history_data: $e');
+          }
+        }
+        bool hasProviderData = data.namaPerusahaan?.isNotEmpty == true || data.posisi?.isNotEmpty == true;
+        debugPrint('ProfileSectionsPage: Riwayat Pekerjaan - hasSavedData=$hasSavedData, hasProviderData=$hasProviderData, work_history_data=$savedWorkHistoryData');
+        return hasSavedData || hasProviderData;
+      case 'PAS Foto':
+        return data.fotoPath?.isNotEmpty == true || data.isUploaded == true;
+      default:
+        return false;
+    }
+  }
+
+  void _updateSectionStatus(
+    String sectionName,
+    dynamic data,
+    Map<String, dynamic> completionStatus, {
+    required bool userSaved,
+    required bool hasChanges,
+    required bool justSaved,
+  }) async {
+    final sectionKey = _getSectionKeyFromName(sectionName);
+    final hasNonEmptyData = await _hasNonEmptyData(sectionName, data);
+
+    debugPrint('ProfileSectionsPage: Updating status for $sectionName - userSaved=$userSaved, hasChanges=$hasChanges, justSaved=$justSaved, hasNonEmptyData=$hasNonEmptyData');
+
+    if (hasChanges || justSaved) {
+      _editedSections.add(sectionName);
+      ref.read(profileCompletionProvider.notifier).markIncomplete(sectionKey);
+    } else if (userSaved && hasNonEmptyData) {
+      _completedSections.add(sectionName);
+      ref.read(profileCompletionProvider.notifier).markCompleted(sectionKey);
     } else {
-      print('→ No legacy return value, relying on immediate flag detection');
-    }
-
-    print('_editedSections after navigation: $_editedSections');
-    print('_completedSections after navigation: $_completedSections');
-    print('=== END NAVIGATION TO $sectionName ===');
-  }
-
-  // Check flags immediately after navigation to detect unsaved changes
-  Future<void> _checkFlagsImmediatelyAfterNavigation(String sectionName) async {
-    print('=== IMMEDIATE FLAG CHECK AFTER NAVIGATION ===');
-    print('Section: $sectionName');
-
-    // Set protection flag to prevent interference from _loadCompletionStatus
-    _isProcessingImmediateFlagDetection = true;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Cek flag has_changes untuk section yang baru saja di-navigate
-      bool hasChanges = false;
-      String flagKey = '';
-
-      if (sectionName == 'Pendidikan') {
-        hasChanges = prefs.getBool('education_has_changes') ?? false;
-        flagKey = 'education_has_changes';
-      } else if (sectionName == 'Riwayat Pekerjaan') {
-        hasChanges = prefs.getBool('work_history_has_changes') ?? false;
-        flagKey = 'work_history_has_changes';
-      } else if (sectionName == 'Keluarga') {
-        hasChanges = prefs.getBool('family_has_changes') ?? false;
-        flagKey = 'family_has_changes';
-      }
-
-      print('Flag $flagKey: $hasChanges');
-
-      if (hasChanges && mounted) {
-        print('→ Detected unsaved changes, updating status to EDITED');
-        setState(() {
-          // Remove from completed if it was there
-          final sectionKey = _getSectionKeyFromName(sectionName);
-          _completedSections.remove(sectionName);
-
-          // Add to edited sections
-          _editedSections.add(sectionName);
-          _hasUnsavedChanges = true;
-
-          // CRITICAL FIX: Track this section as recently edited via navigation
-          // This prevents _loadCompletionStatus from overriding the status
-          _recentlyEditedViNavigation.add(sectionName);
-
-          // Unmark completed status in provider
-          final completionNotifier = ref.read(
-            profileCompletionProvider.notifier,
-          );
-          completionNotifier.markIncomplete(sectionKey);
-        });
-
-        print('→ Status updated to EDITED for $sectionName');
-      } else {
-        print('→ No unsaved changes detected');
-      }
-    } catch (e) {
-      print('Error in immediate flag check: $e');
-    } finally {
-      // CRITICAL FIX: Hold protection flag longer to prevent didChangeDependencies
-      // from interfering with our status update via _loadCompletionStatus
-      Future.delayed(const Duration(milliseconds: 300), () {
-        _isProcessingImmediateFlagDetection = false;
-        print('→ Protection flag cleared after extended delay');
-      });
-
-      // Clear recently edited via navigation after longer delay to prevent status from being sticky
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _recentlyEditedViNavigation.clear();
-        print('→ Recently edited via navigation cleared');
-      });
-    }
-
-    print('=== END IMMEDIATE FLAG CHECK (protection flag still active) ===');
-  }
-
-  // Helper function to reset user_saved flag if needed
-  void _resetUserSavedFlagIfNeeded(String sectionName) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      if (sectionName == 'Pendidikan') {
-        await prefs.setBool('education_user_saved', false);
-        print('Reset education_user_saved = false');
-      } else if (sectionName == 'Riwayat Pekerjaan') {
-        await prefs.setBool('work_history_user_saved', false);
-        print('Reset work_history_user_saved = false');
-      }
-    } catch (e) {
-      print('Error resetting user_saved flag: $e');
+      _completedSections.remove(sectionName);
+      ref.read(profileCompletionProvider.notifier).markIncomplete(sectionKey);
     }
   }
 
-  // Helper untuk convert section name ke completion key
   String _getSectionKeyFromName(String sectionName) {
     switch (sectionName) {
       case 'Edit Profil':
@@ -964,212 +413,328 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     }
   }
 
-  // Fungsi untuk menyimpan semua perubahan
-  void _saveChanges() async {
-    setState(() {
-      // Pindahkan semua edited sections ke completed sections
-      _completedSections.addAll(_editedSections);
-
-      // Update completion status di provider untuk setiap edited section
-      final completionNotifier = ref.read(profileCompletionProvider.notifier);
-      for (String sectionName in _editedSections) {
-        final sectionKey = _getSectionKeyFromName(sectionName);
-        completionNotifier.markCompleted(sectionKey);
-      }
-
-      // Clear edited sections dan unsaved changes flag
-      _editedSections.clear();
-      _hasUnsavedChanges = false;
-    });
-
-    // Set flag user_saved untuk pendidikan dan riwayat pekerjaan jika ada perubahan
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Cek apakah pendidikan atau riwayat pekerjaan ada di completed sections
-      if (_completedSections.contains('Pendidikan')) {
-        // JANGAN AUTO-SET education_user_saved flag di sini!
-        // Flag ini hanya boleh di-set saat user explicitly save di pendidikan page
-        // Kalau di-set di sini, akan menyebabkan data muncul di profile page padahal user belum save
-
-        print(
-          'Pendidikan in completed sections, but NOT setting education_user_saved flag',
-        );
-        print(
-          'Flag education_user_saved should only be set from pendidikan page save',
-        );
-
-        // Clear flag education_has_changes karena sudah di-save di profile sections
-        await prefs.setBool('education_has_changes', false);
-        // Clear flag education_just_saved karena sudah di-save di profile sections
-        await prefs.setBool('education_just_saved', false);
-        print('Clear education_has_changes = false');
-        print('Clear education_just_saved = false');
-      }
-
-      if (_completedSections.contains('Riwayat Pekerjaan')) {
-        // JANGAN AUTO-SET work_history_user_saved flag di sini!
-        // Flag ini hanya boleh di-set saat user explicitly save di riwayat pekerjaan page
-        // Kalau di-set di sini, akan menyebabkan data muncul di profile page padahal user belum save
-
-        print(
-          'Riwayat Pekerjaan in completed sections, but NOT setting work_history_user_saved flag',
-        );
-        print(
-          'Flag work_history_user_saved should only be set from riwayat pekerjaan page save',
-        );
-
-        // Clear flag work_history_has_changes karena sudah di-save di profile sections
-        await prefs.setBool('work_history_has_changes', false);
-        // CRITICAL: DON'T clear work_history_just_saved flag!
-        // This flag is needed by profile_page to detect saved data properly
-        // If we clear it here, profile_page will think user never saved and won't show data
-        // await prefs.setBool('work_history_just_saved', false); // REMOVED
-        print('Clear work_history_has_changes = false');
-        print(
-          'PRESERVED work_history_just_saved for profile_page data loading',
-        );
-      }
-
-      if (_completedSections.contains('Keluarga')) {
-        // JANGAN AUTO-SET family_user_saved flag di sini!
-        // Flag ini hanya boleh di-set saat user explicitly save di keluarga page
-        // Kalau di-set di sini, akan menyebabkan data muncul di profile page padahal user belum save
-
-        print(
-          'Keluarga in completed sections, but NOT setting family_user_saved flag',
-        );
-        print(
-          'Flag family_user_saved should only be set from keluarga page save',
-        );
-
-        // Clear flag family_has_changes karena sudah di-save di profile sections
-        await prefs.setBool('family_has_changes', false);
-        // Clear flag family_just_saved karena sudah di-save di profile sections
-        await prefs.setBool('family_just_saved', false);
-        print('Clear family_has_changes = false');
-        print('Clear family_just_saved = false');
-      }
-    } catch (e) {
-      print('Error setting user_saved flags: $e');
+  String _getSectionNameFromKey(String key) {
+    switch (key) {
+      case 'editProfile':
+        return 'Edit Profil';
+      case 'identitasDiri':
+        return 'Identitas Diri';
+      case 'honorarium':
+        return 'Honorarium';
+      case 'keluarga':
+        return 'Keluarga';
+      case 'pasFoto':
+        return 'PAS Foto';
+      case 'dokumen':
+        return 'Dokumen';
+      case 'pendidikan':
+        return 'Pendidikan';
+      case 'riwayatPekerjaan':
+        return 'Riwayat Pekerjaan';
+      case 'dataLamaran':
+        return 'Data Lamaran';
+      default:
+        return key;
     }
-
-    // Update data original dengan data yang baru disimpan
-    _saveOriginalData();
-
-    // Status sudah diupdate dengan benar di setState() di atas
-    // Tidak perlu refresh lagi untuk menghindari interference
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data profil berhasil disimpan!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
-  // Fungsi untuk menampilkan dialog konfirmasi perubahan belum disimpan
-  Future<bool> _showUnsavedChangesDialog() async {
-    final result = await NotificationUtils.showConfirmationDialog(
-      context,
-      title: 'Perubahan Belum Disimpan',
-      message:
-          'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
-      confirmButtonText: 'Keluar Tanpa Menyimpan',
-      cancelButtonText: 'Batal',
-      icon: Icons.warning_amber_rounded,
-      isDangerous: true,
-    );
-    return result ?? false;
-  }
+  Future<void> _navigateToSection(String routeName, String sectionName) async {
+    final completionStatus = ref.read(profileCompletionProvider);
+    final wasCompleted = completionStatus[_getSectionKeyFromName(sectionName)] == true;
 
-  // Fungsi untuk menangani tombol back
-  Future<bool> _onWillPop() async {
-    if (_hasUnsavedChanges) {
-      final shouldLeave = await _showUnsavedChangesDialog();
-      if (shouldLeave) {
-        // Restore data ke kondisi semula jika user pilih keluar tanpa menyimpan
-        _restoreOriginalData();
-      }
-      return shouldLeave;
-    }
-    return true;
-  }
+    final result = await context.pushNamed(routeName);
+    await Future.delayed(const Duration(milliseconds: 200));
+    await _checkFlagsImmediatelyAfterNavigation(sectionName);
 
-  // Restore semua data ke kondisi asli
-  void _restoreOriginalData() {
-    print('=== RESTORING ORIGINAL DATA ===');
-    print('Original data map: ${_originalData.keys}');
-
-    if (_originalData.isNotEmpty) {
-      // Restore data untuk setiap provider
-      if (_originalData.containsKey('editProfile')) {
-        print('Restoring editProfile data');
-        ref
-            .read(editProfileDataProvider.notifier)
-            .updateData(_originalData['editProfile']);
-      }
-      if (_originalData.containsKey('identitasDiri')) {
-        print('Restoring identitasDiri data');
-        ref
-            .read(pribadiDataProvider.notifier)
-            .updateData(_originalData['identitasDiri']);
-      }
-      if (_originalData.containsKey('honorarium')) {
-        print('Restoring honorarium data');
-        ref
-            .read(honorariumDataProvider.notifier)
-            .updateData(_originalData['honorarium']);
-      }
-      if (_originalData.containsKey('dataLamaran')) {
-        print('Restoring dataLamaran data');
-        ref
-            .read(dataLamaranDataProvider.notifier)
-            .updateData(_originalData['dataLamaran']);
-      }
-      if (_originalData.containsKey('dokumen')) {
-        print('Restoring dokumen data');
-        ref
-            .read(dokumenDataProvider.notifier)
-            .updateData(_originalData['dokumen']);
-      }
-      if (_originalData.containsKey('keluarga')) {
-        print('Restoring keluarga data');
-        ref
-            .read(keluargaDataProvider.notifier)
-            .updateData(_originalData['keluarga']);
-      }
-      if (_originalData.containsKey('pendidikan')) {
-        print('Restoring pendidikan data');
-        ref
-            .read(pendidikanDataProvider.notifier)
-            .updateData(_originalData['pendidikan']);
-      }
-      if (_originalData.containsKey('riwayatPekerjaan')) {
-        print('Restoring riwayatPekerjaan data');
-        ref
-            .read(riwayatPekerjaanDataProvider.notifier)
-            .updateData(_originalData['riwayatPekerjaan']);
-      }
-      if (_originalData.containsKey('idCard')) {
-        print('Restoring idCard data');
-        ref
-            .read(idCardDataProvider.notifier)
-            .updateData(_originalData['idCard']);
-      }
-
-      // Reset status tracking
+    if (result == 'saved' || result == true) {
       setState(() {
+        _editedSections.add(sectionName);
+        if (wasCompleted) {
+          _completedSections.add(sectionName);
+        }
+        _hasUnsavedChanges = _editedSections.isNotEmpty;
+      });
+      await _loadCompletionStatus();
+    }
+  }
+
+  Future<void> _checkFlagsImmediatelyAfterNavigation(String sectionName) async {
+    _isProcessingImmediateFlagDetection = true;
+    final prefs = await SharedPreferences.getInstance();
+    bool hasChanges = false;
+    bool justSaved = false;
+    bool userSaved = false;
+
+    switch (sectionName) {
+      case 'Edit Profil':
+        hasChanges = prefs.getBool('edit_profile_has_changes') ?? false;
+        justSaved = prefs.getBool('edit_profile_just_saved') ?? false;
+        userSaved = prefs.getBool('edit_profile_user_saved') ?? false;
+        break;
+      case 'Identitas Diri':
+        hasChanges = prefs.getBool('pribadi_has_changes') ?? false;
+        justSaved = prefs.getBool('pribadi_just_saved') ?? false;
+        userSaved = prefs.getBool('pribadi_user_saved') ?? false;
+        break;
+      case 'Honorarium':
+        hasChanges = prefs.getBool('honorarium_has_changes') ?? false;
+        justSaved = prefs.getBool('honorarium_just_saved') ?? false;
+        userSaved = prefs.getBool('honorarium_user_saved') ?? false;
+        break;
+      case 'Keluarga':
+        hasChanges = prefs.getBool('keluarga_has_changes') ?? false;
+        justSaved = prefs.getBool('keluarga_just_saved') ?? false;
+        userSaved = prefs.getBool('keluarga_user_saved') ?? false;
+        break;
+      case 'PAS Foto':
+        hasChanges = prefs.getBool('pas_foto_has_changes') ?? false;
+        justSaved = prefs.getBool('pas_foto_just_saved') ?? false;
+        userSaved = prefs.getBool('pas_foto_user_saved') ?? false;
+        break;
+      case 'Dokumen':
+        hasChanges = prefs.getBool('dokumen_has_changes') ?? false;
+        justSaved = prefs.getBool('dokumen_just_saved') ?? false;
+        userSaved = prefs.getBool('dokumen_user_saved') ?? false;
+        break;
+      case 'Pendidikan':
+        hasChanges = prefs.getBool('pendidikan_has_changes') ?? false;
+        justSaved = prefs.getBool('pendidikan_just_saved') ?? false;
+        userSaved = prefs.getBool('pendidikan_user_saved') ?? false;
+        break;
+      case 'Riwayat Pekerjaan':
+        hasChanges = prefs.getBool('work_history_has_changes') ?? false;
+        justSaved = prefs.getBool('work_history_just_saved') ?? false;
+        userSaved = prefs.getBool('work_history_user_saved') ?? false;
+        break;
+      case 'Data Lamaran':
+        hasChanges = prefs.getBool('data_lamaran_has_changes') ?? false;
+        justSaved = prefs.getBool('data_lamaran_just_saved') ?? false;
+        userSaved = prefs.getBool('data_lamaran_user_saved') ?? false;
+        break;
+    }
+
+    debugPrint('ProfileSectionsPage: After navigation to $sectionName - hasChanges=$hasChanges, justSaved=$justSaved, userSaved=$userSaved, completedSections=$_completedSections');
+
+    if (justSaved && mounted) {
+      setState(() {
+        _editedSections.add(sectionName);
+        _completedSections.add(sectionName);
+        _hasUnsavedChanges = _editedSections.isNotEmpty;
+        ref.read(profileCompletionProvider.notifier).markCompleted(_getSectionKeyFromName(sectionName));
+      });
+      await prefs.setBool('${_getSectionKeyFromName(sectionName)}_just_saved', false);
+      await prefs.setBool('${_getSectionKeyFromName(sectionName)}_user_saved', true);
+    } else if (hasChanges && mounted) {
+      setState(() {
+        _editedSections.add(sectionName);
+        _hasUnsavedChanges = true;
+        ref.read(profileCompletionProvider.notifier).markIncomplete(_getSectionKeyFromName(sectionName));
+      });
+    } else if (userSaved && await _hasNonEmptyData(sectionName, ref.read(_getProviderForSection(sectionName))) && mounted) {
+      setState(() {
+        _completedSections.add(sectionName);
+        ref.read(profileCompletionProvider.notifier).markCompleted(_getSectionKeyFromName(sectionName));
+      });
+    }
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _isProcessingImmediateFlagDetection = false;
+    });
+  }
+
+  dynamic _getProviderForSection(String sectionName) {
+    switch (sectionName) {
+      case 'Edit Profil':
+        return editProfileDataProvider;
+      case 'Identitas Diri':
+        return pribadiDataProvider;
+      case 'Honorarium':
+        return honorariumDataProvider;
+      case 'Data Lamaran':
+        return dataLamaranDataProvider;
+      case 'Dokumen':
+        return dokumenDataProvider;
+      case 'Keluarga':
+        return keluargaDataProvider;
+      case 'Pendidikan':
+        return pendidikanDataProvider;
+      case 'Riwayat Pekerjaan':
+        return riwayatPekerjaanDataProvider;
+      case 'PAS Foto':
+        return idCardDataProvider;
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (_hasUnsavedChanges) {
+      setState(() {
+        _completedSections.addAll(_editedSections);
+        final completionNotifier = ref.read(profileCompletionProvider.notifier);
+        for (var sectionName in _editedSections) {
+          completionNotifier.markCompleted(_getSectionKeyFromName(sectionName));
+        }
         _editedSections.clear();
         _hasUnsavedChanges = false;
       });
 
-      print('All data restored successfully');
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        if (_completedSections.contains('Edit Profil')) ...[
+          prefs.setBool('edit_profile_has_changes', false),
+          prefs.setBool('edit_profile_just_saved', false),
+          prefs.setBool('edit_profile_user_saved', true),
+        ],
+        if (_completedSections.contains('Identitas Diri')) ...[
+          prefs.setBool('pribadi_has_changes', false),
+          prefs.setBool('pribadi_just_saved', false),
+          prefs.setBool('pribadi_user_saved', true),
+        ],
+        if (_completedSections.contains('Honorarium')) ...[
+          prefs.setBool('honorarium_has_changes', false),
+          prefs.setBool('honorarium_just_saved', false),
+          prefs.setBool('honorarium_user_saved', true),
+        ],
+        if (_completedSections.contains('Keluarga')) ...[
+          prefs.setBool('keluarga_has_changes', false),
+          prefs.setBool('keluarga_just_saved', false),
+          prefs.setBool('keluarga_user_saved', true),
+        ],
+        if (_completedSections.contains('PAS Foto')) ...[
+          prefs.setBool('pas_foto_has_changes', false),
+          prefs.setBool('pas_foto_just_saved', false),
+          prefs.setBool('pas_foto_user_saved', true),
+        ],
+        if (_completedSections.contains('Dokumen')) ...[
+          prefs.setBool('dokumen_has_changes', false),
+          prefs.setBool('dokumen_just_saved', false),
+          prefs.setBool('dokumen_user_saved', true),
+        ],
+        if (_completedSections.contains('Pendidikan')) ...[
+          prefs.setBool('pendidikan_has_changes', false),
+          prefs.setBool('pendidikan_just_saved', false),
+          prefs.setBool('pendidikan_user_saved', true),
+        ],
+        if (_completedSections.contains('Riwayat Pekerjaan')) ...[
+          prefs.setBool('work_history_has_changes', false),
+          prefs.setBool('work_history_just_saved', false),
+          prefs.setBool('work_history_user_saved', true),
+        ],
+        if (_completedSections.contains('Data Lamaran')) ...[
+          prefs.setBool('data_lamaran_has_changes', false),
+          prefs.setBool('data_lamaran_just_saved', false),
+          prefs.setBool('data_lamaran_user_saved', true),
+        ],
+      ]);
+
+      _saveOriginalData();
+      NotificationUtils.showSuccess(
+        context,
+        'Data profil berhasil disimpan!',
+        duration: const Duration(seconds: 2),
+      );
     } else {
-      print('No original data to restore');
+      NotificationUtils.showInfo(
+        context,
+        'Tidak ada perubahan untuk disimpan',
+        duration: const Duration(seconds: 2),
+      );
     }
-    print('===============================');
+  }
+
+  Future<bool> _showUnsavedChangesDialog() async {
+    return await SIHAKIConfirmationDialog.show(
+          context,
+          title: 'Perubahan Belum Disimpan',
+          message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+          confirmText: 'Keluar',
+          cancelText: 'Batal',
+          icon: Icons.warning_amber_rounded,
+          iconColor: Colors.red.shade600,
+          isDestructive: true,
+          onConfirm: () {
+            if (mounted) {
+              _restoreOriginalData();
+              NotificationUtils.showSuccess(
+                context,
+                'Perubahan pada data profil telah dibatalkan',
+              );
+              ref.read(bottomNavIndexProvider.notifier).state = 3;
+              context.go('/home');
+            }
+          },
+          onCancel: () {
+            if (mounted) {
+              context.pop(false);
+            }
+          },
+        ) ??
+        false;
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_hasUnsavedChanges) {
+      return await _showUnsavedChangesDialog();
+    }
+    ref.read(bottomNavIndexProvider.notifier).state = 3;
+    context.go('/home');
+    return false;
+  }
+
+  void _restoreOriginalData() {
+    if (_originalData.isEmpty) return;
+
+    final providers = {
+      'editProfile': editProfileDataProvider,
+      'identitasDiri': pribadiDataProvider,
+      'honorarium': honorariumDataProvider,
+      'dataLamaran': dataLamaranDataProvider,
+      'dokumen': dokumenDataProvider,
+      'keluarga': keluargaDataProvider,
+      'pendidikan': pendidikanDataProvider,
+      'riwayatPekerjaan': riwayatPekerjaanDataProvider,
+      'pasFoto': idCardDataProvider,
+    };
+
+    for (var entry in providers.entries) {
+      if (_originalData.containsKey(entry.key)) {
+        switch (entry.key) {
+          case 'editProfile':
+            ref.read(editProfileDataProvider.notifier).updateData(_originalData[entry.key] as EditProfileData);
+            break;
+          case 'identitasDiri':
+            ref.read(pribadiDataProvider.notifier).updateData(_originalData[entry.key] as PribadiData);
+            break;
+          case 'honorarium':
+            ref.read(honorariumDataProvider.notifier).updateData(_originalData[entry.key] as HonorariumData);
+            break;
+          case 'dataLamaran':
+            ref.read(dataLamaranDataProvider.notifier).updateData(_originalData[entry.key] as DataLamaranData);
+            break;
+          case 'dokumen':
+            ref.read(dokumenDataProvider.notifier).updateData(_originalData[entry.key] as DokumenData);
+            break;
+          case 'keluarga':
+            ref.read(keluargaDataProvider.notifier).updateData(_originalData[entry.key] as KeluargaData);
+            break;
+          case 'pendidikan':
+            ref.read(pendidikanDataProvider.notifier).updateData(_originalData[entry.key] as PendidikanData);
+            break;
+          case 'riwayatPekerjaan':
+            ref.read(riwayatPekerjaanDataProvider.notifier).updateData(_originalData[entry.key] as RiwayatPekerjaanData);
+            break;
+          case 'pasFoto':
+            ref.read(idCardDataProvider.notifier).updateData(_originalData[entry.key] as IdCardData);
+            break;
+        }
+      }
+    }
+
+    setState(() {
+      _editedSections.clear();
+      _hasUnsavedChanges = false;
+    });
   }
 
   @override
@@ -1178,11 +743,12 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
 
-    // REMOVED: Watch providers di build method - ini menyebabkan setState during build
-    // Providers akan di-watch hanya saat diperlukan di dalam callback atau method terpisah
-
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _onWillPop();
+      },
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
@@ -1199,20 +765,7 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () async {
-              if (_hasUnsavedChanges) {
-                final shouldLeave = await _showUnsavedChangesDialog();
-                if (shouldLeave && mounted) {
-                  // Restore data ke kondisi semula jika user pilih keluar tanpa menyimpan
-                  _restoreOriginalData();
-                  // Set tab ke Profile (index 3) dan navigasi ke MainLayout
-                  ref.read(bottomNavIndexProvider.notifier).state = 3;
-                  context.go('/home');
-                }
-              } else {
-                // Set tab ke Profile (index 3) dan navigasi ke MainLayout
-                ref.read(bottomNavIndexProvider.notifier).state = 3;
-                context.go('/home');
-              }
+              await _onWillPop();
             },
           ),
           actions: [
@@ -1245,7 +798,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
 
     return Column(
       children: [
-        // Grid Menu Items
         Expanded(
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -1278,8 +830,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
             ),
           ),
         ),
-
-        // Tombol Simpan di bawah
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
@@ -1287,19 +837,18 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
             vertical: 16.0,
           ),
           child: ElevatedButton(
-            onPressed: _hasUnsavedChanges ? _saveChanges : null,
+            onPressed: _saveChanges,
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  _hasUnsavedChanges ? theme.primarySwatch : Colors.grey[400],
+              backgroundColor: theme.primarySwatch,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12.0)),
               ),
-              elevation: _hasUnsavedChanges ? 3 : 0,
+              elevation: 3,
             ),
             child: Text(
-              _hasUnsavedChanges ? 'Simpan Perubahan' : 'Tidak Ada Perubahan',
+              'Simpan Perubahan',
               style: theme.typographyRegular.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -1311,31 +860,23 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     );
   }
 
-  // Helper methods for responsive grid
   int _getCrossAxisCount(double screenWidth) {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
-
-    if (screenWidth > 1200) return 4; // Large desktop
-    if (screenWidth > 900) {
-      return isLandscape ? 4 : 3; // Tablet landscape/portrait
-    }
-    if (screenWidth > 600) return isLandscape ? 3 : 3; // Tablet
-    return isLandscape ? 3 : 2; // Phone landscape/portrait
+    if (screenWidth > 1200) return 4;
+    if (screenWidth > 900) return isLandscape ? 4 : 3;
+    if (screenWidth > 600) return isLandscape ? 3 : 3;
+    return isLandscape ? 3 : 2;
   }
 
   double _getChildAspectRatio(double screenWidth) {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
-
-    if (screenWidth > 1200) return 1.1; // Large desktop
-    if (screenWidth > 900) {
-      return isLandscape ? 0.95 : 1.0; // Tablet landscape/portrait
-    }
-    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95; // Tablet
-    if (screenWidth < 350)
-      return isLandscape ? 0.9 : 1.1; // Small phone - taller cards
-    return isLandscape ? 0.85 : 1.0; // Regular phone landscape/portrait
+    if (screenWidth > 1200) return 1.1;
+    if (screenWidth > 900) return isLandscape ? 0.95 : 1.0;
+    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95;
+    if (screenWidth < 350) return isLandscape ? 0.9 : 1.1;
+    return isLandscape ? 0.85 : 1.0;
   }
 
   Widget _buildMenuItem(
@@ -1350,8 +891,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isSmallPhone = screenWidth < 350;
-
-    // Responsive sizing
     final iconContainerSize = isSmallPhone ? 60.0 : (isTablet ? 80.0 : 70.0);
     final iconSize = isSmallPhone ? 28.0 : (isTablet ? 40.0 : 35.0);
     final fontSize = isSmallPhone ? 12.0 : (isTablet ? 14.0 : 13.0);
@@ -1363,11 +902,11 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: color, // Use the section color as background
+          color: color,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3), // Shadow matches the color
+              color: color.withOpacity(0.3),
               blurRadius: 20,
               spreadRadius: 0,
               offset: const Offset(0, 8),
@@ -1380,13 +919,7 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top spacer when there's status to push content up
-              if (isEdited || isCompleted)
-                const Expanded(flex: 1, child: SizedBox())
-              else
-                const Expanded(flex: 2, child: SizedBox()),
-
-              // Icon with white background - Responsive size
+              if (isEdited || isCompleted) const Expanded(flex: 1, child: SizedBox()) else const Expanded(flex: 2, child: SizedBox()),
               Container(
                 width: iconContainerSize,
                 height: iconContainerSize,
@@ -1399,8 +932,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
                 ),
               ),
               SizedBox(height: spacing),
-
-              // Title in white - Responsive text
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -1413,81 +944,70 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
                   height: 1.2,
                 ),
               ),
-
-              // Bottom spacer
-              if (isEdited || isCompleted)
-                const Expanded(flex: 1, child: SizedBox())
-              else
-                const Expanded(flex: 2, child: SizedBox()),
-
-              // Status indicator - only when there's status
+              if (isEdited || isCompleted) const Expanded(flex: 1, child: SizedBox()) else const Expanded(flex: 2, child: SizedBox()),
               if (isEdited || isCompleted)
                 SizedBox(
                   height: statusSize,
-                  child:
-                      isEdited
-                          ? Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isSmallPhone ? 8 : 12,
-                              vertical: isSmallPhone ? 3 : 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade600,
-                              borderRadius: BorderRadius.circular(
-                                statusSize / 2,
+                  child: isEdited
+                      ? Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isSmallPhone ? 8 : 12,
+                            vertical: isSmallPhone ? 3 : 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade600,
+                            borderRadius: BorderRadius.circular(statusSize / 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.edit_rounded,
-                                  color: Colors.white,
-                                  size: isSmallPhone ? 12.0 : 14.0,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Edited',
-                                  style: theme.typographyRegular.bodySmall
-                                      .copyWith(
-                                        fontSize: isSmallPhone ? 9.0 : 11.0,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          )
-                          : Container(
-                            width: statusSize,
-                            height: statusSize,
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade600,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.check,
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.edit_rounded,
                                 color: Colors.white,
-                                size: isSmallPhone ? 14.0 : 18.0,
+                                size: isSmallPhone ? 12.0 : 14.0,
                               ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Edited',
+                                style: theme.typographyRegular.bodySmall.copyWith(
+                                  fontSize: isSmallPhone ? 9.0 : 11.0,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          width: statusSize,
+                          height: statusSize,
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade600,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: isSmallPhone ? 14.0 : 18.0,
                             ),
                           ),
+                        ),
                 ),
             ],
           ),
@@ -1498,78 +1018,15 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
 
   List<MenuItemData> _getDataPribadiItems(BuildContext context) {
     return [
-      MenuItemData(
-        'Edit Profil',
-        Icons.person,
-        const Color(0xFFFF7B7B), // Coral red
-        onTap: () async {
-          await _navigateToSection('editProfile', 'Edit Profil');
-        },
-      ),
-      MenuItemData(
-        'Identitas Diri',
-        Icons.badge,
-        const Color(0xFF64D8CB), // Turquoise
-        onTap: () async {
-          await _navigateToSection('pribadi', 'Identitas Diri');
-        },
-      ),
-      MenuItemData(
-        'Honorarium',
-        Icons.payments,
-        const Color(0xFF5BA7F7), // Sky blue
-        onTap: () async {
-          await _navigateToSection('honorarium', 'Honorarium');
-        },
-      ),
-      MenuItemData(
-        'Keluarga',
-        Icons.family_restroom,
-        const Color(0xFF9BCF9B), // Light green
-        onTap: () async {
-          await _navigateToSection('keluarga', 'Keluarga');
-        },
-      ),
-      MenuItemData(
-        'PAS Foto',
-        Icons.contact_phone,
-        const Color(0xFFFFC85C), // Golden yellow
-        onTap: () async {
-          await _navigateToSection('idCard', 'PAS Foto');
-        },
-      ),
-      MenuItemData(
-        'Dokumen',
-        Icons.folder,
-        const Color(0xFF8B7CF6), // Purple
-        onTap: () async {
-          await _navigateToSection('dokumen', 'Dokumen');
-        },
-      ),
-      MenuItemData(
-        'Pendidikan',
-        Icons.school,
-        const Color(0xFFFF9999), // Light coral
-        onTap: () async {
-          await _navigateToSection('pendidikan', 'Pendidikan');
-        },
-      ),
-      MenuItemData(
-        'Riwayat Pekerjaan',
-        Icons.work,
-        const Color(0xFFFFB1B1), // Soft pink
-        onTap: () async {
-          await _navigateToSection('riwayatPekerjaan', 'Riwayat Pekerjaan');
-        },
-      ),
-      MenuItemData(
-        'Data Lamaran',
-        Icons.card_membership,
-        const Color(0xFF70D4AA), // Mint green
-        onTap: () async {
-          await _navigateToSection('dataLamaran', 'Data Lamaran');
-        },
-      ),
+      MenuItemData('Edit Profil', Icons.person, const Color(0xFFFF7B7B), onTap: () async => await _navigateToSection('editProfile', 'Edit Profil')),
+      MenuItemData('Identitas Diri', Icons.badge, const Color(0xFF64D8CB), onTap: () async => await _navigateToSection('pribadi', 'Identitas Diri')),
+      MenuItemData('Honorarium', Icons.payments, const Color(0xFF5BA7F7), onTap: () async => await _navigateToSection('honorarium', 'Honorarium')),
+      MenuItemData('Keluarga', Icons.family_restroom, const Color(0xFF9BCF9B), onTap: () async => await _navigateToSection('keluarga', 'Keluarga')),
+      MenuItemData('PAS Foto', Icons.contact_phone, const Color(0xFFFFC85C), onTap: () async => await _navigateToSection('idCard', 'PAS Foto')),
+      MenuItemData('Dokumen', Icons.folder, const Color(0xFF8B7CF6), onTap: () async => await _navigateToSection('dokumen', 'Dokumen')),
+      MenuItemData('Pendidikan', Icons.school, const Color(0xFFFF9999), onTap: () async => await _navigateToSection('pendidikan', 'Pendidikan')),
+      MenuItemData('Riwayat Pekerjaan', Icons.work, const Color(0xFFFFB1B1), onTap: () async => await _navigateToSection('riwayatPekerjaan', 'Riwayat Pekerjaan')),
+      MenuItemData('Data Lamaran', Icons.card_membership, const Color(0xFF70D4AA), onTap: () async => await _navigateToSection('dataLamaran', 'Data Lamaran')),
     ];
   }
 }
