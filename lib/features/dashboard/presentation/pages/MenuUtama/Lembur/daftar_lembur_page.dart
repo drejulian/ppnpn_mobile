@@ -451,15 +451,9 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
                             ),
                           ],
                           actions: [
-                            IconButton(
-                              icon: const Icon(Icons.visibility, size: 20),
+                            AppViewDetailButton(
                               onPressed: () => _showDetailDialog(row),
                               tooltip: 'Lihat Detail',
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.primarySwatch
-                                    .withOpacity(0.1),
-                                foregroundColor: theme.primarySwatch,
-                              ),
                             ),
                           ],
                           onTap: () => _showDetailDialog(row),

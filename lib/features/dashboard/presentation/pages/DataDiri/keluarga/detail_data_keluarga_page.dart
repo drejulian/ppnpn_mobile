@@ -686,7 +686,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               'Data ${member.nama} berhasil dihapus',
-                              style: const TextStyle(fontSize: 13),
+                              style: const TextStyle(fontSize: 13.0),
                             ),
                           ),
                         ],

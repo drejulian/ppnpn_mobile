@@ -345,7 +345,9 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       elevation: 2,
                     ),
                     onPressed: () async {
-                      if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
+                      if (_formKey.currentState!.validate() &&
+                          _awalDate != null &&
+                          _akhirDate != null) {
                         try {
                           final newIzin = {
                             'id': _generateId(),
@@ -354,45 +356,56 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                             'duration': _formatDuration(),
                             'reason': _alasanCtrl.text,
                             'status': 'Menunggu Persetujuan',
-                            'statusColor': _getStatusColor('Menunggu Persetujuan'),
+                            'statusColor': _getStatusColor(
+                              'Menunggu Persetujuan',
+                            ),
                             'fileName': _selectedFile?.name,
                           };
-                          
+
                           // Tambah izin ke provider
                           ref.read(izinProvider.notifier).add(newIzin);
-                          
+
                           // Tambah notifikasi in-app
-                          ref.read(notificationProvider.notifier).addIzinNotification(
-                            jenisIzin: _jenisCtrl.text,
-                            tanggalAwal: _formatDate(_awalDate!),
-                            tanggalAkhir: _formatDate(_akhirDate!),
-                            durasi: _formatDuration(),
-                            alasan: _alasanCtrl.text,
-                          );
-                          
+                          ref
+                              .read(notificationProvider.notifier)
+                              .addIzinNotification(
+                                jenisIzin: _jenisCtrl.text,
+                                tanggalAwal: _formatDate(_awalDate!),
+                                tanggalAkhir: _formatDate(_akhirDate!),
+                                durasi: _formatDuration(),
+                                alasan: _alasanCtrl.text,
+                              );
+
                           // Kirim notifikasi lokal setelah 2 detik
                           await NotificationService.scheduleTaskReminder(
                             id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
                             title: 'Pengajuan Izin Berhasil',
-                            body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
-                            scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+                            body:
+                                'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
+                            scheduledDate: DateTime.now().add(
+                              const Duration(seconds: 2),
+                            ),
                           );
 
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Pengajuan izin berhasil dikirim dan notifikasi akan segera muncul'),
+                                content: Text(
+                                  'Pengajuan izin berhasil dikirim dan notifikasi akan segera muncul',
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
-                            
+
                             context.pop();
                           }
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Gagal menambahkan izin: ${e.toString()}'),
+                                content: Text(
+                                  'Gagal menambahkan izin: ${e.toString()}',
+                                ),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -414,7 +427,7 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       style: theme.typographyRegular.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
-                        fontSize: 18,
+                        fontSize: 18.0,
                       ),
                     ),
                   ),

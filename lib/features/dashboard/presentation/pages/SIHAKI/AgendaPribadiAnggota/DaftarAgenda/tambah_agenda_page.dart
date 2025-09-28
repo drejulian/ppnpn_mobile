@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
@@ -40,11 +38,17 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.input,
     );
     if (picked != null) {
-      _waktuController.text =
-          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      _waktuController.text = _formatTime(picked);
     }
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override
@@ -63,7 +67,6 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
@@ -95,17 +98,18 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
                   FormFieldConfig(
                     label: 'Waktu',
                     icon: Icons.access_time,
-                    type: FormFieldType.text,
+                    type: FormFieldType.datePicker,
                     controller: _waktuController,
                     isRequired: true,
-                    hintText: 'HH:MM',
+                    hintText: 'Pilih waktu (contoh: 10:00)',
                     suffixIcon: Icons.access_time,
                     onTap: () => _pickTime(),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-                      LengthLimitingTextInputFormatter(5),
-                    ],
-                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Pilih waktu agenda';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'Acara',
@@ -128,29 +132,33 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
                 ],
                 onSave: () async {
                   if (!_formKey.currentState!.validate()) return;
-                  
+
                   ref.read(agendaDataProvider.notifier).addAgenda({
                     'tanggal': _tanggalController.text.trim(),
                     'waktu': _waktuController.text.trim(),
                     'acara': _acaraController.text.trim(),
                     'deskripsi': _deskripsiController.text.trim(),
                   });
-                  
+
                   // Tambahkan notifikasi ke dalam app (page notifikasi)
-                  ref.read(notificationProvider.notifier).addAgendaNotification(
-                    namaAcara: _acaraController.text.trim(),
-                    tanggal: _tanggalController.text.trim(),
-                    waktu: _waktuController.text.trim(),
-                    deskripsi: _deskripsiController.text.trim(),
-                  );
-                  
+                  ref
+                      .read(notificationProvider.notifier)
+                      .addAgendaNotification(
+                        namaAcara: _acaraController.text.trim(),
+                        tanggal: _tanggalController.text.trim(),
+                        waktu: _waktuController.text.trim(),
+                        deskripsi: _deskripsiController.text.trim(),
+                      );
+
                   // Kirim notifikasi lokal langsung
                   await _showLocalNotification();
-                  
+
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Agenda berhasil ditambahkan dan notifikasi dikirim'),
+                        content: Text(
+                          'Agenda berhasil ditambahkan dan notifikasi dikirim',
+                        ),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -172,7 +180,8 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
       await NotificationService.showNotification(
         id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title: 'Agenda Pribadi Berhasil Ditambahkan',
-        body: '${_acaraController.text.trim()} pada ${_tanggalController.text.trim()} pukul ${_waktuController.text.trim()} telah berhasil dijadwalkan.',
+        body:
+            '${_acaraController.text.trim()} pada ${_tanggalController.text.trim()} pukul ${_waktuController.text.trim()} telah berhasil dijadwalkan.',
         payload: 'agenda_${_acaraController.text.trim()}',
       );
     } catch (e) {

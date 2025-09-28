@@ -121,7 +121,7 @@ class _DaftarPengajuanRumahAspirasiPageState
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
-        title: 'Data Kunker Perorangan',
+        title: 'Kegiatan Rumah Aspirasi',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
       ),

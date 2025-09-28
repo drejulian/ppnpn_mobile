@@ -16,7 +16,7 @@ class TambahMeetingPage extends ConsumerStatefulWidget {
 
 class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final _titleController = TextEditingController();
   final _roomController = TextEditingController();
@@ -25,24 +25,16 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
   final _dateController = TextEditingController();
   final _startTimeController = TextEditingController();
   final _endTimeController = TextEditingController();
-  
+
   // Selected values
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
-  Color _selectedColor = Colors.teal;
   String _meetingType = 'Offline'; // 'Online' atau 'Offline'
 
-  final List<Color> _colorOptions = [
-    Colors.teal,
-    Colors.blue,
-    Colors.red,
-    Colors.orange,
-    Colors.purple,
-    Colors.green,
-    Colors.indigo,
-    Colors.amber,
-  ];
+  // Reminder settings
+  DateTime? _reminderDateTime;
+  bool _enableReminder = false;
 
   @override
   void initState() {
@@ -53,10 +45,16 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
   void _initializeFields() {
     // Initialize date controller
     _dateController.text = DateFormat('dd-MM-yyyy').format(_selectedDate);
-    
-    // Initialize time controllers
-    _startTimeController.text = '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}';
-    _endTimeController.text = '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}';
+
+    // Initialize time controllers using consistent format
+    _startTimeController.text = _formatTime(_startTime);
+    _endTimeController.text = _formatTime(_endTime);
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Future<void> _pickDate() async {
@@ -83,7 +81,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
     if (picked != null) {
       setState(() {
         _startTime = picked;
-        _startTimeController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+        _startTimeController.text = _formatTime(picked);
       });
     }
   }
@@ -96,7 +94,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
     if (picked != null) {
       setState(() {
         _endTime = picked;
-        _endTimeController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+        _endTimeController.text = _formatTime(picked);
       });
     }
   }
@@ -118,22 +116,11 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: theme.primarySwatch,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Tambah Meeting',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Tambah Meeting',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -150,6 +137,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                     label: 'Judul Meeting',
                     icon: Icons.title,
                     type: FormFieldType.textRequired,
+                    isRequired: true,
                     hintText: 'Masukkan judul meeting',
                     controller: _titleController,
                     validator: (value) {
@@ -160,7 +148,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                     },
                   ),
                   FormFieldConfig(
-                    label: 'Deskripsi',
+                    label: 'Deskripsi Meeting',
                     icon: Icons.description,
                     type: FormFieldType.multiline,
                     hintText: 'Masukkan deskripsi meeting (opsional)',
@@ -188,43 +176,56 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                 titleIcon: Icons.schedule,
                 fields: [
                   FormFieldConfig(
-                    label: 'Tanggal',
+                    label: 'Tanggal Meeting',
                     icon: Icons.calendar_today,
                     type: FormFieldType.datePicker,
-                    hintText: 'Pilih tanggal meeting',
+                    isRequired: true,
                     controller: _dateController,
+                    hintText: 'Pilih tanggal meeting',
+                    suffixIcon: Icons.calendar_today,
                     onTap: _pickDate,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Tanggal tidak boleh kosong';
+                        return 'Pilih tanggal meeting';
                       }
                       return null;
                     },
                   ),
                   FormFieldConfig(
                     label: 'Waktu Mulai',
-                    icon: Icons.access_time,
+                    icon: Icons.schedule,
                     type: FormFieldType.datePicker,
-                    hintText: 'Pilih waktu mulai',
+                    isRequired: true,
                     controller: _startTimeController,
+                    hintText: 'Pilih waktu mulai (contoh: 09:00)',
+                    suffixIcon: Icons.access_time,
                     onTap: _pickStartTime,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Waktu mulai tidak boleh kosong';
+                        return 'Pilih waktu mulai meeting';
                       }
                       return null;
                     },
                   ),
                   FormFieldConfig(
                     label: 'Waktu Selesai',
-                    icon: Icons.access_time_filled,
+                    icon: Icons.schedule_outlined,
                     type: FormFieldType.datePicker,
-                    hintText: 'Pilih waktu selesai',
+                    isRequired: true,
                     controller: _endTimeController,
+                    hintText: 'Pilih waktu selesai (contoh: 11:00)',
+                    suffixIcon: Icons.access_time,
                     onTap: _pickEndTime,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Waktu selesai tidak boleh kosong';
+                        return 'Pilih waktu selesai meeting';
+                      }
+                      // Validate time logic consistent with edit_lembur_page
+                      final startMinutes =
+                          _startTime.hour * 60 + _startTime.minute;
+                      final endMinutes = _endTime.hour * 60 + _endTime.minute;
+                      if (endMinutes <= startMinutes) {
+                        return 'Waktu selesai harus setelah waktu mulai';
                       }
                       return null;
                     },
@@ -234,8 +235,8 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
 
               const SizedBox(height: 16),
 
-              // Color Selection Card
-              _buildColorSelectionCard(theme),
+              // Reminder Section
+              _buildReminderSection(theme),
 
               const SizedBox(height: 24),
 
@@ -283,7 +284,11 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                   color: theme.primarySwatch,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.video_call, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.video_call,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -291,15 +296,6 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                 style: theme.typographyRegular.bodyMedium.copyWith(
                   color: Colors.grey[800],
                   fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -315,15 +311,20 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: _meetingType == 'Offline' 
-                          ? theme.primarySwatch.shade50 
-                          : Colors.grey[100],
+                      color:
+                          _meetingType == 'Offline'
+                              ? theme.primarySwatch.shade50
+                              : Colors.grey[100],
                       border: Border.all(
-                        color: _meetingType == 'Offline' 
-                            ? theme.primarySwatch 
-                            : Colors.grey[300]!,
+                        color:
+                            _meetingType == 'Offline'
+                                ? theme.primarySwatch
+                                : Colors.grey[300]!,
                         width: _meetingType == 'Offline' ? 2 : 1,
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -332,21 +333,24 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                       children: [
                         Icon(
                           Icons.location_on,
-                          color: _meetingType == 'Offline' 
-                              ? theme.primarySwatch 
-                              : Colors.grey[600],
+                          color:
+                              _meetingType == 'Offline'
+                                  ? theme.primarySwatch
+                                  : Colors.grey[600],
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Offline',
                           style: theme.typographyRegular.bodyMedium.copyWith(
-                            color: _meetingType == 'Offline' 
-                                ? theme.primarySwatch 
-                                : Colors.grey[700],
-                            fontWeight: _meetingType == 'Offline' 
-                                ? FontWeight.w600 
-                                : FontWeight.normal,
+                            color:
+                                _meetingType == 'Offline'
+                                    ? theme.primarySwatch
+                                    : Colors.grey[700],
+                            fontWeight:
+                                _meetingType == 'Offline'
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -363,15 +367,20 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: _meetingType == 'Online' 
-                          ? theme.primarySwatch.shade50 
-                          : Colors.grey[100],
+                      color:
+                          _meetingType == 'Online'
+                              ? theme.primarySwatch.shade50
+                              : Colors.grey[100],
                       border: Border.all(
-                        color: _meetingType == 'Online' 
-                            ? theme.primarySwatch 
-                            : Colors.grey[300]!,
+                        color:
+                            _meetingType == 'Online'
+                                ? theme.primarySwatch
+                                : Colors.grey[300]!,
                         width: _meetingType == 'Online' ? 2 : 1,
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -380,21 +389,24 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                       children: [
                         Icon(
                           Icons.videocam,
-                          color: _meetingType == 'Online' 
-                              ? theme.primarySwatch 
-                              : Colors.grey[600],
+                          color:
+                              _meetingType == 'Online'
+                                  ? theme.primarySwatch
+                                  : Colors.grey[600],
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Online',
                           style: theme.typographyRegular.bodyMedium.copyWith(
-                            color: _meetingType == 'Online' 
-                                ? theme.primarySwatch 
-                                : Colors.grey[700],
-                            fontWeight: _meetingType == 'Online' 
-                                ? FontWeight.w600 
-                                : FontWeight.normal,
+                            color:
+                                _meetingType == 'Online'
+                                    ? theme.primarySwatch
+                                    : Colors.grey[700],
+                            fontWeight:
+                                _meetingType == 'Online'
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -418,15 +430,18 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
           label: _meetingType == 'Online' ? 'Link Meeting' : 'Ruangan',
           icon: _meetingType == 'Online' ? Icons.link : Icons.meeting_room,
           type: FormFieldType.textRequired,
-          hintText: _meetingType == 'Online' 
-              ? 'Masukkan link meeting (Zoom, Teams, dll)' 
-              : 'Masukkan nama ruangan',
-          controller: _meetingType == 'Online' ? _linkController : _roomController,
+          isRequired: true,
+          hintText:
+              _meetingType == 'Online'
+                  ? 'Masukkan link meeting (Zoom, Teams, dll)'
+                  : 'Masukkan nama ruangan',
+          controller:
+              _meetingType == 'Online' ? _linkController : _roomController,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return _meetingType == 'Online' 
-                  ? 'Link meeting tidak boleh kosong' 
-                  : 'Ruangan tidak boleh kosong';
+              return _meetingType == 'Online'
+                  ? 'Link meeting tidak boleh kosong'
+                  : 'Nama ruangan tidak boleh kosong';
             }
             if (_meetingType == 'Online' && !_isValidUrl(value)) {
               return 'Format link tidak valid';
@@ -447,7 +462,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
     }
   }
 
-  Widget _buildColorSelectionCard(dynamic theme) {
+  Widget _buildReminderSection(dynamic theme) {
     return AppCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -461,11 +476,15 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
                   color: theme.primarySwatch,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.palette, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
-                'Warna Meeting',
+                'Pengingat Meeting',
                 style: theme.typographyRegular.bodyMedium.copyWith(
                   color: Colors.grey[800],
                   fontWeight: FontWeight.w600,
@@ -473,75 +492,166 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Pilih warna untuk membedakan meeting',
-            style: theme.typographyRegular.bodySmall.copyWith(
-              color: Colors.grey[600],
-            ),
-          ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _colorOptions.map((color) {
-              final isSelected = _selectedColor.value == color.value;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedColor = color;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: isSelected
-                        ? Border.all(
-                            color: Colors.black,
-                            width: 3,
-                          )
-                        : Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1,
-                          ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.3),
-                        blurRadius: isSelected ? 8 : 4,
-                        offset: const Offset(0, 2),
+
+          // Enable reminder switch
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.alarm, color: Colors.grey[600], size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Aktifkan Pengingat',
+                      style: theme.typographyRegular.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
                       ),
-                    ],
-                  ),
-                  child: isSelected
-                      ? const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 24,
-                        )
-                      : null,
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _enableReminder,
+                      onChanged: (value) {
+                        setState(() {
+                          _enableReminder = value;
+                          if (!value) {
+                            _reminderDateTime = null;
+                          }
+                        });
+                      },
+                      activeColor: theme.primarySwatch,
+                    ),
+                  ],
                 ),
-              );
-            }).toList(),
+
+                if (_enableReminder) ...[
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 12),
+
+                  // Reminder datetime picker
+                  GestureDetector(
+                    onTap: _selectReminderDateTime,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            color: Colors.grey[600],
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _reminderDateTime != null
+                                ? DateFormat(
+                                  'dd-MM-yyyy, HH:mm',
+                                ).format(_reminderDateTime!)
+                                : 'Pilih waktu pengingat',
+                            style: theme.typographyRegular.bodySmall.copyWith(
+                              color:
+                                  _reminderDateTime != null
+                                      ? Colors.grey[900]
+                                      : Colors.grey[500],
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.grey[400],
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+                  Text(
+                    'Anda akan menerima notifikasi pada waktu yang dipilih',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      color: Colors.grey[600],
+                      fontSize: 11.0,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  Future<void> _selectReminderDateTime() async {
+    final DateTime? date = await showDatePicker(
+      context: context,
+      initialDate: _reminderDateTime ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: _selectedDate,
+    );
+
+    if (date != null) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime:
+            _reminderDateTime != null
+                ? TimeOfDay.fromDateTime(_reminderDateTime!)
+                : TimeOfDay.now(),
+      );
+
+      if (time != null) {
+        final selectedDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        // Check if selected time is not in the past
+        if (selectedDateTime.isAfter(DateTime.now())) {
+          setState(() {
+            _reminderDateTime = selectedDateTime;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Pilih tanggal dan waktu yang akan datang'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   void _saveMeeting() async {
     if (_formKey.currentState!.validate()) {
-      // Validate time logic
+      // Validate time logic - same as edit_lembur_page
       final startMinutes = _startTime.hour * 60 + _startTime.minute;
       final endMinutes = _endTime.hour * 60 + _endTime.minute;
-      
-      if (startMinutes >= endMinutes) {
+
+      if (endMinutes <= startMinutes) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Waktu selesai harus lebih dari waktu mulai!'),
+            content: const Text('Waktu selesai harus setelah waktu mulai!'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -553,35 +663,76 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
       }
 
       try {
-        // Create new meeting data
+        // Schedule notifications if enabled
+        if (_enableReminder && _reminderDateTime != null) {
+          try {
+            // Check and request permissions first
+            final hasPermissions =
+                await NotificationService.requestPermissionsWithDialog(context);
+
+            if (hasPermissions) {
+              // Schedule meeting reminder notification
+              await NotificationService.scheduleTaskReminder(
+                id: _titleController.text.hashCode,
+                title: 'Meeting Reminder',
+                body: 'Don\'t forget: ${_titleController.text}',
+                scheduledDate: _reminderDateTime!,
+              );
+            } else {
+              // Show message if permissions denied
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Notifikasi dinonaktifkan - pengingat tidak akan bekerja',
+                  ),
+                  backgroundColor: Colors.orange,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            print('Failed to schedule notification: $e');
+          }
+        }
+
+        // Create new meeting data using consistent time format
         final newMeeting = MeetingData(
           title: _titleController.text,
-          room: _meetingType == 'Online' 
-              ? 'Online - ${_linkController.text}' 
-              : _roomController.text,
+          room:
+              _meetingType == 'Online'
+                  ? 'Online - ${_linkController.text}'
+                  : _roomController.text,
           date: _selectedDate,
-          startTime: _startTimeController.text,
-          endTime: _endTimeController.text,
-          color: _selectedColor,
+          startTime: _formatTime(_startTime),
+          endTime: _formatTime(_endTime),
+          hasReminder: _enableReminder,
+          reminderDateTime: _reminderDateTime,
         );
 
         // Tambah notifikasi in-app
-        ref.read(notificationProvider.notifier).addMeetingNotification(
-          judulMeeting: _titleController.text,
-          tanggal: DateFormat('dd-MM-yyyy').format(_selectedDate),
-          waktuMulai: _startTimeController.text,
-          waktuSelesai: _endTimeController.text,
-          tempat: _meetingType == 'Online' 
-              ? 'Online - ${_linkController.text}' 
-              : _roomController.text,
-          jenisMeeting: _meetingType,
-        );
-        
+        ref
+            .read(notificationProvider.notifier)
+            .addMeetingNotification(
+              judulMeeting: _titleController.text,
+              tanggal: DateFormat('dd-MM-yyyy').format(_selectedDate),
+              waktuMulai: _formatTime(_startTime),
+              waktuSelesai: _formatTime(_endTime),
+              tempat:
+                  _meetingType == 'Online'
+                      ? 'Online - ${_linkController.text}'
+                      : _roomController.text,
+              jenisMeeting: _meetingType,
+            );
+
         // Kirim notifikasi lokal setelah 2 detik
         await NotificationService.scheduleTaskReminder(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           title: 'Meeting Berhasil Dijadwalkan',
-          body: 'Meeting "${_titleController.text}" telah dijadwalkan pada ${DateFormat('dd-MM-yyyy').format(_selectedDate)} ${_startTimeController.text}-${_endTimeController.text}.',
+          body:
+              'Meeting "${_titleController.text}" telah dijadwalkan pada ${DateFormat('dd-MM-yyyy').format(_selectedDate)} ${_formatTime(_startTime)}-${_formatTime(_endTime)}.',
           scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
         );
 
@@ -589,7 +740,11 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
           // Show success feedback
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Meeting berhasil ditambahkan dan notifikasi akan segera muncul!'),
+              content: Text(
+                _enableReminder && _reminderDateTime != null
+                    ? 'Meeting berhasil ditambahkan dengan pengingat!'
+                    : 'Meeting berhasil ditambahkan dan notifikasi akan segera muncul!',
+              ),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(

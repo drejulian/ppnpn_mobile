@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/app/theme.dart';
 import 'daftar_agenda.dart' show agendaDataProvider;
 
 class EditAgendaPage extends ConsumerStatefulWidget {
@@ -46,14 +44,20 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.input,
     );
     if (picked != null) {
       setState(() {
         _selectedTime = picked;
-        _waktuController.text =
-            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+        _waktuController.text = _formatTime(picked);
       });
     }
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override
@@ -80,12 +84,10 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeProvider);
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
-        title: 'Ubah Pengajuan Reimburse',
+        title: 'Edit Agenda',
         onBackPressed: () => Navigator.of(context).pop(),
         backTooltip: 'Kembali',
       ),
@@ -125,16 +127,17 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                     label: 'Waktu',
                     icon: Icons.access_time,
                     controller: _waktuController,
-                    hintText: 'HH:MM',
-                    type: FormFieldType.text,
+                    hintText: 'Pilih waktu (contoh: 10:00)',
+                    type: FormFieldType.datePicker,
                     suffixIcon: Icons.access_time,
                     isRequired: true,
                     onTap: () => _pickTime(),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-                      LengthLimitingTextInputFormatter(5),
-                    ],
-                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Pilih waktu agenda';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'Acara',

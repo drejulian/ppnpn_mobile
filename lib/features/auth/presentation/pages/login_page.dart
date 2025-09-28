@@ -40,7 +40,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             _passwordController.text = credentials['password']!;
             _rememberMe = true;
           });
-          print('✅ LoginPage: Loaded saved credentials for ${credentials['email']}');
+          print(
+            '✅ LoginPage: Loaded saved credentials for ${credentials['email']}',
+          );
         }
       }
     } catch (e) {
@@ -124,17 +126,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 60),
-                
+
                 // Header Section
                 _buildHeader(theme),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Login Form
                 _buildLoginForm(theme),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Footer
                 _buildFooter(theme),
               ],
@@ -167,7 +169,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         // Title
         Text(
           'PPNPN DPR RI',
@@ -180,7 +182,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        
+
         // Subtitle
         Text(
           'Masuk ke Akun Anda',
@@ -240,24 +242,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.white,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.white, width: 2),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.red,
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.red, width: 1),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.red,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.red, width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.1),
@@ -266,15 +259,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 if (value == null || value.isEmpty) {
                   return 'Email tidak boleh kosong';
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                if (!RegExp(
+                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                ).hasMatch(value)) {
                   return 'Format email tidak valid';
                 }
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Password Field
             TextFormField(
               controller: _passwordController,
@@ -307,24 +302,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.white,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.white, width: 2),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.red,
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.red, width: 1),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.red,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.red, width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.1),
@@ -339,9 +325,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Remember Me dan Lupa Password
             Row(
               children: [
@@ -349,7 +335,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   value: _rememberMe,
                   onChanged: (value) async {
                     setState(() => _rememberMe = value ?? false);
-                    
+
                     // If unchecked, clear saved credentials
                     if (!_rememberMe) {
                       try {
@@ -363,13 +349,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   },
                   activeColor: Colors.white,
                   checkColor: theme.primarySwatch,
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.8)),
                 ),
                 Text(
                   'Ingat saya',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
+                  style: theme.typographyRegular.bodyExtraSmall.copyWith(
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
@@ -378,16 +362,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   onPressed: () => context.push('/lupa-password'),
                   child: Text(
                     'Lupa Password?',
-                    style: theme.typographyRegular.bodyMedium.copyWith(
+                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
                       color: Colors.white,
                     ),
                   ),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             // Login Button
             SizedBox(
               width: double.infinity,
@@ -403,36 +387,37 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   elevation: 8,
                   shadowColor: Colors.black.withValues(alpha: 0.3),
                 ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            theme.primarySwatch,
-                          ),
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.login,
-                            color: theme.primarySwatch,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Masuk ke Akun',
-                            style: theme.typographyBold.bodyLarge.copyWith(
-                              color: theme.primarySwatch,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18.0,
+                child:
+                    _isLoading
+                        ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.primarySwatch,
                             ),
                           ),
-                        ],
-                      ),
+                        )
+                        : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.login,
+                              color: theme.primarySwatch,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Masuk ke Akun',
+                              style: theme.typographyBold.bodyLarge.copyWith(
+                                color: theme.primarySwatch,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18.0,
+                              ),
+                            ),
+                          ],
+                        ),
               ),
             ),
           ],
@@ -453,14 +438,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           label: Text(
             'Kembali ke Halaman Utama',
-            style: theme.typographyRegular.bodyMedium.copyWith(
+            style: theme.typographyRegular.bodySmall.copyWith(
               color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
         ),
-        
+
         const SizedBox(height: 20),
-        
+
         // Security Info
         Container(
           padding: const EdgeInsets.all(16),
@@ -493,16 +478,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 20),
-        
+
         // Footer Copyright
-        Divider(
-          color: Colors.white.withValues(alpha: 0.3),
-          thickness: 1,
-        ),
+        Divider(color: Colors.white.withValues(alpha: 0.3), thickness: 1),
         const SizedBox(height: 16),
-        
+
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
