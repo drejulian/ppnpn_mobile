@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/theme/my_theme.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'task_data.dart';
 
 class EditTaskPage extends ConsumerStatefulWidget {
@@ -25,6 +26,9 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
   late DateTime _selectedDate;
   late String _selectedPriority;
   late String _selectedStatus;
+  
+  DateTime? _reminderDateTime;
+  bool _enableReminder = false;
 
   final List<String> _priorities = ['High', 'Medium', 'Low'];
   final List<String> _statuses = ['To Do', 'In Review', 'Complete'];
@@ -37,6 +41,10 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
     _selectedDate = widget.taskData.dueDate;
     _selectedPriority = widget.taskData.priority;
     _selectedStatus = widget.taskData.status;
+    
+    // Initialize reminder settings from task data
+    _enableReminder = widget.taskData.hasReminder;
+    _reminderDateTime = widget.taskData.reminderDateTime;
   }
 
   @override
@@ -180,6 +188,10 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+
+          // Reminder Section
+          _buildReminderSection(theme),
         ],
       ),
     );
@@ -283,6 +295,108 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
     );
   }
 
+  Widget _buildReminderSection(MyTheme theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.notifications_outlined, color: theme.primarySwatch, size: 20),
+            const SizedBox(width: 8),
+            _buildLabel('Reminder', theme),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        // Enable reminder switch
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.alarm, color: Colors.grey[600], size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Enable Task Reminder',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const Spacer(),
+                  Switch(
+                    value: _enableReminder,
+                    onChanged: (value) {
+                      setState(() {
+                        _enableReminder = value;
+                        if (!value) {
+                          _reminderDateTime = null;
+                        }
+                      });
+                    },
+                    activeColor: theme.primarySwatch,
+                  ),
+                ],
+              ),
+              
+              if (_enableReminder) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 12),
+                
+                // Reminder datetime picker
+                GestureDetector(
+                  onTap: _selectReminderDateTime,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, color: Colors.grey[600], size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _reminderDateTime != null 
+                              ? DateFormat('dd MMM yyyy, HH:mm').format(_reminderDateTime!)
+                              : 'Select reminder time',
+                          style: theme.typographyRegular.bodySmall.copyWith(
+                            color: _reminderDateTime != null 
+                                ? Colors.grey[900] 
+                                : Colors.grey[500],
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                Text(
+                  'You will receive a notification at the selected time',
+                  style: theme.typographyRegular.bodySmall.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -294,6 +408,52 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _selectReminderDateTime() async {
+    final DateTime? date = await showDatePicker(
+      context: context,
+      initialDate: _reminderDateTime ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: _selectedDate,
+    );
+    
+    if (date != null) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: _reminderDateTime != null 
+            ? TimeOfDay.fromDateTime(_reminderDateTime!)
+            : TimeOfDay.now(),
+      );
+      
+      if (time != null) {
+        final selectedDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+        
+        // Check if selected time is not in the past
+        if (selectedDateTime.isAfter(DateTime.now())) {
+          setState(() {
+            _reminderDateTime = selectedDateTime;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Please select a future date and time'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -323,7 +483,7 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
     }
   }
 
-  void _saveTask() {
+  void _saveTask() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -349,7 +509,58 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
       filesCount: 0,
       priorityColor: _getPriorityColor(_selectedPriority),
       statusColor: _getStatusColor(_selectedStatus),
+      hasReminder: _enableReminder,
+      reminderDateTime: _reminderDateTime,
     );
+
+    // Schedule notifications if enabled
+    if (_enableReminder && _reminderDateTime != null) {
+      try {
+        // Check and request permissions first
+        final hasPermissions = await NotificationService.requestPermissionsWithDialog(context);
+        
+        if (hasPermissions) {
+          // Schedule task reminder notification
+          await NotificationService.scheduleTaskReminder(
+            id: updatedTask.title.hashCode,
+            title: 'Task Reminder',
+            body: 'Don\'t forget: ${updatedTask.title}',
+            scheduledDate: _reminderDateTime!,
+          );
+
+          // Also schedule due date notification (1 day before)
+          final oneDayBefore = updatedTask.dueDate.subtract(const Duration(days: 1));
+          if (oneDayBefore.isAfter(DateTime.now())) {
+            await NotificationService.scheduleDueDateReminder(
+              id: updatedTask.title.hashCode + 1,
+              title: 'Task Due Tomorrow',
+              body: 'Task "${updatedTask.title}" is due tomorrow!',
+              scheduledDate: DateTime(
+                oneDayBefore.year,
+                oneDayBefore.month,
+                oneDayBefore.day,
+                9, // 9 AM
+                0,
+              ),
+            );
+          }
+        } else {
+          // Show message if permissions denied
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Notifications disabled - reminder will not work'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Failed to schedule notification: $e');
+      }
+    }
 
     if (widget.onTaskUpdated != null) {
       widget.onTaskUpdated!(updatedTask);
@@ -357,7 +568,9 @@ class _EditTaskPageState extends ConsumerState<EditTaskPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Task updated successfully'),
+        content: Text(_enableReminder && _reminderDateTime != null 
+            ? 'Task updated with reminder set!'
+            : 'Task updated successfully'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(

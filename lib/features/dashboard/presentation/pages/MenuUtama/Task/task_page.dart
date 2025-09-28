@@ -31,6 +31,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       filesCount: 5,
       priorityColor: Colors.red,
       statusColor: Colors.green,
+      hasReminder: false,
     ),
     TaskData(
       title: 'Konom web application',
@@ -43,6 +44,8 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       filesCount: 4,
       priorityColor: Colors.green,
       statusColor: Colors.orange,
+      hasReminder: true,
+      reminderDateTime: DateTime.now().add(Duration(days: 1)),
     ),
     TaskData(
       title: 'Research and development',
@@ -55,6 +58,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       filesCount: 2,
       priorityColor: Colors.orange,
       statusColor: Colors.purple,
+      hasReminder: false,
     ),
     TaskData(
       title: 'Event booking application',
@@ -67,6 +71,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       filesCount: 5,
       priorityColor: Colors.orange,
       statusColor: Colors.orange,
+      hasReminder: false,
     ),
   ];
 

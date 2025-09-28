@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import '../providers/auth_provider.dart';
+import '../../data/services/auth_storage_service.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -14,23 +13,39 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
-  bool _isPasswordVisible = false;
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-
-  // SharedPreferences keys
-  static const String _keyRememberMe = 'remember_me';
-  static const String _keyEmail = 'saved_email';
-  static const String _keyPassword = 'saved_password';
-  static const String _keyLastLogin = 'last_login_time';
+  bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    // Debug storage for testing
+    AuthStorageService.debugStorage();
+  }
+
+  // Load saved credentials if remember me was checked previously
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final rememberMe = await AuthStorageService.getRememberMe();
+      if (rememberMe) {
+        final credentials = await AuthStorageService.getSavedCredentials();
+        if (credentials['email'] != null && credentials['password'] != null) {
+          setState(() {
+            _emailController.text = credentials['email']!;
+            _passwordController.text = credentials['password']!;
+            _rememberMe = true;
+          });
+          print('✅ LoginPage: Loaded saved credentials for ${credentials['email']}');
+        }
+      }
+    } catch (e) {
+      print('⚠️ LoginPage: Error loading saved credentials: $e');
+    }
   }
 
   @override
@@ -40,213 +55,40 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
-  // Load saved credentials from SharedPreferences
-  Future<void> _loadSavedCredentials() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedRememberMe = prefs.getBool(_keyRememberMe) ?? false;
-
-      if (savedRememberMe) {
-        final savedEmail = prefs.getString(_keyEmail) ?? '';
-        final savedPassword = prefs.getString(_keyPassword) ?? '';
-
-        setState(() {
-          _rememberMe = savedRememberMe;
-          _emailController.text = savedEmail;
-          _passwordController.text = savedPassword;
-        });
-
-        if (savedEmail.isNotEmpty && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.white, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Kredensial tersimpan untuk: $savedEmail',
-                      style: const TextStyle(fontSize: 13.0),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.blue[600],
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      // Handle error silently in production
-    }
-  }
-
-  // Save credentials to SharedPreferences
-  Future<void> _saveCredentials() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentTime = DateTime.now();
-
-      if (_rememberMe) {
-        await prefs.setBool(_keyRememberMe, true);
-        await prefs.setString(_keyEmail, _emailController.text);
-        await prefs.setString(_keyPassword, _passwordController.text);
-        await prefs.setString(_keyLastLogin, currentTime.toIso8601String());
-      } else {
-        // Clear saved credentials if remember me is unchecked
-        await prefs.setBool(_keyRememberMe, false);
-        await prefs.remove(_keyEmail);
-        await prefs.remove(_keyPassword);
-        await prefs.remove(_keyLastLogin);
-      }
-    } catch (e) {
-      // Handle error silently in production
-    }
-  }
-
-  // Clear saved credentials
-  Future<void> _clearSavedCredentials() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyRememberMe);
-      await prefs.remove(_keyEmail);
-      await prefs.remove(_keyPassword);
-      await prefs.remove(_keyLastLogin);
-    } catch (e) {
-      // Handle error silently in production
-    }
-  }
-
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      // Save credentials before login attempt
-      await _saveCredentials();
+    setState(() => _isLoading = true);
 
-      // Simulate login process
-      await Future.delayed(const Duration(seconds: 2));
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      final success = await authNotifier.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        rememberMe: _rememberMe,
+      );
 
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Navigate to home after successful login
+      if (mounted && success) {
+        context.go('/home');
+      }
+    } catch (e) {
       if (mounted) {
-        // Update last login time on successful login
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(
-            _keyLastLogin,
-            DateTime.now().toIso8601String(),
-          );
-        } catch (e) {
-          // Handle error silently
-        }
-
-        // Check if widget is still mounted before using context
-        if (mounted) {
-          context.goNamed(Routes.home.name);
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login gagal: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-  }
-
-  void _handleForgotPassword() {
-    context.pushNamed(Routes.lupaPassword.name);
-  }
-
-  // Handle remember me toggle
-  void _handleRememberMeChanged(bool? value) {
-    setState(() {
-      _rememberMe = value ?? false;
-    });
-
-    // If unchecked, show option to clear saved data
-    if (!_rememberMe) {
-      _showClearCredentialsDialog();
-    }
-  }
-
-  // Show dialog to clear saved credentials
-  void _showClearCredentialsDialog() {
-    // Capture necessary values before showing dialog
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.cleaning_services,
-                color: Colors.orange[600],
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text('Hapus Data Tersimpan?'),
-            ],
-          ),
-          content: const Text(
-            'Apakah Anda ingin menghapus email dan password yang tersimpan?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                // Close dialog first
-                Navigator.pop(dialogContext);
-
-                // Perform async operation
-                await _clearSavedCredentials();
-
-                // Show success message using captured ScaffoldMessenger
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Data tersimpan berhasil dihapus'),
-                      ],
-                    ),
-                    backgroundColor: Colors.green[600],
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[600],
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Hapus'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -256,35 +98,46 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(
-            horizontal: isTablet ? 48.0 : 24.0,
-            vertical: 20.0,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.primarySwatch.shade300,
+              theme.primarySwatch.shade600,
+              theme.secondarySwatch.shade700,
+            ],
+            stops: const [0.0, 0.6, 1.0],
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight:
-                  MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  40,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: isTablet ? 48.0 : 24.0,
+              vertical: 20.0,
             ),
-            child: IntrinsicHeight(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
-                  _buildLogoSection(theme),
-                  const SizedBox(height: 40),
-                  _buildLoginForm(theme),
-                  const SizedBox(height: 30),
-                  _buildBottomSection(theme),
-                  const SizedBox(height: 20),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 60),
+                
+                // Header Section
+                _buildHeader(theme),
+                
+                const SizedBox(height: 40),
+                
+                // Login Form
+                _buildLoginForm(theme),
+                
+                const SizedBox(height: 30),
+                
+                // Footer
+                _buildFooter(theme),
+              ],
             ),
           ),
         ),
@@ -292,71 +145,50 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  Widget _buildLogoSection(dynamic theme) {
-    final currentTime = DateTime.now();
-
+  Widget _buildHeader(dynamic theme) {
     return Column(
       children: [
+        // App Logo/Icon
         Container(
-          width: 100,
-          height: 100,
+          width: 120,
+          height: 120,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [theme.primarySwatch, theme.secondarySwatch],
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 2,
             ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: theme.primarySwatch.withOpacity(0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: const Icon(Icons.apartment, size: 50, color: Colors.white),
+          child: const Icon(
+            Icons.account_circle_outlined,
+            size: 60,
+            color: Colors.white,
+          ),
         ),
-        const SizedBox(height: 20),
-
+        const SizedBox(height: 24),
+        
+        // Title
         Text(
           'PPNPN DPR RI',
-          style: theme.typographyRegular.bodyLarge.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.primarySwatch,
-            fontSize: 26.0,
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        Text(
-          'Sistem Manajemen Kepegawaian',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            color: Colors.grey[600],
-            fontSize: 15.0,
+          style: theme.typographyBold.headingLarge.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 28.0,
+            letterSpacing: 1.2,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 12),
-
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.primarySwatch.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
+        const SizedBox(height: 8),
+        
+        // Subtitle
+        Text(
+          'Masuk ke Akun Anda',
+          style: theme.typographyRegular.bodyLarge.copyWith(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: 16.0,
           ),
-          child: Text(
-            DateFormat(
-              'EEEE, dd MMMM yyyy • HH:mm',
-              'id_ID',
-            ).format(currentTime),
-            style: theme.typographyRegular.bodyExtraSmall.copyWith(
-              color: theme.primarySwatch,
-              fontWeight: FontWeight.w500,
-              fontSize: 11.0,
-            ),
-          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -364,71 +196,139 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Widget _buildLoginForm(dynamic theme) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.3),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             spreadRadius: 2,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Masuk ke Akun Anda',
-              style: theme.typographyRegular.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-                fontSize: 18.0,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Silakan masukkan email dan password Anda',
-              style: theme.typographyRegular.bodyMedium.copyWith(
-                color: Colors.grey[600],
-                fontSize: 13.0,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            _buildInputField(
+            // Email Field
+            TextFormField(
               controller: _emailController,
-              label: 'Email',
-              hint: 'Masukkan email Anda',
-              icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Email',
+                labelStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+                prefixIcon: Icon(
+                  Icons.email_outlined,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.red,
+                    width: 1,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Email tidak boleh kosong';
                 }
-                if (!RegExp(
-                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                ).hasMatch(value)) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                   return 'Format email tidak valid';
                 }
                 return null;
               },
-              theme: theme,
             ),
-            const SizedBox(height: 16),
-
-            _buildInputField(
+            
+            const SizedBox(height: 20),
+            
+            // Password Field
+            TextFormField(
               controller: _passwordController,
-              label: 'Password',
-              hint: 'Masukkan password Anda',
-              icon: Icons.lock_outline,
-              isPassword: true,
+              obscureText: _obscurePassword,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                labelStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+                prefixIcon: Icon(
+                  Icons.lock_outline,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                  onPressed: () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.red,
+                    width: 1,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.red,
+                    width: 2,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Password tidak boleh kosong';
@@ -438,132 +338,101 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 }
                 return null;
               },
-              theme: theme,
             ),
-            const SizedBox(height: 16),
-
-            // Remember Me and Forgot Password
+            
+            const SizedBox(height: 20),
+            
+            // Remember Me dan Lupa Password
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: Checkbox(
-                        value: _rememberMe,
-                        onChanged: _handleRememberMeChanged,
-                        activeColor: theme.primarySwatch,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _handleRememberMeChanged(!_rememberMe),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Ingat saya',
-                            style: theme.typographyRegular.bodySmall.copyWith(
-                              color: Colors.grey[700],
-                              fontSize: 12.0,
-                            ),
-                          ),
-                          if (_rememberMe)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.verified,
-                                size: 14,
-                                color: theme.primarySwatch,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Checkbox(
+                  value: _rememberMe,
+                  onChanged: (value) async {
+                    setState(() => _rememberMe = value ?? false);
+                    
+                    // If unchecked, clear saved credentials
+                    if (!_rememberMe) {
+                      try {
+                        await AuthStorageService.clearSavedCredentials();
+                        await AuthStorageService.saveRememberMe(false);
+                        print('🗑️ LoginPage: Cleared saved credentials');
+                      } catch (e) {
+                        print('⚠️ LoginPage: Error clearing credentials: $e');
+                      }
+                    }
+                  },
+                  activeColor: Colors.white,
+                  checkColor: theme.primarySwatch,
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
                 ),
-                GestureDetector(
-                  onTap: _handleForgotPassword,
+                Text(
+                  'Ingat saya',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => context.push('/lupa-password'),
                   child: Text(
-                    'Lupa password?',
-                    style: theme.typographyRegular.bodySmall.copyWith(
-                      color: theme.primarySwatch,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.0,
+                    'Lupa Password?',
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
+            
+            const SizedBox(height: 30),
+            
+            // Login Button
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primarySwatch,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  foregroundColor: theme.primarySwatch,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 2,
+                  elevation: 8,
+                  shadowColor: Colors.black.withValues(alpha: 0.3),
                 ),
-                child:
-                    _isLoading
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                        : Text(
-                          'Masuk',
-                          style: theme.typographyRegular.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15.0,
+                child: _isLoading
+                    ? SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.primarySwatch,
                           ),
                         ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // User context info with saved data indicator
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _rememberMe ? Icons.save : Icons.info_outline,
-                    size: 14,
-                    color: _rememberMe ? Colors.green[600] : Colors.grey[600],
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _rememberMe
-                          ? 'Data tersimpan untuk: miftahul01 (Demo Mode)'
-                          : 'Login sebagai: miftahul01 (Demo Mode)',
-                      style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                        color: Colors.grey[600],
-                        fontSize: 10.0,
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.login,
+                            color: theme.primarySwatch,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Masuk ke Akun',
+                            style: theme.typographyBold.bodyLarge.copyWith(
+                              color: theme.primarySwatch,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18.0,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -572,269 +441,85 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    required dynamic theme,
-    TextInputType? keyboardType,
-    bool isPassword = false,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
-            fontSize: 13.0,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: isPassword && !_isPasswordVisible,
-          validator: validator,
-          style: theme.typographyRegular.bodyMedium.copyWith(fontSize: 14.0),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.0),
-            prefixIcon: Icon(icon, color: Colors.grey[500], size: 20),
-            suffixIcon:
-                isPassword
-                    ? IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey[500],
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    )
-                    : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: theme.primarySwatch, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            isDense: true,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomSection(dynamic theme) {
+  Widget _buildFooter(dynamic theme) {
     return Column(
       children: [
+        // Back to Welcome Button
+        TextButton.icon(
+          onPressed: () => context.go('/welcome'),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+          label: Text(
+            'Kembali ke Halaman Utama',
+            style: theme.typographyRegular.bodyMedium.copyWith(
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 20),
+        
+        // Security Info
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.security,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sistem dilindungi dengan keamanan tingkat tinggi untuk menjaga data Anda',
+                  style: theme.typographyRegular.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 12.0,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 20),
+        
+        // Footer Copyright
+        Divider(
+          color: Colors.white.withValues(alpha: 0.3),
+          thickness: 1,
+        ),
+        const SizedBox(height: 16),
+        
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: Divider(color: Colors.grey[300])),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'atau',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  color: Colors.grey[600],
-                  fontSize: 11.0,
-                ),
+            Icon(
+              Icons.copyright,
+              color: Colors.white.withValues(alpha: 0.7),
+              size: 16,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '2025 PPNPN DPR RI',
+              style: theme.typographyRegular.bodySmall.copyWith(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 12.0,
               ),
             ),
-            Expanded(child: Divider(color: Colors.grey[300])),
           ],
-        ),
-        const SizedBox(height: 16),
-
-        // Sign up button
-        SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: ElevatedButton(
-            onPressed: () {
-              context.pushNamed(Routes.signUp.name);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.primarySwatch,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.person_add,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Daftar Akun Baru',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: OutlinedButton(
-            onPressed: () {
-              // Navigate to guest mode
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    title: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.blue[600],
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Akses Tamu'),
-                      ],
-                    ),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dengan akses tamu, Anda dapat:',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '• Melihat informasi umum aplikasi\n'
-                          '• Mengakses fitur terbatas\n'
-                          '• Tidak dapat mengajukan permohonan',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.warning_amber, 
-                                   color: Colors.orange[600], size: 16),
-                              const SizedBox(width: 6),
-                              const Expanded(
-                                child: Text(
-                                  'Login untuk akses penuh',
-                                  style: TextStyle(fontSize: 11),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Batal'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          context.pushReplacementNamed(Routes.guest.name);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text('Lanjutkan'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: theme.primarySwatch),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.person_outline,
-                  color: theme.primarySwatch,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Masuk sebagai Tamu',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    color: theme.primarySwatch,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        Text(
-          'PPNPN DPR RI © 2025',
-          style: theme.typographyRegular.bodySmall.copyWith(
-            color: Colors.grey[500],
-            fontSize: 11.0,
-          ),
         ),
       ],
     );

@@ -213,6 +213,22 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
           return Icons.event;
         case 'task_alt':
           return Icons.task_alt;
+        case 'event_busy':
+          return Icons.event_busy;
+        case 'how_to_reg':
+          return Icons.how_to_reg;
+        case 'schedule':
+          return Icons.schedule;
+        case 'receipt_long':
+          return Icons.receipt_long;
+        case 'business_center':
+          return Icons.business_center;
+        case 'home':
+          return Icons.home;
+        case 'medical_services':
+          return Icons.medical_services;
+        case 'calendar_month':
+          return Icons.calendar_month;
         default:
           return Icons.notifications;
       }

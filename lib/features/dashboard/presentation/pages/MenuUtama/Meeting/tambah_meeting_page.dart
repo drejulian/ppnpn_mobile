@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'meeting_data.dart';
 
 class TambahMeetingPage extends ConsumerStatefulWidget {
@@ -530,7 +532,7 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
     );
   }
 
-  void _saveMeeting() {
+  void _saveMeeting() async {
     if (_formKey.currentState!.validate()) {
       // Validate time logic
       final startMinutes = _startTime.hour * 60 + _startTime.minute;
@@ -550,32 +552,69 @@ class _TambahMeetingPageState extends ConsumerState<TambahMeetingPage> {
         return;
       }
 
-      // Create new meeting data
-      final newMeeting = MeetingData(
-        title: _titleController.text,
-        room: _meetingType == 'Online' 
-            ? 'Online - ${_linkController.text}' 
-            : _roomController.text,
-        date: _selectedDate,
-        startTime: _startTimeController.text,
-        endTime: _endTimeController.text,
-        color: _selectedColor,
-      );
+      try {
+        // Create new meeting data
+        final newMeeting = MeetingData(
+          title: _titleController.text,
+          room: _meetingType == 'Online' 
+              ? 'Online - ${_linkController.text}' 
+              : _roomController.text,
+          date: _selectedDate,
+          startTime: _startTimeController.text,
+          endTime: _endTimeController.text,
+          color: _selectedColor,
+        );
 
-      // Show success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Meeting berhasil ditambahkan!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+        // Tambah notifikasi in-app
+        ref.read(notificationProvider.notifier).addMeetingNotification(
+          judulMeeting: _titleController.text,
+          tanggal: DateFormat('dd-MM-yyyy').format(_selectedDate),
+          waktuMulai: _startTimeController.text,
+          waktuSelesai: _endTimeController.text,
+          tempat: _meetingType == 'Online' 
+              ? 'Online - ${_linkController.text}' 
+              : _roomController.text,
+          jenisMeeting: _meetingType,
+        );
+        
+        // Kirim notifikasi lokal setelah 2 detik
+        await NotificationService.scheduleTaskReminder(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: 'Meeting Berhasil Dijadwalkan',
+          body: 'Meeting "${_titleController.text}" telah dijadwalkan pada ${DateFormat('dd-MM-yyyy').format(_selectedDate)} ${_startTimeController.text}-${_endTimeController.text}.',
+          scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+        );
 
-      // Navigate back with new meeting data
-      Navigator.of(context).pop(newMeeting);
+        if (mounted) {
+          // Show success feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Meeting berhasil ditambahkan dan notifikasi akan segera muncul!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+
+          // Navigate back with new meeting data
+          Navigator.of(context).pop(newMeeting);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menambahkan meeting: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 }

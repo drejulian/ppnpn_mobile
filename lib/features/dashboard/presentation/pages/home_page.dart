@@ -308,9 +308,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildMenuItem(MenuItemData item, dynamic theme) {
-    return GestureDetector(
-      onTap: item.onTap ?? () {},
-      child: Container(
+    var container = Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -359,7 +357,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ],
         ),
-      ),
+      );
+    return GestureDetector(
+      onTap: item.onTap ?? () {},
+      child: container,
     );
   }
 
