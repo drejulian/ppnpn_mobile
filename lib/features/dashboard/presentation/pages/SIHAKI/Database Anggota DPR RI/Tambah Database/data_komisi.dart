@@ -365,7 +365,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: isTablet ? 24 : 20,
+                    size: isTablet ? 24.0 : 20.0,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -380,7 +380,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         style: theme.typographyRegular.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: Colors.grey[800],
-                          fontSize: isTablet ? 16 : 14,
+                          fontSize: isTablet ? 16.0 : 14.0,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -388,7 +388,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         subtitle,
                         style: theme.typographyRegular.bodySmall.copyWith(
                           color: Colors.grey[600],
-                          fontSize: isTablet ? 14 : 12,
+                          fontSize: isTablet ? 14.0 : 12.0,
                         ),
                       ),
                       if (_showSavedMessage[sourcePage] == true) ...[
@@ -407,7 +407,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                             style: theme.typographyRegular.bodySmall.copyWith(
                               color: Colors.green[700],
                               fontWeight: FontWeight.w600,
-                              fontSize: 10,
+                              fontSize: 10.0,
                             ),
                           ),
                         ),
@@ -429,7 +429,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         child: Icon(
                           Icons.check_circle,
                           color: Colors.green[600],
-                          size: 16,
+                          size: 16.0,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -437,7 +437,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                     Icon(
                       Icons.arrow_forward_ios,
                       color: Colors.grey[400],
-                      size: 14,
+                      size: 14.0,
                     ),
                   ],
                 ),
