@@ -4,76 +4,96 @@ import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/reimburse_model.dart';
+import 'package:ppnpm_dpr/common/data/database/app_database_helper.dart';
 
-class ReimburseNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  ReimburseNotifier()
-    : super([
-        {
-          'id': 'R-001',
-          'category': 'Transport',
-          'amount': 100000,
-          'description': 'Perjalanan dinas ke Jakarta',
-          'date': DateTime.now().subtract(const Duration(days: 2)),
-          'status': 'Disetujui',
-          'fileName': 'nota_transport.pdf',
-        },
-        {
-          'id': 'R-002',
-          'category': 'Makan',
-          'amount': 75000,
-          'description': 'Makan siang rapat dengan klien',
-          'date': DateTime.now().subtract(const Duration(days: 5)),
-          'status': 'Menunggu Persetujuan',
-          'fileName': 'struk_restaurant.jpg',
-        },
-        {
-          'id': 'R-003',
-          'category': 'Hotel',
-          'amount': 350000,
-          'description': 'Menginap hotel untuk dinas luar kota',
-          'date': DateTime.now().subtract(const Duration(days: 10)),
-          'status': 'Ditolak',
-          'fileName': 'invoice_hotel.pdf',
-        },
-      ]);
-
-  void addReimburse(Map<String, dynamic> reimburse) {
-    print('Adding reimburse to state: $reimburse');
-    print('Current state length before: ${state.length}');
-    state = [...state, reimburse];
-    print('Current state length after: ${state.length}');
+class ReimburseListNotifier extends AsyncNotifier<List<ReimburseModel>> {
+  @override
+  Future<List<ReimburseModel>> build() async {
+    return await _loadReimburse();
   }
 
-  void updateReimburse(int index, Map<String, dynamic> updatedReimburse) {
-    final newState = [...state];
-    newState[index] = updatedReimburse;
-    state = newState;
+  Future<List<ReimburseModel>> _loadReimburse() async {
+    try {
+      final dbHelper = AppDatabaseHelper();
+      final reimburseData = await dbHelper.getAllReimburse();
+      return reimburseData.map((data) => ReimburseModel.fromMap(data)).toList();
+    } catch (e) {
+      print('Error loading reimburse: $e');
+      return [];
+    }
   }
 
-  void removeAt(int index) => state = [...state]..removeAt(index);
+  Future<void> addReimburse(ReimburseModel reimburse) async {
+    state = const AsyncValue.loading();
+    try {
+      final dbHelper = AppDatabaseHelper();
+      await dbHelper.insertReimburse(reimburse.toMap());
+      state = AsyncValue.data(await _loadReimburse());
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> updateReimburse(ReimburseModel reimburse) async {
+    state = const AsyncValue.loading();
+    try {
+      final dbHelper = AppDatabaseHelper();
+      await dbHelper.updateReimburse(reimburse.id!, reimburse.toMap());
+      state = AsyncValue.data(await _loadReimburse());
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> deleteReimburse(int id) async {
+    state = const AsyncValue.loading();
+    try {
+      final dbHelper = AppDatabaseHelper();
+      await dbHelper.deleteReimburse(id);
+      state = AsyncValue.data(await _loadReimburse());
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> refreshReimburse() async {
+    state = const AsyncValue.loading();
+    try {
+      state = AsyncValue.data(await _loadReimburse());
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
 }
 
-final reimburseProvider =
-    StateNotifierProvider<ReimburseNotifier, List<Map<String, dynamic>>>(
-      (ref) => ReimburseNotifier(),
-    );
+final reimburseListProvider = AsyncNotifierProvider<ReimburseListNotifier, List<ReimburseModel>>(
+  () => ReimburseListNotifier(),
+);
 
 final reimburseSearchProvider = StateProvider<String>((ref) => '');
 final reimburseStatusFilterProvider = StateProvider<String>((ref) => 'Semua');
 
-final filteredReimburseProvider = Provider<List<Map<String, dynamic>>>((ref) {
-  final list = ref.watch(reimburseProvider);
+final filteredReimburseProvider = Provider<AsyncValue<List<ReimburseModel>>>((ref) {
+  final reimburseAsync = ref.watch(reimburseListProvider);
   final query = ref.watch(reimburseSearchProvider).toLowerCase().trim();
   final status = ref.watch(reimburseStatusFilterProvider);
 
-  return list.where((item) {
-    final matchesQuery = query.isEmpty ||
-        (item['category']?.toString().toLowerCase().contains(query) ?? false) ||
-        (item['description']?.toString().toLowerCase().contains(query) ?? false) ||
-        (item['id']?.toString().toLowerCase().contains(query) ?? false);
-    final matchesStatus = status == 'Semua' || item['status'] == status;
-    return matchesQuery && matchesStatus;
-  }).toList();
+  return reimburseAsync.when(
+    data: (list) {
+      final filtered = list.where((item) {
+        final matchesQuery = query.isEmpty ||
+            item.category.toLowerCase().contains(query) ||
+            item.description.toLowerCase().contains(query) ||
+            item.id.toString().contains(query);
+        final matchesStatus = status == 'Semua' || item.uiStatus == status;
+        return matchesQuery && matchesStatus;
+      }).toList();
+      return AsyncValue.data(filtered);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
+  );
 });
 
 class DaftarReimbursePage extends ConsumerStatefulWidget {
@@ -92,43 +112,41 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     super.dispose();
   }
 
-  void _showDetailDialog(Map<String, dynamic> reimburse) {
+  void _showDetailDialog(ReimburseModel reimburse) {
     final theme = ref.read(themeProvider);
-    final statusColor = _getStatusColor(reimburse['status']);
-    final canEdit = _canEdit(reimburse);
+    final statusColor = _getStatusColor(reimburse.uiStatus);
+    final canEdit = _canEdit(reimburse.uiStatus);
     
     // Validasi kelengkapan data
     final List<String> missingFields = [];
-    if (reimburse['id'] == null || reimburse['id'].toString().isEmpty) missingFields.add('ID');
-    if (reimburse['category'] == null || reimburse['category'].toString().isEmpty) missingFields.add('Kategori');
-    if (reimburse['description'] == null || reimburse['description'].toString().isEmpty) missingFields.add('Deskripsi');
-    if (reimburse['amount'] == null) missingFields.add('Jumlah');
+    if (reimburse.id == null) missingFields.add('ID');
+    if (reimburse.category.isEmpty) missingFields.add('Kategori');
+    if (reimburse.description.isEmpty) missingFields.add('Deskripsi');
+    if (reimburse.amount <= 0) missingFields.add('Jumlah');
 
     // Status field untuk header
     final statusField = SIHAKIDialogField(
       label: 'Status Pengajuan',
-      value: reimburse['status'] ?? 'N/A',
+      value: reimburse.uiStatus,
       valueStyle: theme.typographyBold.bodyMedium.copyWith(color: statusColor),
       valueColor: statusColor,
     );
 
     // Data fields
-    final amount = reimburse['amount'];
-    final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
     final formattedAmount = NumberFormat.currency(
       locale: 'id',
       symbol: 'Rp ',
       decimalDigits: 0,
-    ).format(numericAmount);
+    ).format(reimburse.amount);
 
     final dataFields = [
       SIHAKIDialogField(
         label: 'ID Reimburse',
-        value: reimburse['id'] ?? 'N/A',
+        value: reimburse.id?.toString() ?? 'Auto-generated',
       ),
       SIHAKIDialogField(
         label: 'Kategori',
-        value: reimburse['category'] ?? 'N/A',
+        value: reimburse.category,
       ),
       SIHAKIDialogField(
         label: 'Jumlah',
@@ -136,16 +154,16 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
       ),
       SIHAKIDialogField(
         label: 'Tanggal',
-        value: DateFormat('dd MMMM yyyy', 'id_ID').format(reimburse['date'] as DateTime? ?? DateTime.now()),
+        value: DateFormat('dd MMMM yyyy', 'id_ID').format(reimburse.date),
       ),
       SIHAKIDialogField(
         label: 'Deskripsi',
-        value: reimburse['description'] ?? 'N/A',
+        value: reimburse.description,
       ),
-      if (reimburse['fileName'] != null)
+      if (reimburse.fileName != null && reimburse.fileName!.isNotEmpty)
         SIHAKIDialogField(
           label: 'Berkas Lampiran',
-          value: reimburse['fileName'],
+          value: reimburse.fileName!,
         ),
     ];
 
@@ -228,7 +246,7 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  Color _getStatusColor(String? status) {
+  Color _getStatusColor(String status) {
     switch (status) {
       case 'Disetujui':
         return Colors.green;
@@ -240,17 +258,16 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
     }
   }
 
-  bool _canEdit(Map<String, dynamic> reimburse) {
-    final status = reimburse['status'];
+  bool _canEdit(String status) {
     return status == 'Menunggu Persetujuan' || status == 'Ditolak';
   }
 
-  void _navigateToEdit(Map<String, dynamic> reimburse) {
-    context.push('/edit-reimburse', extra: reimburse);
+  void _navigateToEdit(ReimburseModel reimburse) {
+    context.push('/edit-reimburse', extra: reimburse.toLegacyMap());
   }
 
-  void _confirmDelete(Map<String, dynamic> reimburse) {
-    final id = reimburse['id']?.toString() ?? '';
+  void _confirmDelete(ReimburseModel reimburse) {
+    final id = reimburse.id?.toString() ?? 'Unknown';
 
     SIHAKIConfirmationDialog.show(
       context,
@@ -261,23 +278,40 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.red[600],
       isDestructive: true,
-      onConfirm: () {
-        final reimburseList = ref.read(reimburseProvider.notifier);
-        final index = ref.read(reimburseProvider).indexWhere((item) => item['id'] == reimburse['id']);
-        if (index != -1) {
-          reimburseList.removeAt(index);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Pengajuan reimburse berhasil dihapus'),
-              backgroundColor: Colors.green[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      onConfirm: () async {
+        try {
+          if (reimburse.id != null) {
+            await ref.read(reimburseListProvider.notifier).deleteReimburse(reimburse.id!);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Pengajuan reimburse berhasil dihapus'),
+                  backgroundColor: Colors.green[600],
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Gagal menghapus reimburse: $e'),
+                backgroundColor: Colors.red[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       },
     );
   }
@@ -285,12 +319,8 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final filteredList = ref.watch(filteredReimburseProvider);
+    final filteredListAsync = ref.watch(filteredReimburseProvider);
     final statusFilter = ref.watch(reimburseStatusFilterProvider);
-    
-    // Debug: Print filtered list
-    print('Filtered reimburse list length: ${filteredList.length}');
-    print('Status filter: $statusFilter');
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -386,10 +416,12 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
             ),
           ),
           
-          // List Section
+          // List Section with AsyncValue handling
           Expanded(
-            child: filteredList.isEmpty
-                ? Center(
+            child: filteredListAsync.when(
+              data: (filteredList) {
+                if (filteredList.isEmpty) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -401,66 +433,90 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      final reimburse = filteredList[index];
-                      final statusColor = _getStatusColor(reimburse['status']);
-                      final amount = reimburse['amount'];
-                      final numericAmount = amount is int ? amount.toDouble() : (amount as double? ?? 0.0);
-                      final formattedAmount = NumberFormat.currency(
-                        locale: 'id_ID',
-                        symbol: 'Rp ',
-                        decimalDigits: 0,
-                      ).format(numericAmount);
-                      
-                      return AppListCard(
-                        title: reimburse['category'] ?? 'N/A',
-                        subtitle: reimburse['id'] ?? 'N/A',
-                        leading: CircleAvatar(
-                          backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                          child: Icon(
-                            Icons.receipt,
-                            color: theme.primarySwatch,
-                            size: 20,
+                  );
+                }
+                
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    final reimburse = filteredList[index];
+                    final statusColor = _getStatusColor(reimburse.uiStatus);
+                    final formattedAmount = NumberFormat.currency(
+                      locale: 'id_ID',
+                      symbol: 'Rp ',
+                      decimalDigits: 0,
+                    ).format(reimburse.amount);
+                    
+                    return AppListCard(
+                      title: reimburse.category,
+                      subtitle: reimburse.id?.toString() ?? 'Auto-generated',
+                      leading: CircleAvatar(
+                        backgroundColor: theme.primarySwatch.withOpacity(0.1),
+                        child: Icon(
+                          Icons.receipt,
+                          color: theme.primarySwatch,
+                          size: 20,
+                        ),
+                      ),
+                      trailing: AppStatusChip(
+                        label: reimburse.uiStatus,
+                        color: statusColor,
+                      ),
+                      chips: [
+                        AppPillChip(
+                          icon: Icons.attach_money,
+                          label: formattedAmount,
+                        ),
+                        AppPillChip(
+                          icon: Icons.description,
+                          label: reimburse.description,
+                        ),
+                        if (reimburse.fileName != null && reimburse.fileName!.isNotEmpty)
+                          AppPillChip(
+                            icon: Icons.attach_file,
+                            label: reimburse.fileName!,
+                          ),
+                      ],
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.visibility, size: 20),
+                          onPressed: () => _showDetailDialog(reimburse),
+                          tooltip: 'Lihat Detail',
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.primarySwatch.withOpacity(0.1),
+                            foregroundColor: theme.primarySwatch,
                           ),
                         ),
-                        trailing: AppStatusChip(
-                          label: reimburse['status'] ?? 'N/A',
-                          color: statusColor,
-                        ),
-                        chips: [
-                          AppPillChip(
-                            icon: Icons.attach_money,
-                            label: formattedAmount,
-                          ),
-                          AppPillChip(
-                            icon: Icons.description,
-                            label: reimburse['description'] ?? 'N/A',
-                          ),
-                          if (reimburse['fileName'] != null)
-                            AppPillChip(
-                              icon: Icons.attach_file,
-                              label: reimburse['fileName'],
-                            ),
-                        ],
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.visibility, size: 20),
-                            onPressed: () => _showDetailDialog(reimburse),
-                            tooltip: 'Lihat Detail',
-                            style: IconButton.styleFrom(
-                              backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                              foregroundColor: theme.primarySwatch,
-                            ),
-                          ),
-                        ],
-                        onTap: () => _showDetailDialog(reimburse),
-                      );
-                    },
-                  ),
+                      ],
+                      onTap: () => _showDetailDialog(reimburse),
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              error: (error, stack) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error, size: 48, color: Colors.red[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Terjadi kesalahan: $error',
+                      style: TextStyle(color: Colors.red[600], fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.refresh(reimburseListProvider),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),

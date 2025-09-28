@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_pengajuan_BPJS.dart' show BPJSData, bpjsDataProvider;
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/bpjs_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/bpjs_model.dart';
 
 class TambahBpjsPage extends ConsumerStatefulWidget {
   const TambahBpjsPage({super.key});
@@ -22,6 +23,8 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
   final _tanggalLahirController = TextEditingController();
   final _namaFaskesTingkat1Controller = TextEditingController();
   DateTime? _selectedDate;
+  String _selectedStatus = 'aktif';
+  bool _isLoading = false;
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -94,21 +97,39 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                     label: 'Nomor BPJS',
                     icon: Icons.confirmation_num,
                     controller: _noBPJSController,
-                    hintText: 'Nomor BPJS',
+                    hintText: 'Nomor BPJS (13 digit)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Nomor BPJS harus diisi';
+                      }
+                      if (value.trim().length != 13) {
+                        return 'Nomor BPJS harus 13 digit';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'NIK',
                     icon: Icons.badge,
                     controller: _nikController,
-                    hintText: 'Nomor Induk Kependudukan',
+                    hintText: 'Nomor Induk Kependudukan (16 digit)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'NIK harus diisi';
+                      }
+                      if (value.trim().length != 16) {
+                        return 'NIK harus 16 digit';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'Hubungan Keluarga',
@@ -137,30 +158,191 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                     isRequired: true,
                   ),
                 ],
-                onSave: () {
-                  if (!_formKey.currentState!.validate()) return;
-                  ref
-                      .read(bpjsDataProvider.notifier)
-                      .addBPJSData(
-                        BPJSData(
-                          nama: _namaController.text.trim(),
-                          noBPJS: _noBPJSController.text.trim(),
-                          nik: _nikController.text.trim(),
-                          hubunganKeluarga:
-                              _hubunganKeluargaController.text.trim(),
-                          tanggalLahir: _tanggalLahirController.text.trim(),
-                          namaFaskesTingkat1:
-                              _namaFaskesTingkat1Controller.text.trim(),
+                onSave: _isLoading ? null : _saveBPJSData,
+                saveButtonText: _isLoading ? 'MENYIMPAN...' : 'TAMBAH DATA',
+              ),
+              const SizedBox(height: 16),
+              // Status Dropdown
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Status BPJS',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      );
-                  context.pop();
-                },
-                saveButtonText: 'TAMBAH DATA',
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedStatus,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            items: ['aktif', 'non-aktif', 'pending']
+                                .map((status) => DropdownMenuItem(
+                                      value: status,
+                                      child: Text(status.toUpperCase()),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStatus = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _saveBPJSData() async {
+    if (!_formKey.currentState!.validate()) {
+      print('❌ Form validation failed');
+      return;
+    }
+    
+    // Additional validation
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Tanggal lahir harus dipilih'),
+          backgroundColor: Colors.red[600],
+        ),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final now = DateTime.now();
+      
+      // Debug: Print all data before saving
+      print('📝 Data yang akan disimpan:');
+      print('   Nama: ${_namaController.text.trim()}');
+      print('   No BPJS: ${_noBPJSController.text.trim()}');
+      print('   NIK: ${_nikController.text.trim()}');
+      print('   Hubungan: ${_hubunganKeluargaController.text.trim()}');
+      print('   Tanggal Lahir: ${_tanggalLahirController.text.trim()}');
+      print('   Faskes: ${_namaFaskesTingkat1Controller.text.trim()}');
+      print('   Status: $_selectedStatus');
+      
+      final bpjsData = BPJSModel(
+        nama: _namaController.text.trim(),
+        noBPJS: _noBPJSController.text.trim(),
+        nik: _nikController.text.trim(),
+        hubunganKeluarga: _hubunganKeluargaController.text.trim(),
+        tanggalLahir: _tanggalLahirController.text.trim(),
+        namaFaskesTingkat1: _namaFaskesTingkat1Controller.text.trim(),
+        status: _selectedStatus,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      print('🔄 Memanggil addBPJS provider...');
+      final success = await ref.read(bpjsProvider.notifier).addBPJS(
+        nama: bpjsData.nama,
+        noBPJS: bpjsData.noBPJS,
+        nik: bpjsData.nik,
+        hubunganKeluarga: bpjsData.hubunganKeluarga,
+        tanggalLahir: bpjsData.tanggalLahir,
+        namaFaskesTingkat1: bpjsData.namaFaskesTingkat1,
+        status: bpjsData.status,
+      );
+      
+      print('📊 Hasil addBPJS: $success');
+      
+      if (mounted) {
+        if (success) {
+          print('✅ Data berhasil disimpan');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Data BPJS "${_namaController.text}" berhasil ditambahkan',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          context.pop(true); // Return true to indicate success
+        } else {
+          print('❌ Data gagal disimpan');
+          // Check for error message from provider
+          final errorMessage = ref.read(bpjsProvider).errorMessage;
+          print('Error message: $errorMessage');
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                errorMessage ?? 'Gagal menambahkan data BPJS',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('💥 Exception terjadi: $e');
+      print('Stack trace: ${StackTrace.current}');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }

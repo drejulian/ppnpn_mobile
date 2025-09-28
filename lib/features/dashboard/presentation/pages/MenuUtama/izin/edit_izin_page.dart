@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/izin_provider.dart';
 
 class EditIzinPage extends ConsumerStatefulWidget {
   const EditIzinPage({super.key, required this.data});
@@ -64,9 +64,15 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
-  // Parse date from dd-MM-yyyy format
+  // Parse date from dd-MM-yyyy format or ISO8601 format
   DateTime? _parseDate(String dateString) {
     try {
+      // First try to parse as ISO8601 format (from IzinModel.toMap())
+      if (dateString.contains('T') || dateString.contains('Z')) {
+        return DateTime.parse(dateString);
+      }
+      
+      // Then try to parse as dd-MM-yyyy format
       final parts = dateString.split('-');
       if (parts.length == 3) {
         final day = int.parse(parts[0]);
@@ -473,7 +479,7 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: isLocked ? null : () {
+                    onPressed: isLocked ? null : () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
                         // Check if ID is available
                         final izinId = widget.data['id'];
@@ -487,24 +493,16 @@ class _EditIzinPageState extends ConsumerState<EditIzinPage> {
                           return;
                         }
                         
-                        // Get current status and preserve it
-                        final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
-                        final statusColor = _statusColor(currentStatus);
-                        
-                        final updatedData = {
-                          'id': izinId, // Include ID in update data
-                          'type': _jenisCtrl.text.trim(),
-                          'date': _awalDate!,
-                          'duration': _formatDuration(),
-                          'reason': _alasanCtrl.text.trim(),
-                          'status': currentStatus, // Preserve existing status
-                          'statusColor': statusColor,
-                          'fileName': _selectedFile?.name ?? widget.data['fileName'],
-                        };
-                        
                         try {
-                          // Update izin data
-                          ref.read(izinProvider.notifier).update(izinId, updatedData);
+                          // Update izin data using new provider with proper signature
+                          await ref.read(izinProvider.notifier).updateIzin(
+                            id: izinId,
+                            type: _jenisCtrl.text.trim(),
+                            date: _awalDate!,
+                            duration: _formatDuration(),
+                            reason: _alasanCtrl.text.trim(),
+                            fileName: _selectedFile?.name ?? widget.data['fileName'],
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Data izin berhasil diperbarui'),

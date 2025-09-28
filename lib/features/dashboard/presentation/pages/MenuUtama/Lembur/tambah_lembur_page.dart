@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:intl/intl.dart';
-import 'daftar_lembur_page.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/lembur_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/lembur_provider.dart';
 
 class TambahLemburPage extends ConsumerStatefulWidget {
   const TambahLemburPage({super.key});
@@ -29,7 +30,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
   
   final List<String> _jenisLemburOptions = [
     'Lembur Komisi',
-    'Lembur Anggaran',
+    'Lembur Anggaran', 
     'Lembur Rapat',
     'Lembur Proyek',
     'Lembur Lainnya',
@@ -40,8 +41,8 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
     final picked = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(now.year + 1),
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 2),
     );
     if (picked != null) {
       setState(() {
@@ -88,7 +89,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
     
     int durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
-      durationMinutes += 24 * 60; // Handle overnight work
+      durationMinutes += 24 * 60; 
     }
     
     final hours = durationMinutes ~/ 60;
@@ -114,23 +115,6 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
     }
   }
 
-  String _generateId() {
-    final now = DateTime.now();
-    return 'L-${now.millisecondsSinceEpoch % 10000}';
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Disetujui':
-        return Colors.green;
-      case 'Ditolak':
-        return Colors.red;
-      case 'Menunggu Persetujuan':
-      default:
-        return Colors.orange;
-    }
-  }
-
   @override
   void dispose() {
     _jenisCtrl.dispose();
@@ -144,16 +128,15 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          'Ajukan Lembur',
+          'Tambah Pengajuan Lembur',
           style: theme.typographyBold.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
             color: Colors.white,
-            fontSize: 18,
           ),
         ),
         backgroundColor: theme.primarySwatch,
@@ -170,7 +153,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
               children: [
                 AppFormCard(
                   title: 'Form Pengajuan Lembur',
-                  titleIcon: Icons.schedule,
+                  titleIcon: Icons.add_circle_outline,
                   showSaveButton: false,
                   fields: [
                     FormFieldConfig(
@@ -179,7 +162,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       type: FormFieldType.dropdown,
                       isRequired: true,
                       options: _jenisLemburOptions,
-                      value: _jenisCtrl.text.isEmpty ? null : _jenisCtrl.text,
+                      value: _jenisCtrl.text.isNotEmpty && _jenisLemburOptions.contains(_jenisCtrl.text) ? _jenisCtrl.text : null,
                       onChanged: (value) => setState(() => _jenisCtrl.text = value ?? ''),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -332,14 +315,12 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile != null 
-                                          ? _selectedFile!.name 
-                                          : 'Upload file pendukung',
+                                      _selectedFile?.name ?? 'Upload file pendukung',
                                       style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: _selectedFile != null 
-                                            ? Colors.grey[800] 
+                                        color: _selectedFile != null
+                                            ? Colors.grey[800]
                                             : Colors.grey[600],
-                                        fontWeight: _selectedFile != null 
+                                        fontWeight: _selectedFile != null
                                             ? FontWeight.w600 
                                             : FontWeight.normal,
                                       ),
@@ -386,31 +367,41 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() && _selectedDate != null && _jamMulai != null && _jamSelesai != null) {
-                        final newLembur = {
-                          'id': _generateId(),
-                          'type': _jenisCtrl.text,
-                          'date': _selectedDate!,
-                          'jamMulai': _formatTime(_jamMulai!),
-                          'jamSelesai': _formatTime(_jamSelesai!),
-                          'duration': _calculateDuration(),
-                          'reason': _kegiatanCtrl.text,
-                          'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor('Menunggu Persetujuan'),
-                          'fileName': _selectedFile?.name,
-                        };
-                        
-                        ref.read(lemburProvider.notifier).add(newLembur);
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pengajuan lembur berhasil dikirim'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                        
-                        context.pop();
+                        try {
+                          final newLembur = LemburModel(
+                            type: _jenisCtrl.text.trim(),
+                            date: _selectedDate!,
+                            duration: _calculateDuration(),
+                            startTime: _formatTime(_jamMulai!),
+                            endTime: _formatTime(_jamSelesai!),
+                            reason: _kegiatanCtrl.text.trim(),
+                            status: 'menunggu_persetujuan', // Use database status format
+                            userId: 1, // You might need to get this from user session
+                            createdAt: DateTime.now(),
+                            updatedAt: DateTime.now(),
+                            fileName: _selectedFile?.name,
+                          );
+
+                          await ref.read(lemburProvider.notifier).addLembur(newLembur);
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pengajuan lembur berhasil dikirim'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          
+                          context.pop();
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal mengirim pengajuan: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       } else if (_selectedDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -428,7 +419,7 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       }
                     },
                     child: Text(
-                      'AJUKAN LEMBUR',
+                      'SUBMIT PENGAJUAN',
                       style: theme.typographyRegular.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,

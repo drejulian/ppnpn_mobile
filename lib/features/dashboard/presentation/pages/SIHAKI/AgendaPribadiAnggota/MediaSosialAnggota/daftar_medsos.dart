@@ -2,94 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/media_sosial_anggota_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/media_sosial_anggota_model.dart';
 import 'dart:async';
 
-// StateNotifier untuk Media Sosial
-class MediaSosialNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  MediaSosialNotifier()
-    : super([
-        {
-          'id': 'MED-001',
-          'platform': 'Facebook',
-          'username': 'https://facebook.com/username',
-        },
-        {
-          'id': 'MED-002',
-          'platform': 'Twitter',
-          'username': 'https://twitter.com/username',
-        },
-        {
-          'id': 'MED-003',
-          'platform': 'LinkedIn',
-          'username': 'https://linkedin.com/in/username',
-        },
-        {
-          'id': 'MED-004',
-          'platform': 'Instagram',
-          'username': 'https://instagram.com/username',
-        },
-        {
-          'id': 'MED-005',
-          'platform': 'Website',
-          'username': 'https://websiteanda.com',
-        },
-      ]);
-
-  void addMediaSosial(Map<String, dynamic> medsos) {
-    // Generate ID otomatis
-    final existingIds = state.map((item) => item['id'] as String).toList();
-    int counter = 1;
-    String newId;
-    do {
-      newId = 'MED-${counter.toString().padLeft(3, '0')}';
-      counter++;
-    } while (existingIds.contains(newId));
-
-    final medsosWithId = {...medsos, 'id': newId};
-    state = [...state, medsosWithId];
-  }
-
-  void removeMediaSosial(String id) {
-    state = state.where((medsos) => medsos['id'] != id).toList();
-  }
-
-  void updateMediaSosial(String id, Map<String, dynamic> updatedData) {
-    final index = state.indexWhere((medsos) => medsos['id'] == id);
-
-    if (index != -1) {
-      final oldData = state[index];
-      final mergedData = {...oldData, ...updatedData};
-
-      state = [
-        ...state.sublist(0, index),
-        mergedData,
-        ...state.sublist(index + 1),
-      ];
-    }
-  }
-}
-
-final mediaSosialDataProvider =
-    StateNotifierProvider<MediaSosialNotifier, List<Map<String, dynamic>>>((
-      ref,
-    ) {
-      return MediaSosialNotifier();
-    });
-
+// Provider untuk search query
 final searchQueryProvider = StateProvider<String>((ref) => '');
-final filteredMediaSosialProvider = Provider<List<Map<String, dynamic>>>((ref) {
+
+// Provider untuk filtered media sosial yang menggunakan SQLite
+final filteredMediaSosialProvider = Provider<List<MediaSosialAnggotaModel>>((ref) {
   final query = ref.watch(searchQueryProvider).toLowerCase().trim();
-  final allItems = ref.watch(mediaSosialDataProvider);
+  final medsosState = ref.watch(mediaSosialAnggotaProvider);
 
-  if (query.isEmpty) return allItems;
+  if (query.isEmpty) return medsosState.medsosList;
 
-  return allItems.where((item) {
-    return item['id'].toString().toLowerCase().contains(query) ||
-        item['platform'].toString().toLowerCase().contains(query) ||
-        item['username'].toString().toLowerCase().contains(query) ||
-        item['status'].toString().toLowerCase().contains(query);
+  return medsosState.medsosList.where((medsos) {
+    return medsos.platform.toLowerCase().contains(query) ||
+        medsos.username.toLowerCase().contains(query) ||
+        medsos.url.toLowerCase().contains(query) ||
+        medsos.status.toLowerCase().contains(query);
   }).toList();
 });
 
@@ -107,6 +41,11 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
   @override
   void initState() {
     super.initState();
+    // Load data saat page dimuat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(mediaSosialAnggotaProvider.notifier).loadMediaSosial();
+    });
+    
     _searchController.text = ref.read(searchQueryProvider);
     _searchController.addListener(_onSearchChanged);
   }
@@ -126,80 +65,11 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
     super.dispose();
   }
 
-  void _editData(Map<String, dynamic> medsos) {
-    context.push('/edit-media-sosial-anggota', extra: medsos);
-  }
-
-  // Helper Methods untuk Dialog SIHAKI
-  void _confirmDelete(Map<String, dynamic> medsos) {
-    SIHAKIConfirmationDialog.show(
-      context,
-      title: 'Hapus Media Sosial',
-      message:
-          'Apakah Anda yakin ingin menghapus media sosial "${medsos['platform']}"? Tindakan ini tidak dapat dibatalkan.',
-      confirmText: 'Hapus',
-      cancelText: 'Batal',
-      icon: Icons.delete_forever_rounded,
-      iconColor: Colors.red[600]!,
-      isDestructive: true,
-      onConfirm: () {
-        ref
-            .read(mediaSosialDataProvider.notifier)
-            .removeMediaSosial(medsos['id']);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Media sosial "${medsos['platform']}" berhasil dihapus',
-            ),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  IconData? _getIcon(String nama) {
-    switch (nama.toLowerCase()) {
-      case 'facebook':
-        return FontAwesomeIcons.facebook;
-      case 'twitter':
-        return FontAwesomeIcons.twitter;
-      case 'linkedin':
-        return FontAwesomeIcons.linkedin;
-      case 'instagram':
-        return FontAwesomeIcons.instagram;
-      case 'website':
-        return FontAwesomeIcons.globe;
-      default:
-        return FontAwesomeIcons.shareAlt;
-    }
-  }
-
-  Color _getColor(String nama) {
-    switch (nama.toLowerCase()) {
-      case 'facebook':
-        return const Color(0xFF1877F2);
-      case 'twitter':
-        return const Color(0xFF1DA1F2);
-      case 'linkedin':
-        return const Color(0xFF0077B5);
-      case 'instagram':
-        return const Color(0xFFE1306C);
-      case 'website':
-        return Colors.blueGrey;
-      default:
-        return const Color.fromARGB(255, 178, 0, 191);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final filteredList = ref.watch(filteredMediaSosialProvider);
+    final medsosState = ref.watch(mediaSosialAnggotaProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -217,135 +87,171 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go("/home"),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Modern Search Bar
-            AppFilterBar(
-              controller: _searchController,
-              labelText: 'Cari Media Sosial',
-              hintText: 'ID, platform, username...',
-              onChanged: (_) {},
-              onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
-            ),
-            const SizedBox(height: 16),
-
-            // Add Button with modern styling
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    theme.primarySwatch,
-                    theme.primarySwatch.withValues(alpha: 0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.primarySwatch.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ElevatedButton.icon(
-                onPressed: () => context.push('/tambah-media-sosial-anggota'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add_circle_rounded, size: 22),
-                label: Text(
-                  'TAMBAH MEDIA SOSIAL',
-                  style: theme.typographyBold.bodyMedium.copyWith(
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Header with data count
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.primarySwatch.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+      body: medsosState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : medsosState.errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.share, color: theme.primarySwatch, size: 18),
-                      const SizedBox(width: 8),
+                      Icon(Icons.error, size: 64, color: Colors.red[400]),
+                      const SizedBox(height: 16),
                       Text(
-                        'Daftar Media Sosial',
-                        style: theme.typographyBold.bodyMedium.copyWith(
-                          color: theme.primarySwatch,
+                        'Terjadi kesalahan',
+                        style: theme.typographyBold.bodyLarge.copyWith(
+                          color: Colors.red[600],
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        medsosState.errorMessage!,
+                        style: theme.typographyRegular.bodyMedium.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(mediaSosialAnggotaProvider.notifier).loadMediaSosial();
+                        },
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      // Modern Search Bar
+                      AppFilterBar(
+                        controller: _searchController,
+                        labelText: 'Cari Media Sosial',
+                        hintText: 'Platform, username, deskripsi...',
+                        onChanged: (_) {},
+                        onClear: () => ref.read(searchQueryProvider.notifier).state = '',
+                        cardMargin: EdgeInsets.zero,
+                        padding: const EdgeInsets.all(16),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Add Button with modern styling
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.primarySwatch,
+                              theme.primarySwatch.withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.primarySwatch.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () => context.pushNamed(Routes.tambahMediaSosialAnggota.name),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_circle_rounded, size: 22),
+                          label: Text(
+                            'TAMBAH MEDIA SOSIAL',
+                            style: theme.typographyBold.bodyMedium.copyWith(
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header with data count
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.primarySwatch.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.share,
+                                  color: theme.primarySwatch,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Daftar Media Sosial',
+                                  style: theme.typographyBold.bodyMedium.copyWith(
+                                    color: theme.primarySwatch,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: theme.primarySwatch.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              '${filteredList.length} data',
+                              style: theme.typographyBold.bodySmall.copyWith(
+                                color: theme.primarySwatch,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Media Sosial List
+                      Expanded(
+                        child: filteredList.isEmpty
+                            ? _buildEmptyState(theme)
+                            : ListView.builder(
+                                itemCount: filteredList.length,
+                                itemBuilder: (context, index) {
+                                  final medsos = filteredList[index];
+                                  return _buildMediaSosialCard(medsos, theme);
+                                },
+                              ),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.primarySwatch.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    '${filteredList.length} data',
-                    style: theme.typographyBold.bodySmall.copyWith(
-                      color: theme.primarySwatch,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Media Sosial List
-            Expanded(
-              child:
-                  filteredList.isEmpty
-                      ? _buildEmptyState(theme)
-                      : ListView.builder(
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final medsos = filteredList[index];
-                          return _buildMediaSosialCard(medsos, theme);
-                        },
-                      ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -390,7 +296,7 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
           if (searchQuery.isEmpty) ...[
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () => context.push('/tambah-media-sosial-anggota'),
+              onPressed: () => context.pushNamed(Routes.tambahMediaSosialAnggota.name),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primarySwatch,
                 foregroundColor: Colors.white,
@@ -414,13 +320,10 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
     );
   }
 
-  Widget _buildMediaSosialCard(Map<String, dynamic> medsos, dynamic theme) {
-    final icon = _getIcon(medsos['platform']);
-    final color = _getColor(medsos['platform']);
-
+  Widget _buildMediaSosialCard(MediaSosialAnggotaModel medsos, dynamic theme) {
     return AppListCard(
       onTap: () => _showDetailDialog(context, medsos, theme),
-      leftAccentColor: color,
+      leftAccentColor: _getPlatformColor(medsos.platform),
       gradient: LinearGradient(
         colors: [Colors.white, Colors.grey[50]!],
         begin: Alignment.topLeft,
@@ -432,43 +335,90 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              color.withValues(alpha: 0.2),
-              color.withValues(alpha: 0.1),
+              _getPlatformColor(medsos.platform).withValues(alpha: 0.2),
+              _getPlatformColor(medsos.platform).withValues(alpha: 0.1),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: _getPlatformColor(medsos.platform).withValues(alpha: 0.3)),
         ),
-        child: Icon(icon, color: color, size: 24),
+        child: Icon(_getIcon(medsos.platform), color: _getPlatformColor(medsos.platform), size: 24),
       ),
-      title: medsos['platform'].toString(),
-      subtitle: medsos['id'].toString(),
+      title: medsos.platform,
+      subtitle: 'ID: ${medsos.id}',
       chips: [
         AppPillChip(
           icon: Icons.link,
-          label:
-              medsos['username'].toString().length > 30
-                  ? '${medsos['username'].toString().substring(0, 30)}...'
-                  : medsos['username'].toString(),
+          label: medsos.url.length > 30 ? '${medsos.url.substring(0, 30)}...' : medsos.url,
           color: Colors.blue[600],
+        ),
+        AppPillChip(
+          icon: medsos.isVerified ? Icons.verified : Icons.person,
+          label: medsos.isVerified ? 'Verified' : 'Not Verified',
+          color: medsos.isVerified ? Colors.green[600] : Colors.grey[600],
+        ),
+        AppPillChip(
+          icon: Icons.people,
+          label: '${medsos.followers} followers',
+          color: Colors.purple[600],
         ),
       ],
     );
   }
 
+  // Helper Methods untuk Dialog SIHAKI
+  void _confirmDelete(MediaSosialAnggotaModel medsos) {
+    SIHAKIConfirmationDialog.show(
+      context,
+      title: 'Hapus Media Sosial',
+      message:
+          'Apakah Anda yakin ingin menghapus media sosial "${medsos.platform}"? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      icon: Icons.delete_forever_rounded,
+      iconColor: Colors.red[600]!,
+      isDestructive: true,
+      onConfirm: () async {
+        if (medsos.id != null) {
+          final success = await ref
+              .read(mediaSosialAnggotaProvider.notifier)
+              .deleteMediaSosial(medsos.id!);
+          
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Media sosial "${medsos.platform}" berhasil dihapus'),
+                backgroundColor: Colors.green[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          }
+        }
+      },
+    );
+  }
+
   void _showDetailDialog(
     BuildContext context,
-    Map<String, dynamic> medsos,
+    MediaSosialAnggotaModel medsos,
     dynamic theme,
   ) {
     final dialogData = SIHAKIDialogData(
-      title: 'Detail Media Sosial - ${medsos['platform']}',
+      title: 'Detail Media Sosial - ${medsos.platform}',
       fields: [
-        SIHAKIDialogField(label: 'ID', value: medsos['id']),
-        SIHAKIDialogField(label: 'Platform', value: medsos['platform']),
-        SIHAKIDialogField(label: 'Username/URL', value: medsos['username']),
+        SIHAKIDialogField(label: 'ID', value: medsos.id?.toString() ?? '-'),
+        SIHAKIDialogField(label: 'Platform', value: medsos.platform),
+        SIHAKIDialogField(label: 'Username', value: medsos.username),
+        SIHAKIDialogField(label: 'URL', value: medsos.url),
+        SIHAKIDialogField(label: 'Followers', value: medsos.followers.toString()),
+        SIHAKIDialogField(label: 'Verified', value: medsos.isVerified ? 'Ya' : 'Tidak'),
+        SIHAKIDialogField(label: '', value: ''), // Spacer
+        SIHAKIDialogField(label: 'Status', value: medsos.status),
       ],
       actions: [
         SIHAKIDialogAction(
@@ -478,7 +428,7 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();
-            _editData(medsos);
+            context.pushNamed(Routes.editMediaSosialAnggota.name, extra: medsos);
           },
         ),
         SIHAKIDialogAction(
@@ -496,5 +446,47 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
     );
 
     SIHAKIDetailDialog.show(context, dialogData);
+  }
+
+  IconData? _getIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return FontAwesomeIcons.facebook;
+      case 'twitter':
+        return FontAwesomeIcons.twitter;
+      case 'linkedin':
+        return FontAwesomeIcons.linkedin;
+      case 'instagram':
+        return FontAwesomeIcons.instagram;
+      case 'youtube':
+        return FontAwesomeIcons.youtube;
+      case 'tiktok':
+        return FontAwesomeIcons.tiktok;
+      case 'website':
+        return FontAwesomeIcons.globe;
+      default:
+        return FontAwesomeIcons.shareAlt;
+    }
+  }
+
+  Color _getPlatformColor(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        return const Color(0xFF1877F2);
+      case 'twitter':
+        return const Color(0xFF1DA1F2);
+      case 'linkedin':
+        return const Color(0xFF0A66C2);
+      case 'instagram':
+        return const Color(0xFFE4405F);
+      case 'youtube':
+        return const Color(0xFFFF0000);
+      case 'tiktok':
+        return const Color(0xFF000000);
+      case 'website':
+        return const Color(0xFF4CAF50);
+      default:
+        return const Color(0xFF9C27B0);
+    }
   }
 }

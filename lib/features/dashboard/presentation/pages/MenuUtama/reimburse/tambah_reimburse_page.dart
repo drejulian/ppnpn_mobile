@@ -5,6 +5,7 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/reimburse_model.dart';
 import 'daftar_reimburse_page.dart';
 
 class TambahReimbursePage extends ConsumerStatefulWidget {
@@ -299,14 +300,10 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (!_formKey.currentState!.validate()) return;
 
                     try {
-                      // Generate ID
-                      final id = 'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-                      
-                      // Parse amount - handle both formatted and unformatted input
                       String amountText = _jumlahCtrl.text.trim();
                       if (amountText.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -332,38 +329,42 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                         return;
                       }
                       
-                      // Create new reimburse data
-                      final newReimburse = {
-                        'id': id,
-                        'category': _kategoriCtrl.text,
-                        'amount': amount,
-                        'description': _deskripsiCtrl.text,
-                        'date': _selectedDate ?? DateTime.now(),
-                        'status': 'Menunggu Persetujuan',
-                        'fileName': _selectedFile?.name,
-                      };
+                      // Create new reimburse data using ReimburseModel
+                      final newReimburse = ReimburseModel.create(
+                        category: _kategoriCtrl.text,
+                        amount: amount.toDouble(),
+                        description: _deskripsiCtrl.text,
+                        date: _selectedDate ?? DateTime.now(),
+                        fileName: _selectedFile?.name,
+                        userId: 1, // TODO: Get from auth provider
+                      );
 
                       // Add to provider
-                      ref.read(reimburseProvider.notifier).addReimburse(newReimburse);
+                      await ref.read(reimburseListProvider.notifier).addReimburse(newReimburse);
                       
                       // Debug: Print the new reimburse data
                       print('New reimburse added: $newReimburse');
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pengajuan reimburse berhasil dikirim'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Pengajuan reimburse berhasil dikirim'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
 
-                      context.pop();
+                        context.pop();
+                      }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${e.toString()}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      print('Error adding reimburse: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(

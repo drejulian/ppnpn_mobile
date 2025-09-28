@@ -5,6 +5,7 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/reimburse_model.dart';
 import 'daftar_reimburse_page.dart';
 
 class EditReimbursePage extends ConsumerStatefulWidget {
@@ -399,7 +400,7 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                   onPressed:
                       isLocked
                           ? null
-                          : () {
+                          : () async {
                             if (!_formKey.currentState!.validate() || _selectedDate == null) {
                               if (_selectedDate == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -411,30 +412,54 @@ class _EditReimbursePageState extends ConsumerState<EditReimbursePage> {
                               }
                               return;
                             }
-                            final updatedReimburse = {
-                              'id': widget.data['id'], // Keep the original ID
-                              'category': _kategoriCtrl.text,
-                              'date': _selectedDate!,
-                              'amount': double.parse(_jumlahCtrl.text).toInt(), // Convert to int to match data structure
-                              'description': _deskripsiCtrl.text,
-                              'status': 'Menunggu Persetujuan', // Reset status
-                              'fileName': _selectedFile?.name,
-                            };
                             
-                            final reimburseList = ref.read(reimburseProvider.notifier);
-                            final index = ref.read(reimburseProvider).indexWhere((item) => item['id'] == widget.data['id']);
-                            if (index != -1) {
-                              reimburseList.updateReimburse(index, updatedReimburse);
+                            try {
+                              // Parse the original ID if it exists
+                              int? originalId;
+                              final originalIdStr = widget.data['id'].toString();
+                              if (originalIdStr.startsWith('R-')) {
+                                originalId = int.tryParse(originalIdStr.substring(2));
+                              } else {
+                                originalId = int.tryParse(originalIdStr);
+                              }
+                              
+                              // Create updated ReimburseModel
+                              final updatedReimburse = ReimburseModel(
+                                id: originalId,
+                                category: _kategoriCtrl.text,
+                                amount: double.parse(_jumlahCtrl.text),
+                                description: _deskripsiCtrl.text,
+                                date: _selectedDate!,
+                                status: ReimburseModel.mapStatusToDB('Menunggu Persetujuan'),
+                                fileName: _selectedFile?.name,
+                                userId: 1, // TODO: Get from auth provider
+                                createdAt: widget.data['createdAt'] as DateTime? ?? DateTime.now(),
+                                updatedAt: DateTime.now(),
+                              );
+                            
+                              await ref.read(reimburseListProvider.notifier).updateReimburse(updatedReimburse);
+                            
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Pengajuan reimburse berhasil diperbarui'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                            
+                                context.pop();
+                              }
+                            } catch (e) {
+                              print('Error updating reimburse: $e');
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                            
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Pengajuan reimburse berhasil diperbarui'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            
-                            context.pop();
                           },
                   child: Text(
                     'SIMPAN PERUBAHAN',

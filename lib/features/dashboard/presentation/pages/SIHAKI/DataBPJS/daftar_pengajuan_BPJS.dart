@@ -4,101 +4,26 @@ import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-
-// BPJSData Model
-class BPJSData {
-  final String nama;
-  final String noBPJS;
-  final String nik;
-  final String hubunganKeluarga;
-  final String tanggalLahir;
-  final String namaFaskesTingkat1;
-
-  BPJSData({
-    required this.nama,
-    required this.noBPJS,
-    required this.nik,
-    required this.hubunganKeluarga,
-    required this.tanggalLahir,
-    required this.namaFaskesTingkat1,
-  });
-}
-
-// StateNotifier for managing BPJSData list
-class DataBpjsPage extends StateNotifier<List<BPJSData>> {
-  DataBpjsPage()
-    : super([
-        BPJSData(
-          nama: 'Alfian Kadang, M.M.',
-          noBPJS: '000112233445566',
-          nik: '3174081234567890',
-          hubunganKeluarga: 'Kepala Keluarga',
-          tanggalLahir: '15-08-1985',
-          namaFaskesTingkat1: 'Puskesmas Cikini',
-        ),
-        BPJSData(
-          nama: 'Budi Santoso',
-          noBPJS: '000998877665544',
-          nik: '3174089876543210',
-          hubunganKeluarga: 'Suami',
-          tanggalLahir: '20-03-1980',
-          namaFaskesTingkat1: 'Puskesmas Menteng',
-        ),
-      ]);
-
-  void addBPJSData(BPJSData bpjsData) {
-    state = [...state, bpjsData];
-  }
-
-  void updateBPJSData(int index, BPJSData updatedData) {
-    if (index >= 0 && index < state.length) {
-      final newState = [...state];
-      newState[index] = updatedData;
-      state = newState;
-    }
-  }
-
-  void removeBPJSData(int index) {
-    state = [...state]..removeAt(index);
-  }
-}
-
-final bpjsDataProvider = StateNotifierProvider<DataBpjsPage, List<BPJSData>>(
-  (ref) => DataBpjsPage(),
-);
-
-final searchBpjsQueryProvider = StateProvider<String>((ref) => '');
-
-final filteredBpjsDataProvider = Provider<List<BPJSData>>((ref) {
-  final query = ref.watch(searchBpjsQueryProvider).toLowerCase().trim();
-  final allItems = ref.watch(bpjsDataProvider);
-  if (query.isEmpty) return allItems;
-  return allItems.where((item) {
-    return item.nama.toLowerCase().contains(query) ||
-        item.noBPJS.toLowerCase().contains(query) ||
-        item.nik.toLowerCase().contains(query) ||
-        item.hubunganKeluarga.toLowerCase().contains(query) ||
-        item.tanggalLahir.toLowerCase().contains(query) ||
-        item.namaFaskesTingkat1.toLowerCase().contains(query);
-  }).toList();
-});
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/bpjs_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/bpjs_model.dart';
 
 class DaftarPengajuanBPJS extends ConsumerStatefulWidget {
   const DaftarPengajuanBPJS({super.key});
 
   @override
-  ConsumerState<DaftarPengajuanBPJS> createState() =>
-      _DaftarPengajuanBPJSState();
+  ConsumerState<DaftarPengajuanBPJS> createState() => _DaftarPengajuanBPJSState();
 }
 
 class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
-  final _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedStatus = 'Semua';
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      ref.read(searchBpjsQueryProvider.notifier).state = _searchController.text;
+    // Load data BPJS saat halaman pertama kali dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(bpjsProvider.notifier).loadBPJS();
     });
   }
 
@@ -111,7 +36,8 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final filteredItems = ref.watch(filteredBpjsDataProvider);
+    final bpjsState = ref.watch(bpjsProvider);
+    final filteredData = _filterData(bpjsState.bpjsList);
 
     return Scaffold(
       appBar: AppBar(
@@ -134,16 +60,60 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Modern Search Bar
+            // Search Bar dengan Filter Status
             AppFilterBar(
               controller: _searchController,
               labelText: 'Cari Data BPJS',
-              hintText: 'Nama, nomor BPJS, tanggal, jenis...',
-              onChanged: (_) {},
-              onClear:
-                  () => ref.read(searchBpjsQueryProvider.notifier).state = '',
+              hintText: 'Nama, nomor BPJS, NIK...',
+              onChanged: (_) => setState(() {}),
+              onClear: () {
+                _searchController.clear();
+                setState(() {});
+              },
               cardMargin: EdgeInsets.zero,
               padding: const EdgeInsets.all(16),
+            ),
+            const SizedBox(height: 12),
+            
+            // Status Filter
+            Row(
+              children: [
+                Text(
+                  'Filter Status: ',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedStatus,
+                        isExpanded: true,
+                        items: ['Semua', 'aktif', 'non-aktif', 'pending']
+                            .map((status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Text(
+                                    status == 'Semua' ? status : status.toUpperCase(),
+                                    style: theme.typographyRegular.bodySmall,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedStatus = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -169,7 +139,13 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: () => context.pushNamed(Routes.tambahBPJS.name),
+                onPressed: () async {
+                  final result = await context.pushNamed(Routes.tambahBPJS.name);
+                  if (mounted && result == true) {
+                    // Refresh data setelah kembali dari tambah page
+                    ref.read(bpjsProvider.notifier).loadBPJS();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
@@ -196,34 +172,7 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
 
             // Content
             Expanded(
-              child:
-                  filteredItems.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.medical_services_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Belum ada data BPJS',
-                              style: theme.typographyRegular.bodyLarge.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      : ListView.builder(
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredItems[index];
-                          return _buildBpjsCard(item, theme, index);
-                        },
-                      ),
+              child: _buildContent(filteredData, bpjsState.isLoading, theme),
             ),
           ],
         ),
@@ -231,9 +180,80 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
     );
   }
 
-  Widget _buildBpjsCard(BPJSData item, dynamic theme, int index) {
+  List<BPJSModel> _filterData(List<BPJSModel> data) {
+    var filtered = data;
+
+    // Filter by search
+    if (_searchController.text.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final query = _searchController.text.toLowerCase();
+        return item.nama.toLowerCase().contains(query) ||
+               item.noBPJS.toLowerCase().contains(query) ||
+               item.nik.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Filter by status
+    if (_selectedStatus != 'Semua') {
+      filtered = filtered.where((item) => item.status == _selectedStatus).toList();
+    }
+
+    return filtered;
+  }
+
+  Widget _buildContent(List<BPJSModel> data, bool isLoading, dynamic theme) {
+    if (isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: theme.primarySwatch,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Memuat data BPJS...',
+              style: theme.typographyRegular.bodyMedium,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (data.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.medical_services_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada data BPJS',
+              style: theme.typographyRegular.bodyLarge.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: data.length,
+      itemBuilder: (context, index) {
+        final item = data[index];
+        return _buildBpjsCard(item, theme);
+      },
+    );
+  }
+
+  Widget _buildBpjsCard(BPJSModel item, dynamic theme) {
     return AppListCard(
-      onTap: () => _showDetailDialog(item, theme, index),
+      onTap: () => _showDetailDialog(item, theme),
       leftAccentColor: theme.primarySwatch,
       gradient: LinearGradient(
         colors: [Colors.white, Colors.grey[50]!],
@@ -279,11 +299,62 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
           label: item.hubunganKeluarga,
           color: Colors.green[600],
         ),
+        _buildStatusChip(item.status, theme),
       ],
     );
   }
 
-  void _showDetailDialog(BPJSData item, dynamic theme, int index) {
+  Widget _buildStatusChip(String status, dynamic theme) {
+    Color backgroundColor;
+    Color textColor;
+    
+    switch (status) {
+      case 'aktif':
+        backgroundColor = Colors.green[100]!;
+        textColor = Colors.green[800]!;
+        break;
+      case 'non-aktif':
+        backgroundColor = Colors.red[100]!;
+        textColor = Colors.red[800]!;
+        break;
+      case 'pending':
+        backgroundColor = Colors.orange[100]!;
+        textColor = Colors.orange[800]!;
+        break;
+      default:
+        backgroundColor = Colors.grey[100]!;
+        textColor = Colors.grey[800]!;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 12,
+            color: textColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetailDialog(BPJSModel item, dynamic theme) {
     final dialogData = SIHAKIDialogData(
       title: 'Detail BPJS - ${item.nama}',
       fields: [
@@ -299,6 +370,7 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
           label: 'Nama Faskes Tingkat 1',
           value: item.namaFaskesTingkat1,
         ),
+        SIHAKIDialogField(label: 'Status', value: item.status.toUpperCase()),
       ],
       actions: [
         SIHAKIDialogAction(
@@ -308,11 +380,7 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();
-            context.pushNamed(
-              Routes.editBPJS.name,
-              pathParameters: {'index': index.toString()},
-              extra: item,
-            );
+            _editBPJS(item);
           },
         ),
         SIHAKIDialogAction(
@@ -323,7 +391,7 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
           isDestructive: true,
           onTap: () {
             Navigator.of(context).pop();
-            _confirmDelete(item, index);
+            _confirmDelete(item);
           },
         ),
       ],
@@ -332,7 +400,19 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  void _confirmDelete(BPJSData item, int index) {
+  void _editBPJS(BPJSModel item) async {
+    final result = await context.pushNamed(
+      Routes.editBPJS.name,
+      pathParameters: {'index': '0'}, // Parameter untuk routing
+      extra: item, // Data BPJS untuk edit
+    );
+    if (mounted && result == true) {
+      // Refresh data setelah kembali dari edit page
+      ref.read(bpjsProvider.notifier).loadBPJS();
+    }
+  }
+
+  void _confirmDelete(BPJSModel item) {
     SIHAKIConfirmationDialog.show(
       context,
       title: 'Hapus Data BPJS',
@@ -343,18 +423,33 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.red[600]!,
       isDestructive: true,
-      onConfirm: () {
-        ref.read(bpjsDataProvider.notifier).removeBPJSData(index);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Data BPJS untuk "${item.nama}" berhasil dihapus'),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+      onConfirm: () async {
+        if (item.id != null) {
+          final success = await ref.read(bpjsProvider.notifier).deleteBPJS(item.id!);
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Data BPJS untuk "${item.nama}" berhasil dihapus'),
+                backgroundColor: Colors.green[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Gagal menghapus data BPJS'),
+                backgroundColor: Colors.red[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          }
+        }
       },
     );
   }

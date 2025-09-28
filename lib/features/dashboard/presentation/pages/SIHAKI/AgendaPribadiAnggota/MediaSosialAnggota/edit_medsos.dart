@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_medsos.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/media_sosial_anggota_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/media_sosial_anggota_model.dart';
 
 class EditMediaSosialAnggotaPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic> medsos;
+  final MediaSosialAnggotaModel medsos;
 
   const EditMediaSosialAnggotaPage({super.key, required this.medsos});
 
@@ -20,8 +21,12 @@ class _EditMediaSosialAnggotaPageState
   final _formKey = GlobalKey<FormState>();
   final _platformController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _urlController = TextEditingController();
+  final _followersController = TextEditingController();
+  final _statusController = TextEditingController();
 
   String? _selectedPlatform;
+  bool _isVerified = false;
   final List<String> _platforms = [
     'Facebook',
     'Twitter',
@@ -38,7 +43,7 @@ class _EditMediaSosialAnggotaPageState
     super.initState();
 
     // Initialize form with existing data
-    final platform = widget.medsos['platform'] as String;
+    final platform = widget.medsos.platform;
     if (_platforms.contains(platform)) {
       _selectedPlatform = platform;
     } else {
@@ -46,13 +51,20 @@ class _EditMediaSosialAnggotaPageState
       _platformController.text = platform;
     }
 
-    _usernameController.text = widget.medsos['username'] as String;
+    _usernameController.text = widget.medsos.username;
+    _urlController.text = widget.medsos.url;
+    _followersController.text = widget.medsos.followers.toString();
+    _statusController.text = widget.medsos.status;
+    _isVerified = widget.medsos.isVerified;
   }
 
   @override
   void dispose() {
     _platformController.dispose();
     _usernameController.dispose();
+    _urlController.dispose();
+    _followersController.dispose();
+    _statusController.dispose();
     super.dispose();
   }
 
@@ -63,7 +75,7 @@ class _EditMediaSosialAnggotaPageState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Edit Media Sosial - ${widget.medsos['id']}',
+          'Edit Media Sosial - ${widget.medsos.id}',
           style: theme.typographyBold.bodyMedium.copyWith(
             color: Colors.white,
             fontSize: 18,
@@ -115,44 +127,87 @@ class _EditMediaSosialAnggotaPageState
                       hintText: 'Masukkan nama platform',
                     ),
                   FormFieldConfig(
-                    label: 'Username/URL',
-                    icon: Icons.link,
+                    label: 'Username',
+                    icon: Icons.person,
                     type: FormFieldType.textRequired,
                     controller: _usernameController,
                     isRequired: true,
-                    hintText: 'Contoh: https://facebook.com/username',
+                    hintText: 'Username atau handle akun',
+                  ),
+                  FormFieldConfig(
+                    label: 'URL',
+                    icon: Icons.link,
+                    type: FormFieldType.textRequired,
+                    controller: _urlController,
+                    isRequired: true,
+                    hintText: 'https://platform.com/username',
+                  ),
+                  FormFieldConfig(
+                    label: 'Jumlah Followers',
+                    icon: Icons.people,
+                    type: FormFieldType.text,
+                    controller: _followersController,
+                    isRequired: true,
+                    hintText: 'Contoh: 1000',
+                  ),
+                  FormFieldConfig(
+                    label: 'Status',
+                    icon: Icons.info,
+                    type: FormFieldType.text,
+                    controller: _statusController,
+                    isRequired: true,
+                    hintText: 'Aktif / Tidak Aktif',
                     isLast: true,
                   ),
                 ],
-                onSave: () {
+                onSave: () async {
                   if (!_validateForm()) return;
 
                   final platform =
                       _selectedPlatform == 'Other'
                           ? _platformController.text
                           : _selectedPlatform!;
-                  final username = _usernameController.text;
 
-                  // Update the provider
-                  ref.read(mediaSosialDataProvider.notifier).updateMediaSosial(
-                    widget.medsos['id'],
-                    {'platform': platform, 'username': username},
+                  final updatedMediaSosial = widget.medsos.copyWith(
+                    platform: platform,
+                    username: _usernameController.text,
+                    url: _urlController.text,
+                    followers: int.tryParse(_followersController.text) ?? 0,
+                    isVerified: _isVerified,
+                    status: _statusController.text,
                   );
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Media sosial "$platform" berhasil diperbarui',
-                      ),
-                      backgroundColor: Colors.green[600],
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
+                  final success = await ref
+                      .read(mediaSosialAnggotaProvider.notifier)
+                      .updateMediaSosial(updatedMediaSosial);
 
-                  context.pop();
+                  if (success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Media sosial "$platform" berhasil diperbarui',
+                        ),
+                        backgroundColor: Colors.green[600],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+
+                    context.pop();
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Gagal memperbarui media sosial'),
+                        backgroundColor: Colors.red[600],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  }
                 },
                 saveButtonText: 'PERBARUI MEDIA SOSIAL',
               ),
@@ -191,7 +246,40 @@ class _EditMediaSosialAnggotaPageState
     if (_usernameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Username/URL harus diisi'),
+          content: Text('Username harus diisi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      isValid = false;
+    }
+
+    // URL validation
+    if (_urlController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('URL harus diisi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      isValid = false;
+    }
+
+    // Followers validation
+    if (_followersController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Jumlah followers harus diisi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      isValid = false;
+    }
+
+    // Status validation
+    if (_statusController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Status harus diisi'),
           backgroundColor: Colors.red,
         ),
       );

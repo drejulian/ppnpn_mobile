@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart'
+import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
 
 final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {

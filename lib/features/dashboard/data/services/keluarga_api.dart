@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/config.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart';
 
 class KeluargaApi {
   final http.Client _client;

@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_lembur_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/lembur_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/lembur_model.dart';
 
 class EditLemburPage extends ConsumerStatefulWidget {
+  final LemburModel data;
+  
   const EditLemburPage({super.key, required this.data});
-  final Map<String, dynamic> data;
 
   @override
   ConsumerState<EditLemburPage> createState() => _EditLemburPageState();
@@ -78,7 +80,6 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     return '$hour:$minute';
   }
 
-  // Parse time from string format like "19:00" or just "19"
   TimeOfDay? _parseTime(String timeString) {
     try {
       if (timeString.contains(':')) {
@@ -91,7 +92,6 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
           }
         }
       } else {
-        // Handle old format with just hour number
         final hour = int.tryParse(timeString);
         if (hour != null && hour >= 0 && hour <= 23) {
           return TimeOfDay(hour: hour, minute: 0);
@@ -113,7 +113,7 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     
     int durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
-      durationMinutes += 24 * 60; // Handle overnight work
+      durationMinutes += 24 * 60; 
     }
     
     final hours = durationMinutes ~/ 60;
@@ -142,37 +142,19 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   @override
   void initState() {
     super.initState();
+ 
+    _jenisCtrl = TextEditingController(text: widget.data.type);
     
-    // Initialize jenis lembur
-    _jenisCtrl = TextEditingController(text: widget.data['type'] ?? '');
+    _selectedDate = widget.data.date;
+    _tanggalCtrl = TextEditingController(text: DateFormat('dd-MM-yyyy').format(widget.data.date));
+
+    _jamMulai = _parseTime(widget.data.startTime);
+    _jamSelesai = _parseTime(widget.data.endTime);
     
-    // Format tanggal dari DateTime ke string dd-MM-yyyy
-    final date = widget.data['date'];
-    if (date is DateTime) {
-      _selectedDate = date;
-      _tanggalCtrl = TextEditingController(text: DateFormat('dd-MM-yyyy').format(date));
-    } else {
-      final dateStr = date?.toString() ?? '';
-      _tanggalCtrl = TextEditingController(text: dateStr);
-    }
+    _jamMulaiCtrl = TextEditingController(text: _jamMulai != null ? _formatTime(_jamMulai!) : widget.data.startTime);
+    _jamSelesaiCtrl = TextEditingController(text: _jamSelesai != null ? _formatTime(_jamSelesai!) : widget.data.endTime);
     
-    // Initialize time fields
-    final jamMulaiStr = widget.data['jamMulai'] ?? widget.data['mulai'] ?? '19:00';
-    final jamSelesaiStr = widget.data['jamSelesai'] ?? widget.data['selesai'] ?? '22:00';
-    
-    _jamMulai = _parseTime(jamMulaiStr);
-    _jamSelesai = _parseTime(jamSelesaiStr);
-    
-    _jamMulaiCtrl = TextEditingController(text: _jamMulai != null ? _formatTime(_jamMulai!) : jamMulaiStr);
-    _jamSelesaiCtrl = TextEditingController(text: _jamSelesai != null ? _formatTime(_jamSelesai!) : jamSelesaiStr);
-    
-    _kegiatanCtrl = TextEditingController(text: widget.data['reason'] ?? '');
-    
-    // Handle file if exists
-    final fileName = widget.data['fileName'];
-    if (fileName != null) {
-      // Note: We can't recreate PlatformFile from just filename, so we'll show the name but won't have the actual file
-    }
+    _kegiatanCtrl = TextEditingController(text: widget.data.reason);
   }
 
   @override
@@ -188,7 +170,7 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final String status = (widget.data['status'] ?? 'Menunggu') as String;
+    final String status = widget.data.uiStatus;
     final bool isLocked = status == 'Disetujui';
     
     return Scaffold(
@@ -418,17 +400,17 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile?.name ?? widget.data['fileName'] ?? 'Upload file pendukung',
+                                      _selectedFile?.name ?? widget.data.fileName ?? 'Upload file pendukung',
                                       style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: (_selectedFile != null || widget.data['fileName'] != null)
+                                        color: (_selectedFile != null || widget.data.fileName != null)
                                             ? (isLocked ? Colors.grey[600] : Colors.grey[800])
                                             : (isLocked ? Colors.grey[400] : Colors.grey[600]),
-                                        fontWeight: (_selectedFile != null || widget.data['fileName'] != null)
+                                        fontWeight: (_selectedFile != null || widget.data.fileName != null)
                                             ? FontWeight.w600 
                                             : FontWeight.normal,
                                       ),
                                     ),
-                                    if (_selectedFile == null && widget.data['fileName'] == null)
+                                    if (_selectedFile == null && widget.data.fileName == null)
                                       Text(
                                         'Format: PDF, JPG, PNG (Max 5MB)',
                                         style: theme.typographyRegular.bodySmall.copyWith(
@@ -470,52 +452,38 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: isLocked ? null : () {
+                    onPressed: isLocked ? null : () async {
                       if (_formKey.currentState!.validate() && _selectedDate != null && _jamMulai != null && _jamSelesai != null) {
-                        // Check if ID is available
-                        final lemburId = widget.data['id'];
-                        if (lemburId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Error: ID lembur tidak ditemukan'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                        
-                        // Get current status and preserve it
-                        final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
-                        final statusColor = _statusColor(currentStatus);
-                        
-                        final updatedData = {
-                          'id': lemburId,
-                          'type': _jenisCtrl.text.trim(),
-                          'date': _selectedDate!,
-                          'jamMulai': _formatTime(_jamMulai!),
-                          'jamSelesai': _formatTime(_jamSelesai!),
-                          'duration': _calculateDuration(),
-                          'reason': _kegiatanCtrl.text.trim(),
-                          'status': currentStatus,
-                          'statusColor': statusColor,
-                          'fileName': _selectedFile?.name ?? widget.data['fileName'],
-                        };
-                        
                         try {
-                          // Update lembur data
-                          ref.read(lemburProvider.notifier).update(lemburId, updatedData);
+                          final updatedLembur = LemburModel(
+                            id: widget.data.id,
+                            userId: widget.data.userId,
+                            type: _jenisCtrl.text.trim(),
+                            date: _selectedDate!,
+                            duration: _calculateDuration(),
+                            startTime: _formatTime(_jamMulai!),
+                            endTime: _formatTime(_jamSelesai!),
+                            reason: _kegiatanCtrl.text.trim(),
+                            status: widget.data.status, // Keep original status
+                            createdAt: widget.data.createdAt, // Keep original createdAt
+                            updatedAt: DateTime.now(),
+                            fileName: _selectedFile?.name ?? widget.data.fileName,
+                          );
+
+                          await ref.read(lemburProvider.notifier).updateLembur(updatedLembur);
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Data lembur berhasil diperbarui'),
                               backgroundColor: Colors.green,
                             ),
                           );
+                          
                           Navigator.pop(context);
                         } catch (e) {
-                          // Error updating data
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Gagal memperbarui data lembur: ${e.toString()}'),
+                              content: Text('Gagal memperbarui data: $e'),
                               backgroundColor: Colors.red,
                             ),
                           );

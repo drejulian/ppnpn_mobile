@@ -5,7 +5,8 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/cuti_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/cuti_provider.dart';
 
 class TambahCutiPage extends ConsumerStatefulWidget {
   const TambahCutiPage({super.key});
@@ -76,71 +77,53 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
     }
   }
 
-  String _generateId() {
-    final now = DateTime.now();
-    return 'C-${now.millisecondsSinceEpoch.toString().substring(8)}';
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Disetujui':
-        return Colors.green;
-      case 'Ditolak':
-        return Colors.red;
-      case 'Menunggu Persetujuan':
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _formatDuration() {
-    if (_awalDate == null || _akhirDate == null) {
-      return '';
-    }
-    
-    final difference = _akhirDate!.difference(_awalDate!).inDays + 1;
-    final awalFormatted = DateFormat('dd MMM').format(_awalDate!);
-    final akhirFormatted = DateFormat('dd MMM').format(_akhirDate!);
-    
-    return '$difference hari ($awalFormatted - $akhirFormatted)';
-  }
-
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
-      final newCuti = {
-        // Format baru sesuai dengan TransactionCardHelper
-        'id': _generateId(),
-        'type': _jenisCtrl.text,
-        'date': _awalDate!,
-        'duration': _formatDuration(),
-        'reason': _alasanCtrl.text,
-        'status': 'Menunggu Persetujuan',
-        'statusColor': _getStatusColor('Menunggu Persetujuan'),
-        'fileName': _selectedFile?.name,
-        
-        // Format lama untuk backward compatibility
-        'jenis': _jenisCtrl.text,
-        'tanggal_awal': _awalCtrl.text,
-        'tanggal_akhir': _akhirCtrl.text,
-        'alasan': _alasanCtrl.text,
-      };
-
       try {
-        ref.read(cutiProvider.notifier).add(newCuti);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengajuan cuti berhasil ditambahkan'),
-            backgroundColor: Colors.green,
-          ),
+        // Add to database via provider with correct signature
+        final success = await ref.read(cutiProvider.notifier).addCuti(
+          type: CutiType.fromString(_jenisCtrl.text),
+          tanggalMulai: _awalDate!,
+          tanggalSelesai: _akhirDate!,
+          alasan: _alasanCtrl.text,
+          fileName: _selectedFile?.name,
+          filePath: _selectedFile?.path,
         );
 
-        context.pop();
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Pengajuan cuti berhasil ditambahkan'),
+              backgroundColor: Colors.green[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          context.pop();
+        } else {
+          final error = ref.read(cutiProvider).error;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menambahkan cuti: ${error ?? "Unknown error"}'),
+              backgroundColor: Colors.red[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menambahkan cuti: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -373,14 +356,18 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
                         _submitForm();
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
-                            backgroundColor: Colors.red,
+                          SnackBar(
+                            content: const Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
+                            backgroundColor: Colors.red[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         );
                       }

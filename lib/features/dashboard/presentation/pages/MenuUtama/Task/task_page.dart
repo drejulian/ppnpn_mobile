@@ -8,6 +8,211 @@ import 'task_data.dart';
 import 'edit_task_page.dart';
 import 'tambah_task_page.dart';
 
+// Import database and model
+import '../../../../../../common/data/models/menuutama/task_model.dart';
+import '../../../../../../common/data/database/app_database_helper.dart';
+
+// Provider untuk task list menggunakan database
+final taskListProvider = StateNotifierProvider<TaskListNotifier, AsyncValue<List<TaskData>>>((ref) {
+  return TaskListNotifier();
+});
+
+class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskData>>> {
+  TaskListNotifier() : super(const AsyncValue.loading()) {
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    try {
+      state = const AsyncValue.loading();
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      final List<Map<String, dynamic>> maps = await database.query(
+        'tasks',
+        orderBy: 'created_at DESC',
+      );
+      
+      // Convert TaskModel to TaskData
+      final tasks = maps.map((map) {
+        final taskModel = TaskModel.fromMap(map);
+        return _convertTaskModelToTaskData(taskModel);
+      }).toList();
+      
+      state = AsyncValue.data(tasks);
+    } catch (e, stack) {
+      debugPrint('Error loading tasks: $e');
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  TaskData _convertTaskModelToTaskData(TaskModel taskModel) {
+    return TaskData(
+      title: taskModel.title,
+      description: taskModel.description ?? '',
+      dueDate: taskModel.dueDate ?? DateTime.now().add(const Duration(days: 7)),
+      priority: _mapPriority(taskModel.priority),
+      status: _mapStatus(taskModel.status),
+      assignees: [], // Database doesn't have assignees, use empty list
+      commentsCount: 0, // Default value
+      filesCount: 0, // Default value
+      priorityColor: _getPriorityColor(taskModel.priority),
+      statusColor: _getStatusColor(taskModel.status),
+    );
+  }
+
+  String _mapPriority(String dbPriority) {
+    switch (dbPriority) {
+      case 'low': return 'Low';
+      case 'medium': return 'Medium';
+      case 'high': return 'High';
+      case 'urgent': return 'High'; // Map urgent to High for UI compatibility
+      default: return 'Medium';
+    }
+  }
+
+  String _mapStatus(String dbStatus) {
+    switch (dbStatus) {
+      case 'pending': return 'To Do';
+      case 'in_progress': return 'In Review';
+      case 'completed': return 'Complete';
+      case 'cancelled': return 'To Do';
+      default: return 'To Do';
+    }
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'urgent':
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.purple;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> addTask(TaskData taskData) async {
+    try {
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      // Convert TaskData to TaskModel
+      final taskModel = TaskModel.create(
+        title: taskData.title,
+        description: taskData.description.isNotEmpty ? taskData.description : null,
+        priority: _mapPriorityToDb(taskData.priority),
+        dueDate: taskData.dueDate,
+      );
+      
+      await database.insert('tasks', taskModel.toMap());
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error adding task: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateTask(TaskData taskData, int? taskId) async {
+    try {
+      if (taskId == null) return;
+      
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      // Get existing task first
+      final existing = await database.query(
+        'tasks',
+        where: 'id = ?',
+        whereArgs: [taskId],
+        limit: 1,
+      );
+      
+      if (existing.isEmpty) return;
+      
+      final existingTask = TaskModel.fromMap(existing.first);
+      final updatedTask = existingTask.copyWith(
+        title: taskData.title,
+        description: taskData.description.isNotEmpty ? taskData.description : null,
+        priority: _mapPriorityToDb(taskData.priority),
+        status: _mapStatusToDb(taskData.status),
+        dueDate: taskData.dueDate,
+        updatedAt: DateTime.now(),
+      );
+      
+      await database.update(
+        'tasks',
+        updatedTask.toMap(),
+        where: 'id = ?',
+        whereArgs: [taskId],
+      );
+      
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error updating task: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTask(int taskId) async {
+    try {
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      await database.delete(
+        'tasks',
+        where: 'id = ?',
+        whereArgs: [taskId],
+      );
+      
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error deleting task: $e');
+      rethrow;
+    }
+  }
+
+  String _mapPriorityToDb(String uiPriority) {
+    switch (uiPriority) {
+      case 'Low': return 'low';
+      case 'Medium': return 'medium';
+      case 'High': return 'high';
+      default: return 'medium';
+    }
+  }
+
+  String _mapStatusToDb(String uiStatus) {
+    switch (uiStatus) {
+      case 'To Do': return 'pending';
+      case 'In Review': return 'in_progress';
+      case 'Complete': return 'completed';
+      default: return 'pending';
+    }
+  }
+
+  void refresh() {
+    _loadTasks();
+  }
+}
+
 class TaskPage extends ConsumerStatefulWidget {
   const TaskPage({super.key});
 
@@ -18,61 +223,10 @@ class TaskPage extends ConsumerStatefulWidget {
 class _TaskPageState extends ConsumerState<TaskPage> {
   String _selectedFilter = 'To Do';
 
-  // Sample task data
-  List<TaskData> _tasks = [
-    TaskData(
-      title: 'Dashboard design for admin',
-      description: 'Create comprehensive admin dashboard with analytics',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'High',
-      status: 'Complete',
-      assignees: ['JD', 'SM'],
-      commentsCount: 5,
-      filesCount: 5,
-      priorityColor: Colors.red,
-      statusColor: Colors.green,
-    ),
-    TaskData(
-      title: 'Konom web application',
-      description: 'Build responsive web application for content management',
-      dueDate: DateTime(2022, 11, 14),
-      priority: 'Low',
-      status: 'To Do',
-      assignees: ['AB', 'CD'],
-      commentsCount: 2,
-      filesCount: 4,
-      priorityColor: Colors.green,
-      statusColor: Colors.orange,
-    ),
-    TaskData(
-      title: 'Research and development',
-      description: 'Conduct market research for new product features',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'Medium',
-      status: 'In Review',
-      assignees: ['EF', 'GH'],
-      commentsCount: 6,
-      filesCount: 2,
-      priorityColor: Colors.orange,
-      statusColor: Colors.purple,
-    ),
-    TaskData(
-      title: 'Event booking application',
-      description: 'Develop mobile application for event management',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'Medium',
-      status: 'To Do',
-      assignees: ['IJ', 'KL'],
-      commentsCount: 5,
-      filesCount: 5,
-      priorityColor: Colors.orange,
-      statusColor: Colors.orange,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final taskListAsync = ref.watch(taskListProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -80,7 +234,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
         backgroundColor: theme.primarySwatch,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -95,26 +249,51 @@ class _TaskPageState extends ConsumerState<TaskPage> {
             ),
           ],
         ),
-
-
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          
-          // Add Task Button
-          _buildAddTaskButton(theme),
-          
-          const SizedBox(height: 20),
-          
-          // Filter Tabs
-          _buildFilterTabs(theme),
-          
-          // Task List
-          Expanded(
-            child: _buildTaskList(theme),
+      body: taskListAsync.when(
+        data: (tasks) => Column(
+          children: [
+            const SizedBox(height: 20),
+            
+            // Add Task Button
+            _buildAddTaskButton(theme),
+            
+            const SizedBox(height: 20),
+            
+            // Filter Tabs
+            _buildFilterTabs(theme, tasks),
+            
+            // Task List
+            Expanded(
+              child: _buildTaskList(theme, tasks),
+            ),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading tasks',
+                style: TextStyle(fontSize: 18, color: Colors.red[700]),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error.toString(),
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(taskListProvider.notifier).refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -163,15 +342,15 @@ class _TaskPageState extends ConsumerState<TaskPage> {
     );
   }
 
-  Widget _buildFilterTabs(MyTheme theme) {
+  Widget _buildFilterTabs(MyTheme theme, List<TaskData> allTasks) {
     final filters = [
-      {'label': 'To Do', 'count': 45},
-      {'label': 'In Review', 'count': 3},
-      {'label': 'Complete', 'count': 68},
+      {'label': 'To Do'},
+      {'label': 'In Review'},
+      {'label': 'Complete'},
     ];
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: filters.map((filter) {
           final isSelected = _selectedFilter == filter['label'];
@@ -190,15 +369,21 @@ class _TaskPageState extends ConsumerState<TaskPage> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? theme.primarySwatch : Colors.grey[300]!,
-                    width: 1,
+                    width: 1.5,
                   ),
                   boxShadow: isSelected ? [
                     BoxShadow(
-                      color: theme.primarySwatch.withOpacity(0.2),
+                      color: theme.primarySwatch.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
-                  ] : [],
+                  ] : [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -210,11 +395,13 @@ class _TaskPageState extends ConsumerState<TaskPage> {
                         style: theme.typographyRegular.bodyMedium.copyWith(
                           color: isSelected ? Colors.white : Colors.grey[700],
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          fontSize: 13,
                         ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
                   ],
                 ),
               ),
@@ -225,25 +412,51 @@ class _TaskPageState extends ConsumerState<TaskPage> {
     );
   }
 
-  Widget _buildTaskList(MyTheme theme) {
-    final filteredTasks = _tasks.where((task) => task.status == _selectedFilter).toList();
+  Widget _buildTaskList(MyTheme theme, List<TaskData> allTasks) {
+    final filteredTasks = allTasks.where((task) => task.status == _selectedFilter).toList();
+
+    if (filteredTasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.task_alt, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No ${_selectedFilter.toLowerCase()} tasks',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tasks will appear here when you add them',
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: filteredTasks.length,
-        itemBuilder: (context, index) {
-          final task = filteredTasks[index];
-          return _buildTaskCard(task, theme);
+      child: RefreshIndicator(
+        onRefresh: () async {
+          ref.read(taskListProvider.notifier).refresh();
         },
+        child: ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: filteredTasks.length,
+          itemBuilder: (context, index) {
+            final task = filteredTasks[index];
+            return _buildTaskCard(task, theme, index);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildTaskCard(TaskData task, MyTheme theme) {
+  Widget _buildTaskCard(TaskData task, MyTheme theme, int index) {
     return AppListCard(
-      onTap: () => _showTaskDetailDialog(context, task),
+      onTap: () => _showTaskDetailDialog(context, task, index),
       leftAccentColor: _getStatusBorderColor(task.status),
       title: task.title,
       subtitle: task.description,
@@ -293,41 +506,61 @@ class _TaskPageState extends ConsumerState<TaskPage> {
     }
   }
 
-  void _editTask(TaskData task) async {
+  void _editTask(TaskData task, int taskIndex) async {
     final updatedTask = await Navigator.push<TaskData>(
       context,
       MaterialPageRoute(
         builder: (context) => EditTaskPage(
           taskData: task,
           onTaskUpdated: (updatedTask) {
-            setState(() {
-              final index = _tasks.indexWhere((t) => 
-                t.title == task.title && 
-                t.dueDate == task.dueDate
-              );
-              if (index != -1) {
-                _tasks[index] = updatedTask;
-              }
-            });
+            // Update will be handled by the database
           },
         ),
       ),
     );
     
     if (updatedTask != null) {
-      setState(() {
-        final index = _tasks.indexWhere((t) => 
-          t.title == task.title && 
-          t.dueDate == task.dueDate
+      try {
+        // Get task ID from database by matching title and other fields
+        final db = AppDatabaseHelper.instance;
+        final database = await db.database;
+        final existing = await database.query(
+          'tasks',
+          where: 'title = ? AND created_at IS NOT NULL',
+          whereArgs: [task.title],
+          orderBy: 'created_at DESC',
+          limit: 1,
         );
-        if (index != -1) {
-          _tasks[index] = updatedTask;
+        
+        if (existing.isNotEmpty) {
+          final taskId = existing.first['id'] as int;
+          await ref.read(taskListProvider.notifier).updateTask(updatedTask, taskId);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Task updated successfully'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         }
-      });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating task: $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
-  void _showTaskDetailDialog(BuildContext context, TaskData task) {
+  void _showTaskDetailDialog(BuildContext context, TaskData task, int taskIndex) {
     final dialogData = SIHAKIDialogData(
       title: 'Detail Task - ${task.title}',
       fields: [
@@ -345,7 +578,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();
-            _editTask(task);
+            _editTask(task, taskIndex);
           },
         ),
         SIHAKIDialogAction(
@@ -406,21 +639,47 @@ class _TaskPageState extends ConsumerState<TaskPage> {
     );
   }
 
-  void _deleteTask(TaskData task) {
-    setState(() {
-      _tasks.remove(task);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Task deleted successfully'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
+  void _deleteTask(TaskData task) async {
+    try {
+      // Find and delete task from database
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      final existing = await database.query(
+        'tasks',
+        where: 'title = ? AND created_at IS NOT NULL',
+        whereArgs: [task.title],
+        orderBy: 'created_at DESC',
+        limit: 1,
+      );
+      
+      if (existing.isNotEmpty) {
+        final taskId = existing.first['id'] as int;
+        await ref.read(taskListProvider.notifier).deleteTask(taskId);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Task deleted successfully'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting task: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showAddTaskDialog(BuildContext context) async {
@@ -431,11 +690,34 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       ),
     );
 
-    // If a new task was returned, add it to the list
+    // If a new task was returned, add it to the database
     if (result != null && result is TaskData) {
-      setState(() {
-        _tasks.add(result);
-      });
+      try {
+        await ref.read(taskListProvider.notifier).addTask(result);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Task added successfully'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error adding task: $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 }

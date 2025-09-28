@@ -5,7 +5,7 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'daftar_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/izin_provider.dart';
 
 class TambahIzinPage extends ConsumerStatefulWidget {
   const TambahIzinPage({super.key});
@@ -88,22 +88,7 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
     }
   }
 
-  String _generateId() {
-    final now = DateTime.now();
-    return 'I-${now.millisecondsSinceEpoch % 10000}';
-  }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Disetujui':
-        return Colors.green;
-      case 'Ditolak':
-        return Colors.red;
-      case 'Menunggu Persetujuan':
-      default:
-        return Colors.orange;
-    }
-  }
 
   @override
   void dispose() {
@@ -340,29 +325,34 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
-                        final newIzin = {
-                          'id': _generateId(),
-                          'type': _jenisCtrl.text,
-                          'date': _awalDate!,
-                          'duration': _formatDuration(),
-                          'reason': _alasanCtrl.text,
-                          'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor('Menunggu Persetujuan'),
-                          'fileName': _selectedFile?.name,
-                        };
-                        
-                        ref.read(izinProvider.notifier).add(newIzin);
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pengajuan izin berhasil dikirim'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                        
-                        context.pop();
+                        try {
+                          // Add izin using proper signature
+                          await ref.read(izinProvider.notifier).addIzin(
+                            type: _jenisCtrl.text.trim(),
+                            date: _awalDate!,
+                            duration: _formatDuration(),
+                            reason: _alasanCtrl.text.trim(),
+                            fileName: _selectedFile?.name,
+                          );
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pengajuan izin berhasil dikirim'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          
+                          context.pop();
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal mengirim pengajuan izin: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

@@ -5,7 +5,8 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/cuti_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/cuti_provider.dart';
 
 class EditCutiPage extends ConsumerStatefulWidget {
   const EditCutiPage({super.key, required this.data});
@@ -434,14 +435,18 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: isLocked ? null : () {
+                    onPressed: isLocked ? null : () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
                         _submitForm();
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
-                            backgroundColor: Colors.red,
+                          SnackBar(
+                            content: const Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
+                            backgroundColor: Colors.red[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         );
                       }
@@ -463,51 +468,96 @@ class _EditCutiPageState extends ConsumerState<EditCutiPage> {
     );
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
       final cutiId = widget.data['id'];
+      final databaseId = widget.data['databaseId'];
+      
+      print('DEBUG: cutiId = $cutiId');
+      print('DEBUG: databaseId = $databaseId');
+      print('DEBUG: widget.data = ${widget.data}');
+      
       if (cutiId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: ID cuti tidak ditemukan'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Error: ID cuti tidak ditemukan'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
         return;
       }
 
-      final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
-      final updatedCuti = {
-        'id': cutiId,
-        'type': _jenisCtrl.text,
-        'date': _awalDate!,
-        'duration': _formatDuration(),
-        'reason': _alasanCtrl.text,
-        'status': currentStatus,
-        'statusColor': _getStatusColor(currentStatus),
-        'fileName': _selectedFile?.name ?? widget.data['fileName'],
-        
-        // Format lama untuk backward compatibility
-        'jenis': _jenisCtrl.text,
-        'tanggal_awal': _awalCtrl.text,
-        'tanggal_akhir': _akhirCtrl.text,
-        'alasan': _alasanCtrl.text,
-      };
-
-      try {
-        ref.read(cutiProvider.notifier).update(cutiId, updatedCuti);
+      if (databaseId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data cuti berhasil diperbarui'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Error: Database ID tidak ditemukan. Tidak dapat mengedit data.'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
-        context.pop();
+        return;
+      }
+
+      try {
+        // Create updated CutiModel dengan database ID yang benar
+        final updatedCuti = CutiModel(
+          id: databaseId,  // Gunakan database ID untuk update
+          cutiId: cutiId,
+          type: CutiType.fromString(_jenisCtrl.text),
+          tanggalMulai: _awalDate!,
+          tanggalSelesai: _akhirDate!,
+          alasan: _alasanCtrl.text,
+          status: CutiStatus.fromString(widget.data['status'] ?? 'Menunggu Persetujuan'),
+          fileName: _selectedFile?.name ?? widget.data['fileName'],
+          filePath: _selectedFile?.path ?? widget.data['filePath'],
+          createdAt: DateTime.tryParse(widget.data['createdAt'] ?? '') ?? DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        // Update via provider
+        final success = await ref.read(cutiProvider.notifier).updateCuti(updatedCuti);
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Data cuti berhasil diperbarui'),
+              backgroundColor: Colors.green[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          context.pop();
+        } else {
+          final error = ref.read(cutiProvider).error;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memperbarui data cuti: ${error ?? "Unknown error"}'),
+              backgroundColor: Colors.red[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memperbarui data cuti: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
