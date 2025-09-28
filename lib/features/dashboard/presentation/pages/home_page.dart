@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/common/widgets/pengajuan_notification_demo.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -305,9 +306,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildMenuItem(MenuItemData item, dynamic theme) {
-    return GestureDetector(
-      onTap: item.onTap ?? () {},
-      child: Container(
+    var container = Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -356,7 +355,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ],
         ),
-      ),
+      );
+    return GestureDetector(
+      onTap: item.onTap ?? () {},
+      child: container,
     );
   }
 
@@ -1084,6 +1086,18 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
       ),
       MenuItemData('Report', Icons.bar_chart, Colors.amber),
+      MenuItemData(
+        'Notifikasi Demo',
+        Icons.notifications,
+        Colors.deepOrange,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const PengajuanNotificationDemo(),
+            ),
+          );
+        },
+      ),
     ];
   }
 }

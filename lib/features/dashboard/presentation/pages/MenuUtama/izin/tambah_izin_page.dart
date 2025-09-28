@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'daftar_izin_page.dart';
@@ -340,29 +342,60 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
-                        final newIzin = {
-                          'id': _generateId(),
-                          'type': _jenisCtrl.text,
-                          'date': _awalDate!,
-                          'duration': _formatDuration(),
-                          'reason': _alasanCtrl.text,
-                          'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor('Menunggu Persetujuan'),
-                          'fileName': _selectedFile?.name,
-                        };
-                        
-                        ref.read(izinProvider.notifier).add(newIzin);
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pengajuan izin berhasil dikirim'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                        
-                        context.pop();
+                        try {
+                          final newIzin = {
+                            'id': _generateId(),
+                            'type': _jenisCtrl.text,
+                            'date': _awalDate!,
+                            'duration': _formatDuration(),
+                            'reason': _alasanCtrl.text,
+                            'status': 'Menunggu Persetujuan',
+                            'statusColor': _getStatusColor('Menunggu Persetujuan'),
+                            'fileName': _selectedFile?.name,
+                          };
+                          
+                          // Tambah izin ke provider
+                          ref.read(izinProvider.notifier).add(newIzin);
+                          
+                          // Tambah notifikasi in-app
+                          ref.read(notificationProvider.notifier).addIzinNotification(
+                            jenisIzin: _jenisCtrl.text,
+                            tanggalAwal: _formatDate(_awalDate!),
+                            tanggalAkhir: _formatDate(_akhirDate!),
+                            durasi: _formatDuration(),
+                            alasan: _alasanCtrl.text,
+                          );
+                          
+                          // Kirim notifikasi lokal setelah 2 detik
+                          await NotificationService.scheduleTaskReminder(
+                            id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                            title: 'Pengajuan Izin Berhasil',
+                            body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
+                            scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+                          );
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Pengajuan izin berhasil dikirim dan notifikasi akan segera muncul'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            
+                            context.pop();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Gagal menambahkan izin: ${e.toString()}'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

@@ -11,6 +11,8 @@ class TaskData {
   final int filesCount;
   final Color priorityColor;
   final Color statusColor;
+  final bool hasReminder;
+  final DateTime? reminderDateTime;
 
   TaskData({
     required this.title,
@@ -23,5 +25,7 @@ class TaskData {
     required this.filesCount,
     required this.priorityColor,
     required this.statusColor,
+    this.hasReminder = false,
+    this.reminderDateTime,
   });
 }

@@ -5,6 +5,8 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'daftar_cuti_page.dart';
 
 class TambahCutiPage extends ConsumerStatefulWidget {
@@ -105,7 +107,7 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
     return '$difference hari ($awalFormatted - $akhirFormatted)';
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
       final newCuti = {
       
@@ -126,23 +128,44 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
       };
 
       try {
+        // Tambahkan ke provider cuti
         ref.read(cutiProvider.notifier).add(newCuti);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengajuan cuti berhasil ditambahkan'),
-            backgroundColor: Colors.green,
-          ),
+        // Tambahkan notifikasi ke dalam app
+        ref.read(notificationProvider.notifier).addCutiNotification(
+          jenisCtri: _jenisCtrl.text,
+          tanggalAwal: _awalCtrl.text,
+          tanggalAkhir: _akhirCtrl.text,
+          alasan: _alasanCtrl.text,
         );
 
-        context.pop();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menambahkan cuti: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        // Kirim notifikasi lokal setelah 2 detik
+        await NotificationService.scheduleTaskReminder(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: 'Pengajuan Cuti Berhasil',
+          body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
+          scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
         );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pengajuan cuti berhasil ditambahkan dan notifikasi akan segera muncul'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          context.pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menambahkan cuti: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

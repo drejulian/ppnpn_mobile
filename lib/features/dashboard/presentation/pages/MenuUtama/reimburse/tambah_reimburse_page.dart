@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'daftar_reimburse_page.dart';
@@ -313,7 +315,7 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (!_formKey.currentState!.validate()) return;
 
                     try {
@@ -366,24 +368,44 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                           .read(reimburseProvider.notifier)
                           .addReimburse(newReimburse);
 
+                      // Tambah notifikasi in-app
+                      ref.read(notificationProvider.notifier).addReimburseNotification(
+                        kategori: _kategoriCtrl.text,
+                        jumlah: 'Rp ${NumberFormat('#,###').format(amount)}',
+                        tanggal: DateFormat('dd-MM-yyyy').format(_selectedDate ?? DateTime.now()),
+                        deskripsi: _deskripsiCtrl.text,
+                      );
+                      
+                      // Kirim notifikasi lokal setelah 2 detik
+                      await NotificationService.scheduleTaskReminder(
+                        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                        title: 'Pengajuan Reimburse Berhasil',
+                        body: 'Pengajuan reimburse ${_kategoriCtrl.text} sebesar Rp ${NumberFormat('#,###').format(amount)} telah dikirim dan sedang menunggu persetujuan.',
+                        scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+                      );
+
                       //Print the new reimburse data
                       print('New reimburse added: $newReimburse');
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pengajuan reimburse berhasil dikirim'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Pengajuan reimburse berhasil dikirim dan notifikasi akan segera muncul'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
 
-                      context.pop();
+                        context.pop();
+                      }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${e.toString()}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(

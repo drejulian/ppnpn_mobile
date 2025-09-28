@@ -380,7 +380,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     'Lupa Password?',
                     style: theme.typographyRegular.bodyMedium.copyWith(
                       color: Colors.white,
-                      decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
