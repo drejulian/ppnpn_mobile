@@ -3822,7 +3822,7 @@ class ErrorUploadDialogCard extends StatelessWidget {
                     onConfirm?.call();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[600], // Warna merah untuk error
+                    backgroundColor: Colors.red[600], 
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
                       vertical: isTablet ? 14 : 12,
