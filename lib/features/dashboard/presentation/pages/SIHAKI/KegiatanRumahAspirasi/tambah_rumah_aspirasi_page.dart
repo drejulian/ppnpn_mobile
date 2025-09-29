@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'daftar_pengajuan_rumah_aspirasi.dart' show rumahAspirasiDataProvider;
 
 class TambahRumahAspirasiPage extends ConsumerStatefulWidget {
@@ -70,21 +72,11 @@ class _TambahRumahAspirasiPageState
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Tambah Kegiatan Rumah Aspirasi',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Tambah kegiatan Rumah Aspirasi',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -239,11 +231,22 @@ class _TambahRumahAspirasiPageState
                         'namaBank': _namaBankController.text.trim(),
                       });
 
+                  // Tambahkan notifikasi ke dalam app (page notifikasi)
+                  ref.read(notificationProvider.notifier).addRumahAspirasiNotification(
+                    namaAnggota: _anggotaController.text.trim(),
+                    fraksi: _fraksiAnggotaController.text.trim(),
+                    dapil: _dapilAnggotaController.text.trim(),
+                    tanggalSurat: _tanggalSuratController.text.trim(),
+                  );
+
+                  // Kirim notifikasi lokal langsung
+                  _showLocalNotification();
+
                   context.pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Kegiatan rumah aspirasi berhasil ditambahkan',
+                        'Kegiatan rumah aspirasi berhasil ditambahkan dan notifikasi dikirim',
                       ),
                       backgroundColor: Colors.green,
                     ),
@@ -256,5 +259,20 @@ class _TambahRumahAspirasiPageState
         ),
       ),
     );
+  }
+
+  // Method untuk mengirim notifikasi lokal
+  Future<void> _showLocalNotification() async {
+    try {
+      await NotificationService.showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Kegiatan Rumah Aspirasi Berhasil Ditambahkan',
+        body: 'Kegiatan rumah aspirasi untuk ${_anggotaController.text.trim()} telah berhasil ditambahkan.',
+        payload: 'rumah_aspirasi_${_anggotaController.text.trim()}',
+      );
+    } catch (e) {
+      // Jika notifikasi gagal, tidak perlu mengganggu user
+      debugPrint('Gagal mengirim notifikasi: $e');
+    }
   }
 }

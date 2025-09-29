@@ -119,34 +119,22 @@ class _DaftarPengajuanRumahAspirasiPageState
     final filteredItems = ref.watch(filteredRumahAspirasiProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Kegiatan Rumah Aspirasi',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Kegiatan Rumah Aspirasi',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            AppFilterBar(
+            AppSearchBar(
               controller: _searchController,
-              labelText: 'Cari Kegiatan Rumah Aspirasi',
-              hintText: 'Anggota, tahun sidang, fraksi, bank...',
+              hintText: 'Cari anggota, tahun sidang, fraksi...',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
 
@@ -282,6 +270,12 @@ class _DaftarPengajuanRumahAspirasiPageState
           color: Colors.green[600],
         ),
       ],
+      actions: [
+        AppViewDetailButton(
+          onPressed: () => _showDetailDialog(item, theme),
+          tooltip: 'Lihat Detail',
+        ),
+      ],
     );
   }
 
@@ -310,8 +304,7 @@ class _DaftarPengajuanRumahAspirasiPageState
       actions: [
         SIHAKIDialogAction(
           icon: Icons.edit_rounded,
-          label: 'Edit Kegiatan',
-          backgroundColor: Colors.orange[600],
+          label: 'Ubah Kegiatan',
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();

@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.VIBRATE"/>
+<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Location permissions for geolocator -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -9,6 +17,12 @@
     <!-- Storage permissions for image_picker -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    
+    <!-- Internet permission for secure storage backup -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
     
     <application
         android:label="ppnpm_dpr"
@@ -41,7 +55,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-    </application>
+            <receiver
+         android:exported="false"
+         android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+         <receiver
+         android:exported="false"
+         android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+         <intent-filter>
+         <action android:name="android.intent.action.BOOT_COMPLETED"/>
+         <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+         <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+         <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+         </receiver>
+          <receiver
+           android:exported="false"
+           android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsReceiver"/>
+          </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.

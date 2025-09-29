@@ -465,15 +465,13 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
             ],
           ),
           const SizedBox(height: 16),
-          AppFilterBar(
+          AppSearchBar(
             controller: _searchController,
-            labelText: 'Pencarian Data Keluarga',
             hintText: 'Cari berdasarkan nama, hubungan, atau pekerjaan...',
             onChanged: (value) => setState(() => _searchQuery = value),
             onClear: () => setState(() => _searchQuery = ''),
-            headerTitle: 'Pencarian',
             hasActiveFilters: _searchQuery.isNotEmpty,
-            onReset: _searchQuery.isNotEmpty ? () => setState(() => _searchQuery = '') : null,
+            onFilterReset: _searchQuery.isNotEmpty ? () => setState(() => _searchQuery = '') : null,
           ),
         ],
       ),

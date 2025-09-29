@@ -26,7 +26,6 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-       
             SliverToBoxAdapter(
               child: Container(
                 margin: EdgeInsets.symmetric(
@@ -36,7 +35,6 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  
                     HeaderCardComponent(
                       title: 'SIHAKI',
                       subtitle: 'Sistem Informasi Harta Kekayaan',
@@ -81,14 +79,12 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
                   final items = _getSihakiMenuItems(context);
                   if (index >= items.length) return null;
 
-                  return CardMenuComponent(
-                    title: items[index].title,
-                    icon: items[index].icon,
-                    gradientColors: _getModernGradient(index),
-                    onTap: items[index].onTap,
-                    animationDelay: index * 80,
-                    isTablet: isTablet,
-                    theme: theme,
+                  return _buildModernMenuCard(
+                    context,
+                    items[index],
+                    theme,
+                    isTablet,
+                    index,
                   );
                 }, childCount: _getSihakiMenuItems(context).length),
               ),
@@ -109,38 +105,110 @@ class _SihakiMainPageState extends ConsumerState<SihakiMainPage> {
 
     if (screenWidth > 1200) return 4;
     if (screenWidth > 900) {
-      return isLandscape ? 4 : 3; 
+      return isLandscape ? 4 : 3;
     }
-    if (screenWidth > 600) return isLandscape ? 3 : 3; 
-    return isLandscape ? 3 : 2; 
+    if (screenWidth > 600) return isLandscape ? 3 : 3;
+    return isLandscape ? 3 : 2;
   }
 
   double _getChildAspectRatio(double screenWidth) {
     final screenHeight = MediaQuery.of(context).size.height;
     final isLandscape = screenWidth > screenHeight;
 
-    if (screenWidth > 1200) return 1.1; 
+    if (screenWidth > 1200) return 1.1;
     if (screenWidth > 900) {
       return isLandscape ? 0.95 : 1.0;
     }
-    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95; 
-    return isLandscape ? 0.8 : 1.0; 
+    if (screenWidth > 600) return isLandscape ? 0.9 : 0.95;
+    return isLandscape ? 0.8 : 1.0;
   }
 
-  List<Color> _getModernGradient(int index) {
-    final gradients = [
-      [const Color(0xFFFF6B6B), const Color(0xFFFF8E8E)], // Red gradient
-      [const Color(0xFF4ECDC4), const Color(0xFF44D7C9)], // Teal gradient
-      [const Color(0xFF45B7D1), const Color(0xFF5AC8E3)], // Blue gradient
-      [const Color(0xFF96CEB4), const Color(0xFFA8E6B2)], // Green gradient
-      [const Color(0xFFFECA57), const Color(0xFFFDD835)], // Yellow gradient
-      [const Color(0xFF6C5CE7), const Color(0xFF8B7ED8)], // Purple gradient
-      [const Color(0xFFE17055), const Color(0xFFE95A3E)], // Orange gradient
-      [const Color(0xFFFF7675), const Color(0xFFFF9A9A)], // Pink gradient
-      [const Color(0xFF00B894), const Color(0xFF26E0A5)], // Green-blue gradient
-    ];
-
-    return gradients[index % gradients.length];
+  Widget _buildModernMenuCard(
+    BuildContext context,
+    MenuItemData item,
+    dynamic theme,
+    bool isTablet,
+    int index,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: item.onTap,
+          borderRadius: BorderRadius.circular(16),
+          splashColor: theme.primarySwatch.withOpacity(0.1),
+          highlightColor: theme.primarySwatch.withOpacity(0.05),
+          child: Padding(
+            padding: EdgeInsets.all(isTablet ? 20 : 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Modern Icon Container
+                Container(
+                  width: isTablet ? 56 : 48,
+                  height: isTablet ? 56 : 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.primarySwatch.withOpacity(0.1),
+                        theme.primarySwatch.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: theme.primarySwatch.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    size: isTablet ? 28 : 24,
+                    color: theme.primarySwatch,
+                  ),
+                ),
+                SizedBox(height: isTablet ? 16 : 12),
+                // Modern Title
+                Flexible(
+                  child: Text(
+                    item.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: const Color(0xFF1E293B),
+                      fontSize: isTablet ? 14.0 : 12.0,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   List<MenuItemData> _getSihakiMenuItems(BuildContext context) {

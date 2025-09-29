@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'daftar_lembur_page.dart';
@@ -147,20 +149,11 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
     final theme = ref.watch(themeProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Ajukan Lembur',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+     backgroundColor: const Color(0xFFF8F9FA),
+     appBar: AppCustomAppBar(
+        title: 'Ajukan Lembur',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -403,36 +396,68 @@ class _TambahLemburPageState extends ConsumerState<TambahLemburPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() &&
                           _selectedDate != null &&
                           _jamMulai != null &&
                           _jamSelesai != null) {
-                        final newLembur = {
-                          'id': _generateId(),
-                          'type': _jenisCtrl.text,
-                          'date': _selectedDate!,
-                          'jamMulai': _formatTime(_jamMulai!),
-                          'jamSelesai': _formatTime(_jamSelesai!),
-                          'duration': _calculateDuration(),
-                          'reason': _kegiatanCtrl.text,
-                          'status': 'Menunggu Persetujuan',
-                          'statusColor': _getStatusColor(
-                            'Menunggu Persetujuan',
-                          ),
-                          'fileName': _selectedFile?.name,
-                        };
+                        try {
+                          final newLembur = {
+                            'id': _generateId(),
+                            'type': _jenisCtrl.text,
+                            'date': _selectedDate!,
+                            'jamMulai': _formatTime(_jamMulai!),
+                            'jamSelesai': _formatTime(_jamSelesai!),
+                            'duration': _calculateDuration(),
+                            'reason': _kegiatanCtrl.text,
+                            'status': 'Menunggu Persetujuan',
+                            'statusColor': _getStatusColor(
+                              'Menunggu Persetujuan',
+                            ),
+                            'fileName': _selectedFile?.name,
+                          };
 
-                        ref.read(lemburProvider.notifier).add(newLembur);
+                          // Tambah lembur ke provider
+                          ref.read(lemburProvider.notifier).add(newLembur);
+                          
+                          // Tambah notifikasi in-app
+                          ref.read(notificationProvider.notifier).addLemburNotification(
+                            jenisLembur: _jenisCtrl.text,
+                            tanggal: DateFormat('dd-MM-yyyy').format(_selectedDate!),
+                            jamMulai: _formatTime(_jamMulai!),
+                            jamSelesai: _formatTime(_jamSelesai!),
+                            durasi: _calculateDuration(),
+                            kegiatan: _kegiatanCtrl.text,
+                          );
+                          
+                          // Kirim notifikasi lokal setelah 2 detik
+                          await NotificationService.scheduleTaskReminder(
+                            id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                            title: 'Pengajuan Lembur Berhasil',
+                            body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
+                            scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+                          );
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pengajuan lembur berhasil dikirim'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Pengajuan lembur berhasil dikirim dan notifikasi akan segera muncul'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
 
-                        context.pop();
+                            context.pop();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Gagal menambahkan lembur: ${e.toString()}'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       } else if (_selectedDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

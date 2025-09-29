@@ -466,15 +466,20 @@ class _WorkHistoryPageState extends ConsumerState<WorkHistoryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppFilterBar(
+              AppSearchBar(
                 controller: _searchController,
-                labelText: 'Pencarian Riwayat Pekerjaan',
-                hintText: 'Cari berdasarkan posisi atau perusahaan...',
+                hintText: 'Pencarian Riwayat Pekerjaan...',
                 onChanged: (value) => setState(() {}),
-                onClear: () => setState(() => _searchController.clear()),
-                headerTitle: 'Pencarian',
+                onClear: () => setState(() {}),
                 hasActiveFilters: hasActiveFilters,
-                onReset: hasActiveFilters ? () => setState(() => _searchController.clear()) : null,
+                onFilterReset:
+                    hasActiveFilters
+                        ? () {
+                          _searchController.clear();
+                          setState(() {});
+                        }
+                        : null,
+                margin: EdgeInsets.zero,
               ),
               const SizedBox(height: 20),
               _buildNoteSection(theme),

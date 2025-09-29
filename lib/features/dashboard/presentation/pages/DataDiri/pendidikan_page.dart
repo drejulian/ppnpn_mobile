@@ -422,67 +422,92 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppFilterBar(
+              // Search + Filter using AppSearchBar
+              AppSearchBar(
                 controller: _searchController,
-                labelText: 'Pencarian Data Pendidikan',
-                hintText: 'Cari berdasarkan jenjang, jurusan, institusi, atau kota...',
+                hintText: 'Cari jenjang, jurusan, institusi...',
                 onChanged: (value) => setState(() {}),
-                onClear: () => setState(() => _searchController.clear()),
-                headerTitle: 'Pencarian',
+                onClear: () => setState(() {}),
                 hasActiveFilters: hasActiveFilters,
-                onReset: hasActiveFilters ? () => setState(() => _searchController.clear()) : null,
+                onFilterReset:
+                    hasActiveFilters
+                        ? () {
+                          _searchController.clear();
+                          setState(() {});
+                        }
+                        : null,
+                margin: EdgeInsets.zero,
               ),
               const SizedBox(height: 20),
+
+              // Note Section
               _buildNoteSection(theme),
               const SizedBox(height: 20),
+
+              // Add Education Button
               _buildAddEducationButton(theme),
               const SizedBox(height: 20),
+
+              // Education Data Cards (replaces table)
               _buildEducationCards(theme, filteredData, isTablet),
+
               const SizedBox(height: 30),
+
+              // Save Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isSaving ? null : () => _saveData(context, theme),
+                  onPressed:
+                      _isSaving
+                          ? null
+                          : () {
+                            _saveData(context, theme);
+                          },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _hasUnsavedChanges() ? theme.primarySwatch : Colors.grey[400],
+                    backgroundColor: theme.primarySwatch,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isSaving
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  child:
+                      _isSaving
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'MENYIMPAN...',
-                              style: theme.typographyRegular.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
+                              const SizedBox(width: 8),
+                              Text(
+                                'MENYIMPAN...',
+                                style: theme.typographyRegular.bodyMedium
+                                    .copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
                               ),
+                            ],
+                          )
+                          : Text(
+                            'SIMPAN',
+                            style: theme.typographyRegular.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
-                          ],
-                        )
-                      : Text(
-                          'SIMPAN',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
                           ),
-                        ),
                 ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 20), // Bottom spacing
             ],
           ),
         ),

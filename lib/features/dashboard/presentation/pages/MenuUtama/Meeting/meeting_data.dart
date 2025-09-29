@@ -6,7 +6,8 @@ class MeetingData {
   final DateTime date;
   final String startTime;
   final String endTime;
-  final Color color;
+  final bool hasReminder;
+  final DateTime? reminderDateTime;
 
   MeetingData({
     required this.title,
@@ -14,6 +15,7 @@ class MeetingData {
     required this.date,
     required this.startTime,
     required this.endTime,
-    required this.color,
+    this.hasReminder = false,
+    this.reminderDateTime,
   });
 }

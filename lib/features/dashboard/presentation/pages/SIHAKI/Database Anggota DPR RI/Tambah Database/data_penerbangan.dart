@@ -165,24 +165,11 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Database Anggota DPR RI (DASI)',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go('/dataKomisi');
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+        title: 'Data Penerbangan',
+        onBackPressed: () => context.go('/dataKomisi'),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,
@@ -194,14 +181,6 @@ class _DataPenerbanganPageState extends ConsumerState<DataPenerbanganPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Data Penerbangan',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 20),
               AppFormCard(
                 title: 'Data Penerbangan',
                 titleIcon: Icons.flight,

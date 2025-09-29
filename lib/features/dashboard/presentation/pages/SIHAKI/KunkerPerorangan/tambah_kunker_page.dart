@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
 
 class TambahKunkerPeroranganPage extends ConsumerStatefulWidget {
@@ -98,22 +101,11 @@ class _TambahKunkerPeroranganPageState
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'TAMBAH KUNKER PERORANGAN',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Tambah Kunker Perorangan',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,
@@ -888,10 +880,39 @@ class _TambahKunkerPeroranganPageState
       ).showSnackBar(const SnackBar(content: Text('No. Surat wajib diisi')));
       return;
     }
+    
     ref.read(kunkerDataProvider.notifier).addKunker(data);
+    
+    // Tambahkan notifikasi ke dalam app (page notifikasi)
+    ref.read(notificationProvider.notifier).addKunkerNotification(
+      noSurat: data['no_surat'].toString(),
+      tanggalAwal: data['tanggal_awal'].toString(),
+      tanggalAkhir: data['tanggal_akhir'].toString(),
+      lokasi: data['lokasi_kunjungan']?.toString() ?? 'Tidak diketahui',
+      jenisPerjadin: data['jenis_perjadin']?.toString() ?? _selectedJenisPerjadin,
+    );
+    
+    // Kirim notifikasi lokal langsung
+    _showLocalNotification(data);
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pengajuan kunker ditambahkan')),
+      const SnackBar(content: Text('Pengajuan kunker ditambahkan dan notifikasi dikirim')),
     );
     Navigator.pop(context);
+  }
+
+  // Method untuk mengirim notifikasi lokal
+  Future<void> _showLocalNotification(Map<String, dynamic> data) async {
+    try {
+      await NotificationService.showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Kunjungan Kerja Berhasil Diajukan',
+        body: 'Kunjungan kerja ${data['no_surat']} ke ${data['lokasi_kunjungan'] ?? 'lokasi'} telah berhasil diajukan.',
+        payload: 'kunker_${data['no_surat']}',
+      );
+    } catch (e) {
+      // Jika notifikasi gagal, tidak perlu mengganggu user
+      debugPrint('Gagal mengirim notifikasi: $e');
+    }
   }
 }
