@@ -73,21 +73,10 @@ class _EditBpjsPageState extends ConsumerState<EditBpjsPage> {
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Edit Data BPJS',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Ubah Data BPJS',
+        onBackPressed: () => context.pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

@@ -164,40 +164,24 @@ class _DaftarPengajuanKunkerPageState
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Data Kunker Perorangan',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Data Kunker Perorangan',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-    
-            AppFilterBar(
+            AppSearchBar(
               controller: _searchController,
-              labelText: 'Cari Pengajuan Kunker',
-              hintText: 'No. surat, anggota, TA, dapil, tanggal, status...',
+              hintText: 'Cari Pengajuan Kunker',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
 
-         
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -240,7 +224,6 @@ class _DaftarPengajuanKunkerPageState
               ),
             ),
             const SizedBox(height: 20),
-
 
             Row(
               children: [
@@ -593,7 +576,6 @@ class _DaftarPengajuanKunkerPageState
 
     SIHAKIDetailDialog.show(context, dialogData);
   }
-
 
   void _downloadBuktiTransfer(Map<String, dynamic> kunker) {
     ScaffoldMessenger.of(context).showSnackBar(

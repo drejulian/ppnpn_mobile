@@ -1,12 +1,117 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/theme/my_theme.dart';
+
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'task_data.dart';
 import 'edit_task_page.dart';
 import 'tambah_task_page.dart';
+
+// Task Providers
+class TaskNotifier extends StateNotifier<List<TaskData>> {
+  TaskNotifier()
+    : super([
+        TaskData(
+          title: 'Dashboard design for admin',
+          description: 'Create comprehensive admin dashboard with analytics',
+          dueDate: DateTime(2022, 10, 14),
+          priority: 'High',
+          status: 'Complete',
+          assignees: ['JD', 'SM'],
+          commentsCount: 5,
+          filesCount: 5,
+          priorityColor: Colors.red,
+          statusColor: Colors.green,
+          hasReminder: false,
+        ),
+        TaskData(
+          title: 'Konom web application',
+          description:
+              'Build responsive web application for content management',
+          dueDate: DateTime(2022, 11, 14),
+          priority: 'Low',
+          status: 'To Do',
+          assignees: ['AB', 'CD'],
+          commentsCount: 2,
+          filesCount: 4,
+          priorityColor: Colors.green,
+          statusColor: Colors.orange,
+          hasReminder: true,
+          reminderDateTime: DateTime.now().add(Duration(days: 1)),
+        ),
+        TaskData(
+          title: 'Research and development',
+          description: 'Conduct market research for new product features',
+          dueDate: DateTime(2022, 10, 14),
+          priority: 'Medium',
+          status: 'In Review',
+          assignees: ['EF', 'GH'],
+          commentsCount: 6,
+          filesCount: 2,
+          priorityColor: Colors.orange,
+          statusColor: Colors.purple,
+          hasReminder: false,
+        ),
+        TaskData(
+          title: 'Event booking application',
+          description: 'Develop mobile application for event management',
+          dueDate: DateTime(2022, 10, 14),
+          priority: 'Medium',
+          status: 'To Do',
+          assignees: ['IJ', 'KL'],
+          commentsCount: 5,
+          filesCount: 5,
+          priorityColor: Colors.orange,
+          statusColor: Colors.orange,
+          hasReminder: false,
+        ),
+      ]);
+
+  void add(TaskData task) {
+    state = [...state, task];
+  }
+
+  void remove(TaskData task) {
+    state = state.where((t) => t != task).toList();
+  }
+
+  void update(TaskData oldTask, TaskData newTask) {
+    final index = state.indexWhere(
+      (t) => t.title == oldTask.title && t.dueDate == oldTask.dueDate,
+    );
+    if (index != -1) {
+      final newState = [...state];
+      newState[index] = newTask;
+      state = newState;
+    }
+  }
+}
+
+final taskProvider = StateNotifierProvider<TaskNotifier, List<TaskData>>(
+  (ref) => TaskNotifier(),
+);
+final taskSearchProvider = StateProvider<String>((ref) => '');
+final taskStatusFilterProvider = StateProvider<String>((ref) => 'To Do');
+
+final filteredTaskProvider = Provider<List<TaskData>>((ref) {
+  final tasks = ref.watch(taskProvider);
+  final searchQuery = ref.watch(taskSearchProvider).toLowerCase().trim();
+  final statusFilter = ref.watch(taskStatusFilterProvider);
+
+  return tasks.where((task) {
+    final matchesSearch =
+        searchQuery.isEmpty ||
+        task.title.toLowerCase().contains(searchQuery) ||
+        task.description.toLowerCase().contains(searchQuery);
+
+    final matchesStatus =
+        statusFilter == 'Semua' || task.status == statusFilter;
+
+    return matchesSearch && matchesStatus;
+  }).toList();
+});
 
 class TaskPage extends ConsumerStatefulWidget {
   const TaskPage({super.key});
@@ -16,313 +121,198 @@ class TaskPage extends ConsumerStatefulWidget {
 }
 
 class _TaskPageState extends ConsumerState<TaskPage> {
-  String _selectedFilter = 'To Do';
-
-  // Sample task data
-  List<TaskData> _tasks = [
-    TaskData(
-      title: 'Dashboard design for admin',
-      description: 'Create comprehensive admin dashboard with analytics',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'High',
-      status: 'Complete',
-      assignees: ['JD', 'SM'],
-      commentsCount: 5,
-      filesCount: 5,
-      priorityColor: Colors.red,
-      statusColor: Colors.green,
-    ),
-    TaskData(
-      title: 'Konom web application',
-      description: 'Build responsive web application for content management',
-      dueDate: DateTime(2022, 11, 14),
-      priority: 'Low',
-      status: 'To Do',
-      assignees: ['AB', 'CD'],
-      commentsCount: 2,
-      filesCount: 4,
-      priorityColor: Colors.green,
-      statusColor: Colors.orange,
-    ),
-    TaskData(
-      title: 'Research and development',
-      description: 'Conduct market research for new product features',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'Medium',
-      status: 'In Review',
-      assignees: ['EF', 'GH'],
-      commentsCount: 6,
-      filesCount: 2,
-      priorityColor: Colors.orange,
-      statusColor: Colors.purple,
-    ),
-    TaskData(
-      title: 'Event booking application',
-      description: 'Develop mobile application for event management',
-      dueDate: DateTime(2022, 10, 14),
-      priority: 'Medium',
-      status: 'To Do',
-      assignees: ['IJ', 'KL'],
-      commentsCount: 5,
-      filesCount: 5,
-      priorityColor: Colors.orange,
-      statusColor: Colors.orange,
-    ),
-  ];
+  final TextEditingController searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final filteredTasks = ref.watch(filteredTaskProvider);
+    final currentFilter = ref.watch(taskStatusFilterProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: theme.primarySwatch,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            const SizedBox(width: 12),
-            Text(
-              'Task List',
-              style: theme.typographyBold.bodyMedium.copyWith(
-                color: Colors.white,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-
-
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Task',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Column(
         children: [
-          const SizedBox(height: 20),
-          
-          // Add Task Button
-          _buildAddTaskButton(theme),
-          
-          const SizedBox(height: 20),
-          
-          // Filter Tabs
-          _buildFilterTabs(theme),
-          
-          // Task List
-          Expanded(
-            child: _buildTaskList(theme),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddTaskButton(MyTheme theme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [
-            theme.primarySwatch,
-            theme.primarySwatch.withValues(alpha: 0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.primarySwatch.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () => _showAddTaskDialog(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        icon: const Icon(Icons.add_circle_rounded, size: 22),
-        label: Text(
-          'TAMBAH TASK BARU',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterTabs(MyTheme theme) {
-    final filters = [
-      {'label': 'To Do', 'count': 45},
-      {'label': 'In Review', 'count': 3},
-      {'label': 'Complete', 'count': 68},
-    ];
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      child: Row(
-        children: filters.map((filter) {
-          final isSelected = _selectedFilter == filter['label'];
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedFilter = filter['label'] as String;
-                });
+          // Search Section with Filter - sama seperti daftar cuti
+          Container(
+            child: AppSearchBar(
+              controller: searchController,
+              hintText: 'Cari judul task atau deskripsi...',
+              margin: const EdgeInsets.all(16),
+              hasActiveFilters: currentFilter != 'Semua',
+              onChanged: (value) {
+                ref.read(taskSearchProvider.notifier).state = value;
               },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? theme.primarySwatch : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? theme.primarySwatch : Colors.grey[300]!,
-                    width: 1,
+              onFilterReset: () {
+                searchController.clear();
+                ref.read(taskSearchProvider.notifier).state = '';
+                ref.read(taskStatusFilterProvider.notifier).state = 'Semua';
+              },
+              filterSection: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Status',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
                   ),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: theme.primarySwatch.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ] : [],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        filter['label'] as String,
-                        style: theme.typographyRegular.bodyMedium.copyWith(
-                          color: isSelected ? Colors.white : Colors.grey[700],
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        ['Semua', 'To Do', 'In Review', 'Complete']
+                            .map(
+                              (status) => FilterChip(
+                                label: Text(status),
+                                selected: currentFilter == status,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              taskStatusFilterProvider.notifier,
+                                            )
+                                            .state = status,
+                                selectedColor: theme.primarySwatch.withOpacity(
+                                  0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
-                  ],
+          // Tambah Task button - sama seperti daftar cuti
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showAddTaskDialog(context),
+                icon: const Icon(Icons.add_circle, size: 20),
+                label: Text(
+                  'TAMBAH TASK BARU',
+                  style: theme.typographyRegular.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: theme.primarySwatch,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
                 ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+
+          // List Section - sama seperti daftar cuti
+          Expanded(
+            child:
+                filteredTasks.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak ada data task',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = filteredTasks[index];
+                        return AppListCard(
+                          title: task.title,
+                          subtitle: task.description,
+                          leading: CircleAvatar(
+                            backgroundColor: theme.primarySwatch.withOpacity(
+                              0.1,
+                            ),
+                            child: Icon(
+                              Icons.task_alt,
+                              color: theme.primarySwatch,
+                              size: 20,
+                            ),
+                          ),
+                          trailing: AppStatusChip(
+                            label: task.status,
+                            color: task.statusColor,
+                          ),
+                          chips: [
+                            AppPillChip(
+                              icon: Icons.calendar_today,
+                              label:
+                                  '${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
+                            ),
+                            AppPillChip(
+                              icon: Icons.priority_high,
+                              label: task.priority,
+                            ),
+                          ],
+                          actions: [
+                            AppViewDetailButton(
+                              onPressed:
+                                  () => _showTaskDetailDialog(context, task),
+                              tooltip: 'Lihat Detail',
+                            ),
+                          ],
+                          onTap: () => _showTaskDetailDialog(context, task),
+                        );
+                      },
+                    ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildTaskList(MyTheme theme) {
-    final filteredTasks = _tasks.where((task) => task.status == _selectedFilter).toList();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: filteredTasks.length,
-        itemBuilder: (context, index) {
-          final task = filteredTasks[index];
-          return _buildTaskCard(task, theme);
-        },
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(TaskData task, MyTheme theme) {
-    return AppListCard(
-      onTap: () => _showTaskDetailDialog(context, task),
-      leftAccentColor: _getStatusBorderColor(task.status),
-      title: task.title,
-      subtitle: task.description,
-      trailing: AppStatusChip(
-        label: task.status,
-        color: task.statusColor,
-        icon: _getStatusIcon(task.status),
-      ),
-      chips: [
-        AppPillChip(
-          icon: Icons.flag,
-          label: task.priority,
-          color: task.priorityColor,
-        ),
-        AppPillChip(
-          icon: Icons.schedule,
-          label: DateFormat('dd MMM yyyy').format(task.dueDate),
-          color: Colors.grey[600]!,
-        ),
-      ],
-    );
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'Complete':
-        return Icons.check_circle;
-      case 'In Review':
-        return Icons.visibility;
-      case 'To Do':
-        return Icons.radio_button_unchecked;
-      default:
-        return Icons.radio_button_unchecked;
-    }
-  }
-
-  Color _getStatusBorderColor(String status) {
-    switch (status) {
-      case 'Complete':
-        return Colors.green;
-      case 'To Do':
-        return Colors.blue;
-      case 'In Review':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
   }
 
   void _editTask(TaskData task) async {
     final updatedTask = await Navigator.push<TaskData>(
       context,
       MaterialPageRoute(
-        builder: (context) => EditTaskPage(
-          taskData: task,
-          onTaskUpdated: (updatedTask) {
-            setState(() {
-              final index = _tasks.indexWhere((t) => 
-                t.title == task.title && 
-                t.dueDate == task.dueDate
-              );
-              if (index != -1) {
-                _tasks[index] = updatedTask;
-              }
-            });
-          },
-        ),
+        builder:
+            (context) => EditTaskPage(
+              taskData: task,
+              onTaskUpdated: (updatedTask) {
+                setState(() {
+                  ref.read(taskProvider.notifier).update(task, updatedTask);
+                });
+              },
+            ),
       ),
     );
-    
+
     if (updatedTask != null) {
       setState(() {
-        final index = _tasks.indexWhere((t) => 
-          t.title == task.title && 
-          t.dueDate == task.dueDate
-        );
-        if (index != -1) {
-          _tasks[index] = updatedTask;
-        }
+        ref.read(taskProvider.notifier).update(task, updatedTask);
       });
     }
   }
@@ -333,15 +323,17 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       fields: [
         SIHAKIDialogField(label: 'Title', value: task.title),
         SIHAKIDialogField(label: 'Description', value: task.description),
-        SIHAKIDialogField(label: 'Due Date', value: DateFormat('dd MMM yyyy').format(task.dueDate)),
+        SIHAKIDialogField(
+          label: 'Due Date',
+          value: DateFormat('dd MMM yyyy').format(task.dueDate),
+        ),
         SIHAKIDialogField(label: 'Priority', value: task.priority),
         SIHAKIDialogField(label: 'Status', value: task.status),
       ],
       actions: [
         SIHAKIDialogAction(
           icon: Icons.edit_rounded,
-          label: 'Edit Task',
-          backgroundColor: Colors.orange[600],
+          label: 'Ubah Task',
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();
@@ -350,23 +342,12 @@ class _TaskPageState extends ConsumerState<TaskPage> {
         ),
         SIHAKIDialogAction(
           icon: Icons.delete_rounded,
-          label: 'Delete Task',
-          backgroundColor: Colors.red[600],
+          label: 'Hapus Task',
           textColor: Colors.white,
           isDestructive: true,
           onTap: () {
             Navigator.of(context).pop();
             _confirmDeleteTaskWithSIHAKI(task);
-          },
-        ),
-        SIHAKIDialogAction(
-          icon: Icons.share_rounded,
-          label: 'Share Task',
-          backgroundColor: Colors.blue[600],
-          textColor: Colors.white,
-          onTap: () {
-            Navigator.of(context).pop();
-            _shareTask(task);
           },
         ),
       ],
@@ -399,16 +380,14 @@ class _TaskPageState extends ConsumerState<TaskPage> {
         content: Text('Sharing task: ${task.title}'),
         backgroundColor: Colors.blue[600],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   void _deleteTask(TaskData task) {
     setState(() {
-      _tasks.remove(task);
+      ref.read(taskProvider.notifier).remove(task);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -416,9 +395,7 @@ class _TaskPageState extends ConsumerState<TaskPage> {
         content: const Text('Task deleted successfully'),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -426,15 +403,13 @@ class _TaskPageState extends ConsumerState<TaskPage> {
   void _showAddTaskDialog(BuildContext context) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const TambahTaskPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const TambahTaskPage()),
     );
 
     // If a new task was returned, add it to the list
     if (result != null && result is TaskData) {
       setState(() {
-        _tasks.add(result);
+        ref.read(taskProvider.notifier).add(result);
       });
     }
   }

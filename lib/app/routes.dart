@@ -1,10 +1,8 @@
 enum Routes {
   splash,
   welcome,
-  signUp,
   login,
   lupaPassword,
-  guest,
   home,
   absensi,
   profile,

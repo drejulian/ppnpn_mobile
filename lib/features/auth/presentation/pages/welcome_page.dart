@@ -69,42 +69,6 @@ class _WelcomePageState extends ConsumerState<WelcomePage>
     context.pushNamed(Routes.login.name);
   }
 
-  void _navigateToSignUp() {
-    context.pushNamed(Routes.signUp.name);
-  }
-
-  void _navigateAsGuest() {
-    // Show coming soon dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.info_outline,
-              color: Colors.orange[600],
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            const Text('Informasi'),
-          ],
-        ),
-        content: const Text(
-          'Fitur akses tamu akan segera tersedia. Silakan gunakan akun login untuk mengakses sistem.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Mengerti'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
@@ -441,83 +405,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage>
                 ),
               ),
             ),
-            const SizedBox(height: 16),
 
-            // Sign up button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _navigateToSignUp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primarySwatch,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 4,
-                  shadowColor: Colors.black.withOpacity(0.2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.person_add,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Daftar Akun Baru',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Guest access button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: OutlinedButton(
-                onPressed: _navigateAsGuest,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: Colors.white.withOpacity(0.8),
-                    width: 2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  backgroundColor: Colors.transparent,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      color: Colors.white.withOpacity(0.9),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Akses sebagai Tamu',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             const SizedBox(height: 20),
 
             // Additional info

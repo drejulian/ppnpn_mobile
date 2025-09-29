@@ -32,14 +32,13 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
           'status': 'Disetujui',
           'statusColor': Colors.green,
           'fileName': null,
-      
+
           'jenis': 'Cuti Sakit',
           'tanggal_awal': '02-07-2025',
           'tanggal_akhir': '04-07-2025',
           'alasan': 'Demam tinggi',
         },
       ]);
-
 
   String? _validateCutiData(Map<String, dynamic> data) {
     if (data['id'] == null || data['id'].toString().isEmpty) {
@@ -61,28 +60,32 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       return 'Status cuti wajib diisi';
     }
 
-    if (data['tanggal_awal'] == null || data['tanggal_awal'].toString().isEmpty) {
+    if (data['tanggal_awal'] == null ||
+        data['tanggal_awal'].toString().isEmpty) {
       return 'Tanggal awal wajib diisi';
     }
-    if (data['tanggal_akhir'] == null || data['tanggal_akhir'].toString().isEmpty) {
+    if (data['tanggal_akhir'] == null ||
+        data['tanggal_akhir'].toString().isEmpty) {
       return 'Tanggal akhir wajib diisi';
     }
     return null;
   }
 
-
   String? _validateUpdateData(Map<String, dynamic> data) {
-
-    if (data.containsKey('type') && (data['type'] == null || data['type'].toString().isEmpty)) {
+    if (data.containsKey('type') &&
+        (data['type'] == null || data['type'].toString().isEmpty)) {
       return 'Jenis cuti tidak boleh kosong';
     }
-    if (data.containsKey('reason') && (data['reason'] == null || data['reason'].toString().isEmpty)) {
+    if (data.containsKey('reason') &&
+        (data['reason'] == null || data['reason'].toString().isEmpty)) {
       return 'Alasan cuti tidak boleh kosong';
     }
-    if (data.containsKey('jenis') && (data['jenis'] == null || data['jenis'].toString().isEmpty)) {
+    if (data.containsKey('jenis') &&
+        (data['jenis'] == null || data['jenis'].toString().isEmpty)) {
       return 'Jenis cuti tidak boleh kosong';
     }
-    if (data.containsKey('alasan') && (data['alasan'] == null || data['alasan'].toString().isEmpty)) {
+    if (data.containsKey('alasan') &&
+        (data['alasan'] == null || data['alasan'].toString().isEmpty)) {
       return 'Alasan cuti tidak boleh kosong';
     }
     return null;
@@ -97,7 +100,7 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   }
 
   void removeAt(int index) => state = [...state]..removeAt(index);
-  
+
   void update(String id, Map<String, dynamic> updated) {
     print('Attempting to update cuti with id: $id and data: $updated');
     final validationError = _validateUpdateData(updated);
@@ -105,18 +108,15 @@ class DaftarCutiNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       print('Validation error: $validationError');
       throw Exception('Validasi gagal: $validationError');
     }
-    
+
     final i = state.indexWhere((e) => e['id'] == id);
     if (i == -1) {
-      print('Cuti with id $id not found');
       return;
     }
-    
-    print('Found cuti at index $i, updating...');
+
     final list = [...state];
     list[i] = {...state[i], ...updated};
     state = list;
-    print('Cuti updated successfully');
   }
 }
 
@@ -132,11 +132,11 @@ final filteredCutiProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final q = ref.watch(cutiSearchProvider).toLowerCase().trim();
   final status = ref.watch(cutiStatusFilterProvider);
   return list.where((e) {
-    final matchesQuery = q.isEmpty ||
+    final matchesQuery =
+        q.isEmpty ||
         (e['type']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['reason']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['id']?.toString().toLowerCase().contains(q) ?? false) ||
-      
         (e['jenis']?.toString().toLowerCase().contains(q) ?? false) ||
         (e['alasan']?.toString().toLowerCase().contains(q) ?? false);
     final matchesStatus = status == 'Semua' || e['status'] == status;
@@ -178,74 +178,76 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
     final statusFilter = ref.watch(cutiStatusFilterProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Daftar Cuti',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Daftar Cuti',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Column(
         children: [
-          // Filter Section
+          // Search Section with Filter
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: Column(
-              children: [
-                AppFilterBar(
-                  controller: _searchController,
-                  labelText: 'Cari cuti...',
-                  hintText: 'Masukkan ID, jenis, atau alasan cuti',
-                  headerTitle: 'Pencarian & Filter',
-                  hasActiveFilters: statusFilter != 'Semua',
-                  onChanged: (value) => ref.read(cutiSearchProvider.notifier).state = value,
-                  onReset: () {
-                    _searchController.clear();
-                    ref.read(cutiSearchProvider.notifier).state = '';
-                    ref.read(cutiStatusFilterProvider.notifier).state = 'Semua';
-                  },
-                  filterSection: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Filter Status',
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: ['Semua', 'Menunggu Persetujuan', 'Disetujui', 'Ditolak']
-                            .map((status) => FilterChip(
-                                  label: Text(status),
-                                  selected: statusFilter == status,
-                                  onSelected: (_) => ref.read(cutiStatusFilterProvider.notifier).state = status,
-                                  selectedColor: theme.primarySwatch.withOpacity(0.2),
-                                  checkmarkColor: theme.primarySwatch,
-                                ))
-                            .toList(),
-                      ),
-                    ],
+            child: AppSearchBar(
+              controller: _searchController,
+              hintText: 'Cari ID, jenis, atau alasan cuti...',
+              margin: const EdgeInsets.all(16),
+              hasActiveFilters: statusFilter != 'Semua',
+              onChanged:
+                  (value) =>
+                      ref.read(cutiSearchProvider.notifier).state = value,
+              onFilterReset: () {
+                _searchController.clear();
+                ref.read(cutiSearchProvider.notifier).state = '';
+                ref.read(cutiStatusFilterProvider.notifier).state = 'Semua';
+              },
+              filterSection: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Status',
+                    style: theme.typographyRegular.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        [
+                              'Semua',
+                              'Menunggu Persetujuan',
+                              'Disetujui',
+                              'Ditolak',
+                            ]
+                            .map(
+                              (status) => FilterChip(
+                                label: Text(status),
+                                selected: statusFilter == status,
+                                onSelected:
+                                    (_) =>
+                                        ref
+                                            .read(
+                                              cutiStatusFilterProvider.notifier,
+                                            )
+                                            .state = status,
+                                selectedColor: theme.primarySwatch.withOpacity(
+                                  0.2,
+                                ),
+                                checkmarkColor: theme.primarySwatch,
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ),
             ),
           ),
-          
+
           // Tambah Cuti button
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -270,70 +272,79 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
               ),
             ),
           ),
-          
+
           // List Section
           Expanded(
-            child: filteredList.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.event_busy, size: 48, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Tidak ada data cuti',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      final cuti = filteredList[index];
-                      final statusColor = cuti['statusColor'] as Color? ?? _statusColor(cuti['status']);
-                      
-                      return AppListCard(
-                        title: cuti['type'] ?? cuti['jenis'] ?? 'N/A',
-                        subtitle: cuti['id'] ?? 'N/A',
-                        leading: CircleAvatar(
-                          backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                          child: Icon(
-                            Icons.event_available,
-                            color: theme.primarySwatch,
-                            size: 20,
+            child:
+                filteredList.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 48,
+                            color: Colors.grey[400],
                           ),
-                        ),
-                        trailing: AppStatusChip(
-                          label: cuti['status'] ?? 'N/A',
-                          color: statusColor,
-                        ),
-                        chips: [
-                          AppPillChip(
-                            icon: Icons.calendar_today,
-                            label: cuti['duration'] ?? '${cuti['tanggal_awal']} s/d ${cuti['tanggal_akhir']}',
-                          ),
-                          AppPillChip(
-                            icon: Icons.description,
-                            label: cuti['reason'] ?? cuti['alasan'] ?? 'N/A',
-                          ),
-                        ],
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.visibility, size: 20),
-                            onPressed: () => _showDetailDialog(cuti),
-                            tooltip: 'Lihat Detail',
-                            style: IconButton.styleFrom(
-                              backgroundColor: theme.primarySwatch.withOpacity(0.1),
-                              foregroundColor: theme.primarySwatch,
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak ada data cuti',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
                             ),
                           ),
                         ],
-                        onTap: () => _showDetailDialog(cuti),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final cuti = filteredList[index];
+                        final statusColor =
+                            cuti['statusColor'] as Color? ??
+                            _statusColor(cuti['status']);
+
+                        return AppListCard(
+                          title: cuti['type'] ?? cuti['jenis'] ?? 'N/A',
+                          subtitle: cuti['id'] ?? 'N/A',
+                          leading: CircleAvatar(
+                            backgroundColor: theme.primarySwatch.withOpacity(
+                              0.1,
+                            ),
+                            child: Icon(
+                              Icons.event_available,
+                              color: theme.primarySwatch,
+                              size: 20,
+                            ),
+                          ),
+                          trailing: AppStatusChip(
+                            label: cuti['status'] ?? 'N/A',
+                            color: statusColor,
+                          ),
+                          chips: [
+                            AppPillChip(
+                              icon: Icons.calendar_today,
+                              label:
+                                  cuti['duration'] ??
+                                  '${cuti['tanggal_awal']} s/d ${cuti['tanggal_akhir']}',
+                            ),
+                            AppPillChip(
+                              icon: Icons.description,
+                              label: cuti['reason'] ?? cuti['alasan'] ?? 'N/A',
+                            ),
+                          ],
+                          actions: [
+                            AppViewDetailButton(
+                              onPressed: () => _showDetailDialog(cuti),
+                              tooltip: 'Lihat Detail',
+                            ),
+                          ],
+                          onTap: () => _showDetailDialog(cuti),
+                        );
+                      },
+                    ),
           ),
         ],
       ),
@@ -342,15 +353,20 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
 
   void _showDetailDialog(Map<String, dynamic> cuti) {
     final theme = ref.read(themeProvider);
-    final statusColor = cuti['statusColor'] as Color? ?? _statusColor(cuti['status']);
+    final statusColor =
+        cuti['statusColor'] as Color? ?? _statusColor(cuti['status']);
     final canEdit = _canEdit(cuti);
-    
+
     // Validasi kelengkapan data
     final List<String> missingFields = [];
-    if (cuti['id'] == null || cuti['id'].toString().isEmpty) missingFields.add('ID');
-    if (cuti['type'] == null || cuti['type'].toString().isEmpty) missingFields.add('Jenis Cuti');
-    if (cuti['reason'] == null || cuti['reason'].toString().isEmpty) missingFields.add('Alasan');
-    if (cuti['duration'] == null || cuti['duration'].toString().isEmpty) missingFields.add('Durasi');
+    if (cuti['id'] == null || cuti['id'].toString().isEmpty)
+      missingFields.add('ID');
+    if (cuti['type'] == null || cuti['type'].toString().isEmpty)
+      missingFields.add('Jenis Cuti');
+    if (cuti['reason'] == null || cuti['reason'].toString().isEmpty)
+      missingFields.add('Alasan');
+    if (cuti['duration'] == null || cuti['duration'].toString().isEmpty)
+      missingFields.add('Durasi');
 
     // Status field untuk header
     final statusField = SIHAKIDialogField(
@@ -362,31 +378,24 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
 
     // Data fields
     final dataFields = [
-      SIHAKIDialogField(
-        label: 'ID Cuti',
-        value: cuti['id'] ?? 'N/A',
-      ),
+      SIHAKIDialogField(label: 'ID Cuti', value: cuti['id'] ?? 'N/A'),
       SIHAKIDialogField(
         label: 'Jenis Cuti',
         value: cuti['type'] ?? cuti['jenis'] ?? 'N/A',
       ),
       SIHAKIDialogField(
         label: 'Tanggal Cuti',
-        value: cuti['duration'] ?? '${cuti['tanggal_awal']} s/d ${cuti['tanggal_akhir']}',
+        value:
+            cuti['duration'] ??
+            '${cuti['tanggal_awal']} s/d ${cuti['tanggal_akhir']}',
       ),
-      SIHAKIDialogField(
-        label: 'Durasi',
-        value: cuti['duration'] ?? 'N/A',
-      ),
+      SIHAKIDialogField(label: 'Durasi', value: cuti['duration'] ?? 'N/A'),
       SIHAKIDialogField(
         label: 'Alasan',
         value: cuti['reason'] ?? cuti['alasan'] ?? 'N/A',
       ),
       if (cuti['fileName'] != null)
-        SIHAKIDialogField(
-          label: 'Berkas Lampiran',
-          value: cuti['fileName'],
-        ),
+        SIHAKIDialogField(label: 'Berkas Lampiran', value: cuti['fileName']),
     ];
 
     // Gabungkan semua fields
@@ -394,11 +403,11 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
 
     // Actions
     final actions = <SIHAKIDialogAction>[];
-    
+
     if (canEdit) {
       actions.addAll([
         SIHAKIDialogAction(
-          label: 'Edit Cuti',
+          label: 'Ubah Cuti',
           icon: Icons.edit,
           onTap: () {
             Navigator.of(context).pop();
@@ -487,7 +496,9 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
       isDestructive: true,
       onConfirm: () {
         final cutiList = ref.read(cutiProvider.notifier);
-        final index = ref.read(cutiProvider).indexWhere((item) => item['id'] == cuti['id']);
+        final index = ref
+            .read(cutiProvider)
+            .indexWhere((item) => item['id'] == cuti['id']);
         if (index != -1) {
           cutiList.removeAt(index);
           ScaffoldMessenger.of(context).showSnackBar(

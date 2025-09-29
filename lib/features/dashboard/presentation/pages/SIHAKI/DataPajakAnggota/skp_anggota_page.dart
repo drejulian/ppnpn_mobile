@@ -8,7 +8,6 @@ import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 class SuratKeteranganPenghasilanAnggotaPage extends ConsumerStatefulWidget {
   const SuratKeteranganPenghasilanAnggotaPage({Key? key}) : super(key: key);
 
-
   static final List<Map<String, String>> skpAnggotaData = [
     {
       'tahun': '2024',
@@ -129,34 +128,20 @@ class _SuratKeteranganPenghasilanPageState
     final paginatedData = _getPaginatedData(filteredData);
     final totalPages = (filteredData.length / _itemsPerPage).ceil();
 
-   
     final hasActiveFilters = searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(
-          'Data Pajak Anggota',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Data Pajak Anggota',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(isTablet ? 24 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-     
             SIHAKIPageHeader(
               title: 'SKP Anggota',
               subtitle: 'Surat Keterangan Penghasilan',
@@ -198,22 +183,20 @@ class _SuratKeteranganPenghasilanPageState
 
             SizedBox(height: isTablet ? 24 : 20),
 
-          
-            AppFilterBar(
+            AppSearchBar(
               controller: searchController,
-              labelText: 'Pencarian SKP Anggota',
-              hintText: 'Cari tahun, bulan, atau jenis penghasilan...',
+              hintText: 'Cari tahun, bulan, jenis penghasilan...',
               onChanged: (_) => setState(() => _currentPage = 1),
               onClear: () => setState(() => _currentPage = 1),
-              headerTitle: 'Pencarian',
               hasActiveFilters: hasActiveFilters,
-              onReset:
+              onFilterReset:
                   hasActiveFilters
                       ? () {
                         searchController.clear();
                         setState(() => _currentPage = 1);
                       }
                       : null,
+              margin: EdgeInsets.zero,
             ),
 
             SizedBox(height: isTablet ? 24 : 20),
@@ -358,7 +341,6 @@ class _SuratKeteranganPenghasilanPageState
       '11': 'November',
       '12': 'Desember',
     };
-
 
     SIHAKIDetailDialog.show(
       context,

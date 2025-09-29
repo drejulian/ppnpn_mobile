@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 class EditKunkerPeroranganPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> kunkerData;
@@ -234,22 +235,11 @@ class _EditKunkerPeroranganPageState
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'EDIT KUNKER PERORANGAN',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ubah Kunker Perorangan',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,

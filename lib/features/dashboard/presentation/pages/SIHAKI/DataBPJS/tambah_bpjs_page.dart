@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'daftar_pengajuan_BPJS.dart' show BPJSData, bpjsDataProvider;
 
 class TambahBpjsPage extends ConsumerStatefulWidget {
@@ -55,21 +57,10 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Tambah Data BPJS',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      appBar: AppCustomAppBar(
+        title: 'Tambah Data BPJS',
+        onBackPressed: () => context.pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -139,6 +130,7 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                 ],
                 onSave: () {
                   if (!_formKey.currentState!.validate()) return;
+                  
                   ref
                       .read(bpjsDataProvider.notifier)
                       .addBPJSData(
@@ -153,7 +145,27 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                               _namaFaskesTingkat1Controller.text.trim(),
                         ),
                       );
-                  context.pop();
+                  
+                  // Tambahkan notifikasi ke dalam app (page notifikasi)
+                  ref.read(notificationProvider.notifier).addBPJSNotification(
+                    nama: _namaController.text.trim(),
+                    hubunganKeluarga: _hubunganKeluargaController.text.trim(),
+                    noBPJS: _noBPJSController.text.trim(),
+                    namaFaskes: _namaFaskesTingkat1Controller.text.trim(),
+                  );
+                  
+                  // Kirim notifikasi lokal langsung
+                  _showLocalNotification();
+                  
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Data BPJS berhasil ditambahkan dan notifikasi dikirim'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.pop();
+                  }
                 },
                 saveButtonText: 'TAMBAH DATA',
               ),
@@ -162,5 +174,20 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
         ),
       ),
     );
+  }
+
+  // Method untuk mengirim notifikasi lokal
+  Future<void> _showLocalNotification() async {
+    try {
+      await NotificationService.showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Data BPJS Berhasil Ditambahkan',
+        body: 'Data BPJS untuk ${_namaController.text.trim()} telah berhasil ditambahkan.',
+        payload: 'bpjs_${_namaController.text.trim()}',
+      );
+    } catch (e) {
+      // Jika notifikasi gagal, tidak perlu mengganggu user
+      debugPrint('Gagal mengirim notifikasi: $e');
+    }
   }
 }

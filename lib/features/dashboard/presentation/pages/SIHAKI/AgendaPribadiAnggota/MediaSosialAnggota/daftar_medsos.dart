@@ -201,36 +201,22 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
     final filteredList = ref.watch(filteredMediaSosialProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Media Sosial Anggota',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Media Sosial Anggota',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            AppFilterBar(
+            AppSearchBar(
               controller: _searchController,
-              labelText: 'Cari Media Sosial',
-              hintText: 'ID, platform, username...',
+              hintText: 'Cari ID, platform, username...',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
 
@@ -452,6 +438,12 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
           color: Colors.blue[600],
         ),
       ],
+      actions: [
+        AppViewDetailButton(
+          onPressed: () => _showDetailDialog(context, medsos, theme),
+          tooltip: 'Lihat Detail',
+        ),
+      ],
     );
   }
 
@@ -470,8 +462,7 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
       actions: [
         SIHAKIDialogAction(
           icon: Icons.edit_rounded,
-          label: 'Edit Media Sosial',
-          backgroundColor: Colors.orange[600],
+          label: 'Ubah Media Sosial',
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();

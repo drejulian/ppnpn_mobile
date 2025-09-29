@@ -25,11 +25,11 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     if (!_dataLoaded) {
       // Load data from provider when page is loaded
       final savedData = ref.read(idCardDataProvider);
-      
+
       // Only set data if not already set and data exists
       if (_selectedImage == null && savedData.fotoPath.isNotEmpty) {
         final File savedFile = File(savedData.fotoPath);
@@ -37,52 +37,53 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           _selectedImage = savedFile;
         } else {
           // Clear invalid path from provider
-          ref.read(idCardDataProvider.notifier).updateData(
-            IdCardData(fotoPath: '', isUploaded: false)
-          );
+          ref
+              .read(idCardDataProvider.notifier)
+              .updateData(IdCardData(fotoPath: '', isUploaded: false));
         }
       }
-      
+
       // Backup original data for change detection
       _originalData = _getCurrentData();
       _dataLoaded = true;
     }
   }
-  
+
   Map<String, dynamic> _getCurrentData() {
     return {
       'fotoPath': _selectedImage?.path ?? '',
-      'isUploaded': _selectedImage != null && _isValidImageFile(_selectedImage!),
+      'isUploaded':
+          _selectedImage != null && _isValidImageFile(_selectedImage!),
     };
   }
-  
+
   bool _isValidImageFile(File file) {
     try {
       // Check if file exists and is readable
       if (!file.existsSync()) {
         return false;
       }
-      
+
       // Check file extension
       final String extension = file.path.toLowerCase();
-      if (!extension.endsWith('.jpg') && 
-          !extension.endsWith('.jpeg') && 
+      if (!extension.endsWith('.jpg') &&
+          !extension.endsWith('.jpeg') &&
           !extension.endsWith('.png')) {
         return false;
       }
-      
+
       return true;
     } catch (e) {
       return false;
     }
   }
-  
+
   bool _hasUnsavedChanges() {
     final currentData = _getCurrentData();
     return _originalData['fotoPath'] != currentData['fotoPath'] ||
            _originalData['isUploaded'] != currentData['isUploaded'];
   }
-  
+
   void _restoreOriginalData() {
     if (_originalData['fotoPath'].isNotEmpty) {
       final File potentialFile = File(_originalData['fotoPath']);
@@ -117,7 +118,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           );
           return;
         }
-        
+
         final int fileSizeInBytes = await imageFile.length();
         final double fileSizeInKB = fileSizeInBytes / 1024;
 
@@ -157,7 +158,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
+
         if (_hasUnsavedChanges()) {
           final shouldLeave = await _showUnsavedChangesDialog(context, theme);
           if (shouldLeave && context.mounted) {
@@ -203,9 +204,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildIdCardForm(theme),
-            ],
+            children: [_buildIdCardForm(theme)],
           ),
         ),
       ),
@@ -347,7 +346,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
                     ? ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: Image.file(
-                        _selectedImage!, 
+                        _selectedImage!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -358,13 +357,16 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
                           return Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error, size: 80, color: Colors.red[400]),
+                              Icon(
+                                Icons.error,
+                                size: 80,
+                                color: Colors.red[400],
+                              ),
                               const SizedBox(height: 8),
                               Text(
                                 'Gagal Memuat Gambar',
-                                style: theme.typographyRegular.bodySmall.copyWith(
-                                  color: Colors.red[500],
-                                ),
+                                style: theme.typographyRegular.bodySmall
+                                    .copyWith(color: Colors.red[500]),
                               ),
                             ],
                           );
@@ -510,27 +512,41 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _isValidImageFile(_selectedImage!) ? Colors.green[50] : Colors.red[50],
+              color:
+                  _isValidImageFile(_selectedImage!)
+                      ? Colors.green[50]
+                      : Colors.red[50],
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _isValidImageFile(_selectedImage!) ? Colors.green[200]! : Colors.red[200]!
+                color:
+                    _isValidImageFile(_selectedImage!)
+                        ? Colors.green[200]!
+                        : Colors.red[200]!,
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  _isValidImageFile(_selectedImage!) ? Icons.check_circle : Icons.error,
-                  color: _isValidImageFile(_selectedImage!) ? Colors.green[600] : Colors.red[600],
-                  size: 20
+                  _isValidImageFile(_selectedImage!)
+                      ? Icons.check_circle
+                      : Icons.error,
+                  color:
+                      _isValidImageFile(_selectedImage!)
+                          ? Colors.green[600]
+                          : Colors.red[600],
+                  size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _isValidImageFile(_selectedImage!) 
-                      ? 'Foto dipilih: ${_selectedImage!.path.split('/').last}'
-                      : 'File tidak valid atau rusak: ${_selectedImage!.path.split('/').last}',
+                    _isValidImageFile(_selectedImage!)
+                        ? 'Foto dipilih: ${_selectedImage!.path.split('/').last}'
+                        : 'File tidak valid atau rusak: ${_selectedImage!.path.split('/').last}',
                     style: theme.typographyRegular.bodySmall.copyWith(
-                      color: _isValidImageFile(_selectedImage!) ? Colors.green[700] : Colors.red[700],
+                      color:
+                          _isValidImageFile(_selectedImage!)
+                              ? Colors.green[700]
+                              : Colors.red[700],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -574,7 +590,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     // Validate image before saving
     String validatedPath = '';
     bool isValidImage = false;
-    
+
     if (_selectedImage != null) {
       if (_isValidImageFile(_selectedImage!)) {
         validatedPath = _selectedImage!.path;
@@ -585,13 +601,13 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         });
       }
     }
-    
+
     // Save data to provider
     final idCardData = IdCardData(
       fotoPath: validatedPath,
       isUploaded: isValidImage,
     );
-    
+
     ref.read(idCardDataProvider.notifier).updateData(idCardData);
 
     // Show immediate feedback with SnackBar
@@ -610,7 +626,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           onConfirm: () {
             // Update original data to clear unsaved changes flag
             _originalData = _getCurrentData();
-            
+
             // Safe navigation back to previous page
             if (Navigator.canPop(context)) {
               Navigator.pop(context, 'saved');

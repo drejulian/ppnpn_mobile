@@ -138,41 +138,25 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
     final filteredList = ref.watch(filteredAgendaProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Agenda Pribadi Anggota',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/home"),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Agenda Pribadi Anggota',
+        onBackPressed: () => context.go('/home'),
+        backTooltip: 'Kembali ke Beranda',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-         
-            AppFilterBar(
+            AppSearchBar(
               controller: _searchController,
-              labelText: 'Cari Agenda',
-              hintText: 'ID agenda, acara, tanggal, waktu...',
+              hintText: 'Cari ID agenda, acara, tanggal...',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
-              cardMargin: EdgeInsets.zero,
-              padding: const EdgeInsets.all(16),
+              margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
 
-     
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -394,6 +378,12 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
           color: Colors.blue[600],
         ),
       ],
+      actions: [
+        AppViewDetailButton(
+          onPressed: () => _showDetailDialog(context, agenda, theme),
+          tooltip: 'Lihat Detail',
+        ),
+      ],
     );
   }
 
@@ -442,8 +432,7 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
       actions: [
         SIHAKIDialogAction(
           icon: Icons.edit_rounded,
-          label: 'Edit Agenda',
-          backgroundColor: Colors.orange[600],
+          label: 'Ubah Agenda',
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();

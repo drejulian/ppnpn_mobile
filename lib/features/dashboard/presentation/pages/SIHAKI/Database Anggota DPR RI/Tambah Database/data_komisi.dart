@@ -42,7 +42,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
         });
       }
     }
- 
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {});
     });
@@ -63,28 +63,17 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'DATA KOMISI',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'DATA KOMISI',
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        },
+        backTooltip: 'Kembali',
       ),
       body: Consumer(
         builder: (context, ref, child) {
@@ -111,7 +100,6 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-      
                 SIHAKIDataCard(
                   title: 'Database Anggota DPR RI',
                   subtitle: 'Sistem Informasi Anggota (DASI)',
@@ -152,7 +140,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Navigation Cards 
+                // Navigation Cards
                 _buildModernNavigationCard(
                   context,
                   theme,
@@ -249,7 +237,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                   isTablet: isTablet,
                 ),
                 const SizedBox(height: 24),
-            
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -357,7 +345,6 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
             padding: EdgeInsets.all(isTablet ? 20 : 16),
             child: Row(
               children: [
-              
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -378,7 +365,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: isTablet ? 24 : 20,
+                    size: isTablet ? 24.0 : 20.0,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -393,7 +380,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         style: theme.typographyRegular.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: Colors.grey[800],
-                          fontSize: isTablet ? 16 : 14,
+                          fontSize: isTablet ? 16.0 : 14.0,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -401,7 +388,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         subtitle,
                         style: theme.typographyRegular.bodySmall.copyWith(
                           color: Colors.grey[600],
-                          fontSize: isTablet ? 14 : 12,
+                          fontSize: isTablet ? 14.0 : 12.0,
                         ),
                       ),
                       if (_showSavedMessage[sourcePage] == true) ...[
@@ -420,7 +407,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                             style: theme.typographyRegular.bodySmall.copyWith(
                               color: Colors.green[700],
                               fontWeight: FontWeight.w600,
-                              fontSize: 10,
+                              fontSize: 10.0,
                             ),
                           ),
                         ),
@@ -442,7 +429,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                         child: Icon(
                           Icons.check_circle,
                           color: Colors.green[600],
-                          size: 16,
+                          size: 16.0,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -450,7 +437,7 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
                     Icon(
                       Icons.arrow_forward_ios,
                       color: Colors.grey[400],
-                      size: 14,
+                      size: 14.0,
                     ),
                   ],
                 ),

@@ -10,10 +10,36 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/providers/geofencing_provider.dart';
+import 'package:ppnpm_dpr/common/services/geofencing_service.dart';
 
-const double OFFICE_LATITUDE = -6.208983491481962;
-const double OFFICE_LONGITUDE = 106.79966809090786;
-const double OFFICE_RADIUS_METERS = 5000.0;
+// Check if location is valid using the proper validation provider
+bool isWithinOfficeBoundary(Position currentPosition, WidgetRef ref) {
+  final locationValidation = ref.read(currentLocationValidationProvider);
+
+  return locationValidation.when(
+    data: (result) => result.isValid,
+    loading: () => false, // Assume not valid while loading
+    error: (_, __) => true, // Allow if API error (fallback mode)
+  );
+}
+
+// Helper untuk mendapatkan status lokasi
+String getLocationStatusFromAPI(Position currentPosition, WidgetRef ref) {
+  final boundaryAsync = ref.read(officeBoundaryDataProvider);
+
+  return boundaryAsync.when(
+    data: (boundaryData) {
+      final validation = GeofencingService.validateLocation(
+        currentPosition,
+        boundaryData,
+      );
+      return validation['message'] as String;
+    },
+    loading: () => 'Memuat data area kantor...',
+    error: (_, __) => 'Error: Mode fallback aktif',
+  );
+}
 
 final selectedImageProvider = StateProvider<dynamic>((ref) => null);
 final selectedImageBytesProvider = StateProvider<Uint8List?>((ref) => null);
@@ -43,28 +69,14 @@ final absensiDataProvider = StateProvider<Map<String, AbsensiData?>>(
   (ref) => {'checkin': null, 'checkout': null},
 );
 
-double calculateDistanceFromOffice(Position currentPosition) {
-  return Geolocator.distanceBetween(
-    OFFICE_LATITUDE,
-    OFFICE_LONGITUDE,
-    currentPosition.latitude,
-    currentPosition.longitude,
-  );
+// Get location status using new validation result
+String getLocationStatus(LocationValidationResult result) {
+  return result.message;
 }
 
-bool isWithinOfficeRadius(Position currentPosition) {
-  final distance = calculateDistanceFromOffice(currentPosition);
-  return distance <= OFFICE_RADIUS_METERS;
-}
-
-String getLocationStatus(Position currentPosition) {
-  final distance = calculateDistanceFromOffice(currentPosition);
-  if (distance <= OFFICE_RADIUS_METERS) {
-    return 'Di Area Kantor (${(distance / 100).toStringAsFixed(1)} dari pusat)';
-  } else {
-    final hectares = distance / 100;
-    return 'Di Luar Area Kantor (${hectares.toStringAsFixed(1)} dari kantor)';
-  }
+// Legacy compatibility wrapper - simplified for fallback
+String getLocationStatusLegacy(Position currentPosition) {
+  return ''; // No message displayed
 }
 
 class AbsensiPage extends ConsumerWidget {
@@ -162,8 +174,8 @@ class AbsensiPage extends ConsumerWidget {
                 children: [
                   Text(
                     'Sistem Absensi',
-                    style: theme.typographyRegular.headingSmall.copyWith(
-                      fontWeight: FontWeight.w800,
+                    style: theme.typographyRegular.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: const Color(0xFF1E293B),
                       letterSpacing: -0.5,
                     ),
@@ -171,7 +183,7 @@ class AbsensiPage extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now),
-                    style: theme.typographyRegular.bodyLarge.copyWith(
+                    style: theme.typographyRegular.bodyMedium.copyWith(
                       color: const Color(0xFF64748B),
                       fontWeight: FontWeight.w500,
                     ),
@@ -191,8 +203,8 @@ class AbsensiPage extends ConsumerWidget {
               ),
               child: Text(
                 DateFormat('HH:mm').format(now),
-                style: theme.typographyRegular.bodyLarge.copyWith(
-                  fontWeight: FontWeight.w700,
+                style: theme.typographyRegular.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: _getTimeStatusColor(now),
                 ),
               ),
@@ -262,8 +274,8 @@ class AbsensiPage extends ConsumerWidget {
               children: [
                 Text(
                   status,
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: theme.typographyRegular.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: statusColor,
                   ),
                 ),
@@ -313,7 +325,7 @@ class AbsensiPage extends ConsumerWidget {
                 children: [
                   Text(
                     'Status Absensi Hari Ini',
-                    style: theme.typographyRegular.headingSmall.copyWith(
+                    style: theme.typographyRegular.bodySmall.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,
@@ -322,7 +334,7 @@ class AbsensiPage extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now),
-                    style: theme.typographyRegular.bodyMedium.copyWith(
+                    style: theme.typographyRegular.bodySmall.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontWeight: FontWeight.w500,
                     ),
@@ -399,12 +411,6 @@ class AbsensiPage extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${currentLocation.latitude.toStringAsFixed(6)}, ${currentLocation.longitude.toStringAsFixed(6)}',
-                        style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                      Text(
-                        'Akurasi: ${currentLocation.accuracy.toStringAsFixed(1)}m',
                         style: theme.typographyRegular.bodyExtraSmall.copyWith(
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
@@ -522,11 +528,57 @@ class AbsensiPage extends ConsumerWidget {
         absensiType == 'checkout' &&
         absensiData['checkin'] != null &&
         absensiData['checkout'] == null;
-    final canSubmit =
-        (canCheckIn || canCheckOut) &&
-        hasImage &&
-        currentLocation != null &&
-        isWithinOfficeRadius(currentLocation);
+    // Pure API validation using Consumer
+    return Consumer(
+      builder: (context, ref, child) {
+        final locationValidationAsync = ref.watch(
+          currentLocationValidationProvider,
+        );
+
+        bool canSubmit = false;
+        locationValidationAsync.whenData((result) {
+          canSubmit =
+              (canCheckIn || canCheckOut) &&
+              hasImage &&
+              currentLocation != null &&
+              result.isValid;
+        });
+
+        return _buildAbsensiFormContent(
+          theme,
+          ref,
+          context,
+          canSubmit,
+          locationValidationAsync,
+        );
+      },
+    );
+  }
+
+  Widget _buildAbsensiFormContent(
+    dynamic theme,
+    WidgetRef ref,
+    BuildContext context,
+    bool canSubmit,
+    AsyncValue<LocationValidationResult> locationValidationAsync,
+  ) {
+    final selectedImage = ref.watch(selectedImageProvider);
+    final selectedImageBytes = ref.watch(selectedImageBytesProvider);
+    final currentLocation = ref.watch(currentLocationProvider);
+    final isLoadingLocation = ref.watch(isLoadingLocationProvider);
+    final absensiType = ref.watch(absensiTypeProvider);
+    final absensiData = ref.watch(absensiDataProvider);
+
+    final hasImage =
+        (kIsWeb && selectedImageBytes != null) ||
+        (!kIsWeb && selectedImage != null);
+
+    final canCheckIn =
+        absensiType == 'checkin' && absensiData['checkin'] == null;
+    final canCheckOut =
+        absensiType == 'checkout' &&
+        absensiData['checkin'] != null &&
+        absensiData['checkout'] == null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,14 +599,14 @@ class AbsensiPage extends ConsumerWidget {
               child: Icon(
                 Icons.edit_calendar,
                 color: theme.primarySwatch,
-                size: 24,
+                size: 20,
               ),
             ),
             const SizedBox(width: 16),
             Text(
               'Form Absensi',
-              style: theme.typographyRegular.headingSmall.copyWith(
-                fontWeight: FontWeight.w800,
+              style: theme.typographyRegular.bodyLarge.copyWith(
+                fontWeight: FontWeight.w600,
                 color: const Color(0xFF1E293B),
                 letterSpacing: -0.5,
               ),
@@ -564,7 +616,7 @@ class AbsensiPage extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(
           'Jenis Absensi',
-          style: theme.typographyRegular.bodyLarge.copyWith(
+          style: theme.typographyRegular.bodySmall.copyWith(
             fontWeight: FontWeight.w700,
             color: const Color(0xFF334155),
           ),
@@ -600,7 +652,7 @@ class AbsensiPage extends ConsumerWidget {
         // Upload Foto
         Text(
           'Foto Selfie',
-          style: theme.typographyRegular.bodyLarge.copyWith(
+          style: theme.typographyRegular.bodySmall.copyWith(
             fontWeight: FontWeight.w700,
             color: const Color(0xFF334155),
           ),
@@ -611,7 +663,7 @@ class AbsensiPage extends ConsumerWidget {
 
         Text(
           'Lokasi',
-          style: theme.typographyRegular.bodyLarge.copyWith(
+          style: theme.typographyRegular.bodySmall.copyWith(
             fontWeight: FontWeight.w700,
             color: const Color(0xFF334155),
           ),
@@ -648,7 +700,7 @@ class AbsensiPage extends ConsumerWidget {
                         : absensiData[absensiType] != null
                         ? 'Anda sudah melakukan $absensiType hari ini'
                         : currentLocation != null &&
-                            !isWithinOfficeRadius(currentLocation)
+                            !isWithinOfficeBoundary(currentLocation, ref)
                         ? 'Anda harus berada di area kantor untuk melakukan absensi'
                         : 'Lengkapi foto dan lokasi untuk melanjutkan',
                     style: theme.typographyRegular.bodySmall.copyWith(
@@ -692,7 +744,7 @@ class AbsensiPage extends ConsumerWidget {
                   absensiType == 'checkin'
                       ? 'Check In Sekarang'
                       : 'Check Out Sekarang',
-                  style: theme.typographyRegular.bodyLarge.copyWith(
+                  style: theme.typographyRegular.bodyMedium.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                   ),
@@ -761,7 +813,6 @@ class AbsensiPage extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-        
             Stack(
               alignment: Alignment.center,
               children: [
@@ -939,7 +990,7 @@ class AbsensiPage extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       'Ambil Foto Selfie',
-                      style: theme.typographyRegular.bodyMedium.copyWith(
+                      style: theme.typographyRegular.bodySmall.copyWith(
                         color: const Color(0xFF334155),
                         fontWeight: FontWeight.w700,
                       ),
@@ -953,7 +1004,7 @@ class AbsensiPage extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-              
+
                     ElevatedButton.icon(
                       onPressed: () => _openCamera(ref),
                       icon: Icon(Icons.camera_alt, size: 16),
@@ -998,13 +1049,9 @@ class AbsensiPage extends ConsumerWidget {
           ref.read(selectedImageProvider.notifier).state = File(image.path);
           ref.read(selectedImageBytesProvider.notifier).state = null;
         }
-
-        debugPrint('📸 Foto berhasil diambil');
-      } else {
-        debugPrint('📸 User membatalkan pengambilan foto');
       }
     } catch (e) {
-      debugPrint('Error opening camera: $e');
+      // Handle camera error silently
     }
   }
 
@@ -1060,7 +1107,7 @@ class AbsensiPage extends ConsumerWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors:
-                            isWithinOfficeRadius(currentLocation)
+                            isWithinOfficeBoundary(currentLocation, ref)
                                 ? [
                                   Colors.green.withValues(alpha: 0.1),
                                   Colors.green.withValues(alpha: 0.2),
@@ -1073,11 +1120,11 @@ class AbsensiPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      isWithinOfficeRadius(currentLocation)
+                      isWithinOfficeBoundary(currentLocation, ref)
                           ? Icons.location_on
                           : Icons.location_off,
                       color:
-                          isWithinOfficeRadius(currentLocation)
+                          isWithinOfficeBoundary(currentLocation, ref)
                               ? Colors.green
                               : Colors.orange,
                       size: 24,
@@ -1085,10 +1132,10 @@ class AbsensiPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    getLocationStatus(currentLocation),
+                    getLocationStatusLegacy(currentLocation),
                     style: theme.typographyRegular.bodyMedium.copyWith(
                       color:
-                          isWithinOfficeRadius(currentLocation)
+                          isWithinOfficeBoundary(currentLocation, ref)
                               ? Colors.green
                               : Colors.orange,
                       fontWeight: FontWeight.w700,
@@ -1097,29 +1144,39 @@ class AbsensiPage extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
-                  if (!isWithinOfficeRadius(currentLocation))
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Text(
-                        'Anda berada di luar area kantor',
-                        style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                          color: Colors.orange.shade700,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10.0,
-                        ),
-                        textAlign: TextAlign.center,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          isWithinOfficeBoundary(currentLocation, ref)
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            isWithinOfficeBoundary(currentLocation, ref)
+                                ? Colors.green.withValues(alpha: 0.3)
+                                : Colors.orange.withValues(alpha: 0.3),
                       ),
                     ),
+                    child: Text(
+                      isWithinOfficeBoundary(currentLocation, ref)
+                          ? 'Anda berada di dalam area kantor'
+                          : 'Anda berada di luar area kantor',
+                      style: theme.typographyRegular.bodyExtraSmall.copyWith(
+                        color:
+                            isWithinOfficeBoundary(currentLocation, ref)
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10.0,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Lat: ${currentLocation.latitude.toStringAsFixed(6)}',
@@ -1130,13 +1187,6 @@ class AbsensiPage extends ConsumerWidget {
                   ),
                   Text(
                     'Lng: ${currentLocation.longitude.toStringAsFixed(6)}',
-                    style: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: const Color(0xFF64748B),
-                      fontSize: 9.0,
-                    ),
-                  ),
-                  Text(
-                    'Akurasi: ${currentLocation.accuracy.toStringAsFixed(1)}m',
                     style: theme.typographyRegular.bodyExtraSmall.copyWith(
                       color: const Color(0xFF64748B),
                       fontSize: 9.0,
@@ -1330,7 +1380,7 @@ class AbsensiPage extends ConsumerWidget {
       final month = DateTime(now.year, now.month - i, 1);
       final monthName = DateFormat('MMMM yyyy', 'id_ID').format(month);
       final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-      final workingDays = daysInMonth - 8; 
+      final workingDays = daysInMonth - 8;
       final presentDays = workingDays - (i * 2);
       final percentage = (presentDays / workingDays) * 100;
 
@@ -1380,29 +1430,8 @@ class AbsensiPage extends ConsumerWidget {
       );
 
       ref.read(currentLocationProvider.notifier).state = position;
-
-      debugPrint('📍 Location obtained successfully:');
-      debugPrint('📍 Lat: ${position.latitude}, Lng: ${position.longitude}');
-      debugPrint('📍 Accuracy: ${position.accuracy}m');
     } catch (e) {
-      debugPrint('Error getting location: $e');
-
-      String errorMessage = 'Terjadi kesalahan saat mendapatkan lokasi.';
-      if (e.toString().contains('Location services are disabled')) {
-        errorMessage =
-            'Layanan lokasi dimatikan. Silakan aktifkan GPS/Location di pengaturan perangkat.';
-      } else if (e.toString().contains('Location permission denied')) {
-        errorMessage =
-            'Izin lokasi ditolak. Silakan berikan izin akses lokasi di pengaturan aplikasi.';
-      } else if (e.toString().contains('permanently denied')) {
-        errorMessage =
-            'Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi di pengaturan perangkat.';
-      } else if (e.toString().contains('No location permissions are defined')) {
-        errorMessage =
-            'Konfigurasi izin lokasi belum lengkap. Silakan restart aplikasi.';
-      }
-
-      debugPrint('📍 Location error message: $errorMessage');
+      // Handle location error silently
     } finally {
       ref.read(isLoadingLocationProvider.notifier).state = false;
     }
@@ -1467,20 +1496,6 @@ class AbsensiPage extends ConsumerWidget {
       final updatedData = Map<String, AbsensiData?>.from(currentData);
       updatedData[absensiType] = absensiData;
       ref.read(absensiDataProvider.notifier).state = updatedData;
-
-      debugPrint('✅ Absensi berhasil disimpan:');
-      debugPrint('📍 Type: $absensiType');
-      debugPrint('⏰ Time: ${DateFormat('HH:mm:ss').format(now)}');
-      debugPrint('📍 Status: $status');
-      debugPrint(
-        '📍 Location: ${currentLocation.latitude}, ${currentLocation.longitude}',
-      );
-
-      if (kIsWeb && selectedImageBytes != null) {
-        debugPrint('📸 Image: Web bytes (${selectedImageBytes.length} bytes)');
-      } else if (!kIsWeb && selectedImage != null) {
-        debugPrint('📸 Image: ${selectedImage.path}');
-      }
 
       showDialog(
         context: context,
@@ -1588,13 +1603,6 @@ class AbsensiPage extends ConsumerWidget {
                             color: const Color(0xFF64748B),
                           ),
                         ),
-                        Text(
-                          '📍 Akurasi: ${currentLocation.accuracy.toStringAsFixed(1)}m',
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -1613,7 +1621,6 @@ class AbsensiPage extends ConsumerWidget {
                           context.goNamed(Routes.home.name);
                         }
                       } catch (e) {
-                        debugPrint('Dialog navigation error: $e');
                         context.goNamed(Routes.home.name);
                       }
                     },
@@ -1644,7 +1651,6 @@ class AbsensiPage extends ConsumerWidget {
       ref.read(selectedImageBytesProvider.notifier).state = null;
       ref.read(currentLocationProvider.notifier).state = null;
     } catch (e) {
-      debugPrint('Submit absensi error: $e');
       _showErrorDialog(
         context,
         'Terjadi kesalahan saat menyimpan absensi: ${e.toString()}',

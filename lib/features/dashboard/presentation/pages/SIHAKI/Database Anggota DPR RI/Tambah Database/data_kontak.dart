@@ -151,24 +151,11 @@ class _DataKontakPageState extends ConsumerState<DataKontakPage> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Database Anggota DPR RI (DASI)',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            context.go('/dataKomisi');
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+        title: 'Data Kontak',
+        onBackPressed: () => context.go('/dataKomisi'),
+        backTooltip: 'Kembali',
       ),
       body: Form(
         key: _formKey,
@@ -180,14 +167,6 @@ class _DataKontakPageState extends ConsumerState<DataKontakPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Data Kontak',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 20),
               AppFormCard(
                 title: 'Kontak Darurat',
                 titleIcon: Icons.contact_phone,

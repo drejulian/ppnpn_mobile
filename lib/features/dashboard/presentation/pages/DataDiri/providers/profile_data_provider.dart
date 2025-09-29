@@ -369,15 +369,9 @@ class IdCardData {
   final String fotoPath;
   final bool isUploaded;
 
-  IdCardData({
-    this.fotoPath = '',
-    this.isUploaded = false,
-  });
+  IdCardData({this.fotoPath = '', this.isUploaded = false});
 
-  IdCardData copyWith({
-    String? fotoPath,
-    bool? isUploaded,
-  }) {
+  IdCardData copyWith({String? fotoPath, bool? isUploaded}) {
     return IdCardData(
       fotoPath: fotoPath ?? this.fotoPath,
       isUploaded: isUploaded ?? this.isUploaded,
@@ -747,30 +741,25 @@ class IdCardNotifier extends StateNotifier<IdCardData> {
 }
 
 class ProfileCompletionNotifier extends StateNotifier<Map<String, bool>> {
-  ProfileCompletionNotifier() : super({
-    'editProfile': false,
-    'identitasDiri': false,
-    'honorarium': false,
-    'keluarga': false,
-    'pasFoto': false,
-    'dokumen': false,
-    'pendidikan': false,
-    'riwayatPekerjaan': false,
-    'dataLamaran': false,
-  });
+  ProfileCompletionNotifier()
+    : super({
+        'editProfile': false,
+        'identitasDiri': false,
+        'honorarium': false,
+        'keluarga': false,
+        'pasFoto': false,
+        'dokumen': false,
+        'pendidikan': false,
+        'riwayatPekerjaan': false,
+        'dataLamaran': false,
+      });
 
   void markCompleted(String sectionKey) {
-    state = {
-      ...state,
-      sectionKey: true,
-    };
+    state = {...state, sectionKey: true};
   }
 
   void markIncomplete(String sectionKey) {
-    state = {
-      ...state,
-      sectionKey: false,
-    };
+    state = {...state, sectionKey: false};
   }
 
   void resetAll() {
@@ -797,37 +786,43 @@ class ProfileCompletionNotifier extends StateNotifier<Map<String, bool>> {
 }
 
 // Providers
-final honorariumDataProvider = StateNotifierProvider<HonorariumNotifier, HonorariumData>(
-  (ref) => HonorariumNotifier(),
-);
+final honorariumDataProvider =
+    StateNotifierProvider<HonorariumNotifier, HonorariumData>(
+      (ref) => HonorariumNotifier(),
+    );
 
-final editProfileDataProvider = StateNotifierProvider<EditProfileNotifier, EditProfileData>(
-  (ref) => EditProfileNotifier(),
-);
+final editProfileDataProvider =
+    StateNotifierProvider<EditProfileNotifier, EditProfileData>(
+      (ref) => EditProfileNotifier(),
+    );
 
 final pribadiDataProvider = StateNotifierProvider<PribadiNotifier, PribadiData>(
   (ref) => PribadiNotifier(),
 );
 
-final dataLamaranDataProvider = StateNotifierProvider<DataLamaranNotifier, DataLamaranData>(
-  (ref) => DataLamaranNotifier(),
-);
+final dataLamaranDataProvider =
+    StateNotifierProvider<DataLamaranNotifier, DataLamaranData>(
+      (ref) => DataLamaranNotifier(),
+    );
 
 final dokumenDataProvider = StateNotifierProvider<DokumenNotifier, DokumenData>(
   (ref) => DokumenNotifier(),
 );
 
-final keluargaDataProvider = StateNotifierProvider<KeluargaNotifier, KeluargaData>(
-  (ref) => KeluargaNotifier(),
-);
+final keluargaDataProvider =
+    StateNotifierProvider<KeluargaNotifier, KeluargaData>(
+      (ref) => KeluargaNotifier(),
+    );
 
-final pendidikanDataProvider = StateNotifierProvider<PendidikanNotifier, PendidikanData>(
-  (ref) => PendidikanNotifier(),
-);
+final pendidikanDataProvider =
+    StateNotifierProvider<PendidikanNotifier, PendidikanData>(
+      (ref) => PendidikanNotifier(),
+    );
 
-final riwayatPekerjaanDataProvider = StateNotifierProvider<RiwayatPekerjaanNotifier, RiwayatPekerjaanData>(
-  (ref) => RiwayatPekerjaanNotifier(),
-);
+final riwayatPekerjaanDataProvider =
+    StateNotifierProvider<RiwayatPekerjaanNotifier, RiwayatPekerjaanData>(
+      (ref) => RiwayatPekerjaanNotifier(),
+    );
 
 final idCardDataProvider = StateNotifierProvider<IdCardNotifier, IdCardData>(
   (ref) => IdCardNotifier(),

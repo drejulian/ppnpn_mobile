@@ -21,15 +21,15 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   late final TextEditingController _jamMulaiCtrl;
   late final TextEditingController _jamSelesaiCtrl;
   late final TextEditingController _kegiatanCtrl;
-  
+
   DateTime? _selectedDate;
   TimeOfDay? _jamMulai;
   TimeOfDay? _jamSelesai;
   PlatformFile? _selectedFile;
-  
+
   final List<String> _jenisLemburOptions = [
     'Lembur Komisi',
-    'Lembur Anggaran', 
+    'Lembur Anggaran',
     'Lembur Rapat',
     'Lembur Proyek',
     'Lembur Lainnya',
@@ -54,9 +54,10 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   Future<void> _pickTime(bool isStartTime) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: isStartTime 
-          ? (_jamMulai ?? TimeOfDay.now()) 
-          : (_jamSelesai ?? TimeOfDay.now()),
+      initialTime:
+          isStartTime
+              ? (_jamMulai ?? TimeOfDay.now())
+              : (_jamSelesai ?? TimeOfDay.now()),
       initialEntryMode: TimePickerEntryMode.input,
     );
     if (picked != null) {
@@ -90,7 +91,6 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
           }
         }
       } else {
-
         final hour = int.tryParse(timeString);
         if (hour != null && hour >= 0 && hour <= 23) {
           return TimeOfDay(hour: hour, minute: 0);
@@ -106,18 +106,18 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     if (_jamMulai == null || _jamSelesai == null) {
       return '';
     }
-    
+
     final startMinutes = _jamMulai!.hour * 60 + _jamMulai!.minute;
     final endMinutes = _jamSelesai!.hour * 60 + _jamSelesai!.minute;
-    
+
     int durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
-      durationMinutes += 24 * 60; 
+      durationMinutes += 24 * 60;
     }
-    
+
     final hours = durationMinutes ~/ 60;
     final minutes = durationMinutes % 60;
-    
+
     if (minutes == 0) {
       return '$hours jam';
     } else {
@@ -141,33 +141,39 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
   @override
   void initState() {
     super.initState();
- 
+
     _jenisCtrl = TextEditingController(text: widget.data['type'] ?? '');
-    
+
     final date = widget.data['date'];
     if (date is DateTime) {
       _selectedDate = date;
-      _tanggalCtrl = TextEditingController(text: DateFormat('dd-MM-yyyy').format(date));
+      _tanggalCtrl = TextEditingController(
+        text: DateFormat('dd-MM-yyyy').format(date),
+      );
     } else {
       final dateStr = date?.toString() ?? '';
       _tanggalCtrl = TextEditingController(text: dateStr);
     }
 
-    final jamMulaiStr = widget.data['jamMulai'] ?? widget.data['mulai'] ?? '19:00';
-    final jamSelesaiStr = widget.data['jamSelesai'] ?? widget.data['selesai'] ?? '22:00';
-    
+    final jamMulaiStr =
+        widget.data['jamMulai'] ?? widget.data['mulai'] ?? '19:00';
+    final jamSelesaiStr =
+        widget.data['jamSelesai'] ?? widget.data['selesai'] ?? '22:00';
+
     _jamMulai = _parseTime(jamMulaiStr);
     _jamSelesai = _parseTime(jamSelesaiStr);
-    
-    _jamMulaiCtrl = TextEditingController(text: _jamMulai != null ? _formatTime(_jamMulai!) : jamMulaiStr);
-    _jamSelesaiCtrl = TextEditingController(text: _jamSelesai != null ? _formatTime(_jamSelesai!) : jamSelesaiStr);
-    
+
+    _jamMulaiCtrl = TextEditingController(
+      text: _jamMulai != null ? _formatTime(_jamMulai!) : jamMulaiStr,
+    );
+    _jamSelesaiCtrl = TextEditingController(
+      text: _jamSelesai != null ? _formatTime(_jamSelesai!) : jamSelesaiStr,
+    );
+
     _kegiatanCtrl = TextEditingController(text: widget.data['reason'] ?? '');
-    
 
     final fileName = widget.data['fileName'];
-    if (fileName != null) {
-    }
+    if (fileName != null) {}
   }
 
   @override
@@ -185,21 +191,13 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
     final theme = ref.watch(themeProvider);
     final String status = (widget.data['status'] ?? 'Menunggu') as String;
     final bool isLocked = status == 'Disetujui';
-    
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Ubah Pengajuan Lembur',
-          style: theme.typographyBold.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ubah Pengajuan Lembur',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -217,11 +215,15 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _statusChip('Status: $status', _statusColor(status), theme),
+                        _statusChip(
+                          'Status: $status',
+                          _statusColor(status),
+                          theme,
+                        ),
                       ],
                     ),
                   ),
-                
+
                 if (isLocked)
                   Container(
                     width: double.infinity,
@@ -259,8 +261,15 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       type: FormFieldType.dropdown,
                       isRequired: true,
                       options: _jenisLemburOptions,
-                      value: _jenisLemburOptions.contains(_jenisCtrl.text) ? _jenisCtrl.text : null,
-                      onChanged: isLocked ? null : (value) => setState(() => _jenisCtrl.text = value ?? ''),
+                      value:
+                          _jenisLemburOptions.contains(_jenisCtrl.text)
+                              ? _jenisCtrl.text
+                              : null,
+                      onChanged:
+                          isLocked
+                              ? null
+                              : (value) =>
+                                  setState(() => _jenisCtrl.text = value ?? ''),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Pilih jenis lembur';
@@ -278,7 +287,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       suffixIcon: Icons.calendar_today,
                       onTap: isLocked ? null : _pickDate,
                       validator: (value) {
-                        if (value == null || value.isEmpty || _selectedDate == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _selectedDate == null) {
                           return 'Pilih tanggal lembur';
                         }
                         return null;
@@ -294,7 +305,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       suffixIcon: Icons.access_time,
                       onTap: isLocked ? null : () => _pickTime(true),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _jamMulai == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _jamMulai == null) {
                           return 'Pilih jam mulai lembur';
                         }
                         return null;
@@ -310,13 +323,18 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       suffixIcon: Icons.access_time,
                       onTap: isLocked ? null : () => _pickTime(false),
                       validator: (value) {
-                        if (value == null || value.isEmpty || _jamSelesai == null) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            _jamSelesai == null) {
                           return 'Pilih jam selesai lembur';
                         }
                         if (_jamMulai != null && _jamSelesai != null) {
-                          final startMinutes = _jamMulai!.hour * 60 + _jamMulai!.minute;
-                          final endMinutes = _jamSelesai!.hour * 60 + _jamSelesai!.minute;
-                          if (endMinutes <= startMinutes && endMinutes != startMinutes) {
+                          final startMinutes =
+                              _jamMulai!.hour * 60 + _jamMulai!.minute;
+                          final endMinutes =
+                              _jamSelesai!.hour * 60 + _jamSelesai!.minute;
+                          if (endMinutes <= startMinutes &&
+                              endMinutes != startMinutes) {
                             return 'Jam selesai harus setelah jam mulai';
                           }
                         }
@@ -340,9 +358,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // File Upload Section
                 Container(
                   width: double.infinity,
@@ -393,7 +411,10 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: isLocked ? Colors.grey[300]! : Colors.grey[300]!,
+                              color:
+                                  isLocked
+                                      ? Colors.grey[300]!
+                                      : Colors.grey[300]!,
                               style: BorderStyle.solid,
                               width: 1.0,
                             ),
@@ -404,7 +425,10 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                             children: [
                               Icon(
                                 Icons.attach_file,
-                                color: isLocked ? Colors.grey[400] : theme.primarySwatch,
+                                color:
+                                    isLocked
+                                        ? Colors.grey[400]
+                                        : theme.primarySwatch,
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
@@ -413,29 +437,50 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _selectedFile?.name ?? widget.data['fileName'] ?? 'Upload file pendukung',
-                                      style: theme.typographyRegular.bodyMedium.copyWith(
-                                        color: (_selectedFile != null || widget.data['fileName'] != null)
-                                            ? (isLocked ? Colors.grey[600] : Colors.grey[800])
-                                            : (isLocked ? Colors.grey[400] : Colors.grey[600]),
-                                        fontWeight: (_selectedFile != null || widget.data['fileName'] != null)
-                                            ? FontWeight.w600 
-                                            : FontWeight.normal,
-                                      ),
+                                      _selectedFile?.name ??
+                                          widget.data['fileName'] ??
+                                          'Upload file pendukung',
+                                      style: theme.typographyRegular.bodyMedium
+                                          .copyWith(
+                                            color:
+                                                (_selectedFile != null ||
+                                                        widget.data['fileName'] !=
+                                                            null)
+                                                    ? (isLocked
+                                                        ? Colors.grey[600]
+                                                        : Colors.grey[800])
+                                                    : (isLocked
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[600]),
+                                            fontWeight:
+                                                (_selectedFile != null ||
+                                                        widget.data['fileName'] !=
+                                                            null)
+                                                    ? FontWeight.w600
+                                                    : FontWeight.normal,
+                                          ),
                                     ),
-                                    if (_selectedFile == null && widget.data['fileName'] == null)
+                                    if (_selectedFile == null &&
+                                        widget.data['fileName'] == null)
                                       Text(
                                         'Format: PDF, JPG, PNG (Max 5MB)',
-                                        style: theme.typographyRegular.bodySmall.copyWith(
-                                          color: isLocked ? Colors.grey[400] : Colors.grey[500],
-                                        ),
+                                        style: theme.typographyRegular.bodySmall
+                                            .copyWith(
+                                              color:
+                                                  isLocked
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[500],
+                                            ),
                                       ),
                                   ],
                                 ),
                               ),
                               if (_selectedFile != null && !isLocked)
                                 IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedFile = null;
@@ -449,9 +494,9 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Submit Button
                 SizedBox(
                   width: double.infinity,
@@ -465,72 +510,95 @@ class _EditLemburPageState extends ConsumerState<EditLemburPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: isLocked ? null : () {
-                      if (_formKey.currentState!.validate() && _selectedDate != null && _jamMulai != null && _jamSelesai != null) {
-                        // Check if ID is available
-                        final lemburId = widget.data['id'];
-                        if (lemburId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Error: ID lembur tidak ditemukan'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                        
-                        // Get current status and preserve it
-                        final currentStatus = widget.data['status'] ?? 'Menunggu Persetujuan';
-                        final statusColor = _statusColor(currentStatus);
-                        
-                        final updatedData = {
-                          'id': lemburId,
-                          'type': _jenisCtrl.text.trim(),
-                          'date': _selectedDate!,
-                          'jamMulai': _formatTime(_jamMulai!),
-                          'jamSelesai': _formatTime(_jamSelesai!),
-                          'duration': _calculateDuration(),
-                          'reason': _kegiatanCtrl.text.trim(),
-                          'status': currentStatus,
-                          'statusColor': statusColor,
-                          'fileName': _selectedFile?.name ?? widget.data['fileName'],
-                        };
-                        
-                        try {
-                          // Update lembur data
-                          ref.read(lemburProvider.notifier).update(lemburId, updatedData);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Data lembur berhasil diperbarui'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        } catch (e) {
-                          // Error updating data
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Gagal memperbarui data lembur: ${e.toString()}'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      } else if (_selectedDate == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih tanggal lembur terlebih dahulu'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      } else if (_jamMulai == null || _jamSelesai == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih jam mulai dan selesai lembur'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
+                    onPressed:
+                        isLocked
+                            ? null
+                            : () {
+                              if (_formKey.currentState!.validate() &&
+                                  _selectedDate != null &&
+                                  _jamMulai != null &&
+                                  _jamSelesai != null) {
+                                // Check if ID is available
+                                final lemburId = widget.data['id'];
+                                if (lemburId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Error: ID lembur tidak ditemukan',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Get current status and preserve it
+                                final currentStatus =
+                                    widget.data['status'] ??
+                                    'Menunggu Persetujuan';
+                                final statusColor = _statusColor(currentStatus);
+
+                                final updatedData = {
+                                  'id': lemburId,
+                                  'type': _jenisCtrl.text.trim(),
+                                  'date': _selectedDate!,
+                                  'jamMulai': _formatTime(_jamMulai!),
+                                  'jamSelesai': _formatTime(_jamSelesai!),
+                                  'duration': _calculateDuration(),
+                                  'reason': _kegiatanCtrl.text.trim(),
+                                  'status': currentStatus,
+                                  'statusColor': statusColor,
+                                  'fileName':
+                                      _selectedFile?.name ??
+                                      widget.data['fileName'],
+                                };
+
+                                try {
+                                  // Update lembur data
+                                  ref
+                                      .read(lemburProvider.notifier)
+                                      .update(lemburId, updatedData);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Data lembur berhasil diperbarui',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                } catch (e) {
+                                  // Error updating data
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Gagal memperbarui data lembur: ${e.toString()}',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } else if (_selectedDate == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Pilih tanggal lembur terlebih dahulu',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else if (_jamMulai == null ||
+                                  _jamSelesai == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Pilih jam mulai dan selesai lembur',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
                     child: Text(
                       'SIMPAN PERUBAHAN',
                       style: theme.typographyRegular.bodyMedium.copyWith(

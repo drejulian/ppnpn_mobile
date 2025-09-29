@@ -195,7 +195,7 @@ class _LupaPasswordPageState extends ConsumerState<LupaPasswordPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          onPressed: () => context.go('/profile'),
+          onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
       ),
