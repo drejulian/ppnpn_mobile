@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database/user_repository.dart';
-import '../models/user_model.dart';
+import '../data/models/user_model.dart';
 
 // Provider untuk UserRepository
 final userRepositoryProvider = Provider<UserRepository>((ref) {

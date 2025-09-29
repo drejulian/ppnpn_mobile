@@ -1,5 +1,5 @@
 import 'app_database_helper.dart';
-import '../../models/user_model.dart';
+import '../models/user_model.dart';
 
 class UserRepository {
   static final UserRepository _instance = UserRepository._internal();
