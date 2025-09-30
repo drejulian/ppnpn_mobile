@@ -170,32 +170,12 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'ID Card',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (_hasUnsavedChanges()) {
-                final shouldLeave = await _showUnsavedChangesDialog(context, theme);
-                if (shouldLeave && context.mounted) {
-                  context.pop();
-                }
-              } else {
-                context.pop();
-              }
-            },
-          ),
-        ),
+        backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'ID Card',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
+      ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isTablet ? 24.0 : 16.0,

@@ -386,34 +386,12 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'Data Pendidikan',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (_hasUnsavedChanges()) {
-                final shouldLeave = await _showUnsavedChangesDialog();
-                if (shouldLeave && context.mounted) {
-                  await _restoreDataFromStorage();
-                  context.pop();
-                }
-              } else if (context.mounted) {
-                context.pop();
-              }
-            },
-          ),
-        ),
+        backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Data Pendidikan',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
+      ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isTablet ? 24.0 : 16.0,

@@ -393,32 +393,12 @@ class _ApplicationDataPageState extends ConsumerState<ApplicationDataPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'Data Lamaran',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
-                final shouldLeave = await _showUnsavedChangesDialog();
-                if (shouldLeave && context.mounted) {
-                  context.pop();
-                }
-              } else if (context.mounted) {
-                context.pop();
-              }
-            },
-          ),
-        ),
+       backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Data Lamaran',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
+      ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isTablet ? 24.0 : 16.0,
