@@ -128,32 +128,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'EDIT PROFIL',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              if (_hasUnsavedChanges || _hasUnsavedChangesInternal()) {
-                final shouldLeave = await _showUnsavedChangesDialog(context, theme);
-                if (shouldLeave && context.mounted) {
-                  context.pop();
-                }
-              } else {
-                context.pop();
-              }
-            },
-          ),
-        ),
+        backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ubah Profil',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
+      ),
         body: Form(
           key: _formKey,
           child: SingleChildScrollView(

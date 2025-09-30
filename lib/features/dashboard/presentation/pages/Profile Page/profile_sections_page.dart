@@ -117,7 +117,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
       prefs.remove('data_lamaran_has_changes'),
       prefs.remove('data_lamaran_just_saved'),
       prefs.remove('data_lamaran_user_saved'),
-      // Menghapus flag riwayat_pekerjaan_* untuk konsistensi
       prefs.remove('riwayat_pekerjaan_has_changes'),
       prefs.remove('riwayat_pekerjaan_just_saved'),
       prefs.remove('riwayat_pekerjaan_user_saved'),
@@ -283,7 +282,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
         }
 
         _hasUnsavedChanges = _editedSections.isNotEmpty;
-        debugPrint('ProfileSectionsPage: Loaded completion status - completedSections=$_completedSections, editedSections=$_editedSections, hasUnsavedChanges=$_hasUnsavedChanges');
       });
 
       await Future.wait([
@@ -335,7 +333,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
           }
         }
         bool hasProviderData = data.tingkatPendidikan?.isNotEmpty == true || data.namaInstitusi?.isNotEmpty == true;
-        debugPrint('ProfileSectionsPage: Pendidikan - hasSavedData=$hasSavedData, hasProviderData=$hasProviderData, education_data=$savedEducationData');
         return hasSavedData || hasProviderData;
       case 'Riwayat Pekerjaan':
         final savedWorkHistoryData = prefs.getStringList('work_history_data') ?? [];
@@ -354,7 +351,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
           }
         }
         bool hasProviderData = data.namaPerusahaan?.isNotEmpty == true || data.posisi?.isNotEmpty == true;
-        debugPrint('ProfileSectionsPage: Riwayat Pekerjaan - hasSavedData=$hasSavedData, hasProviderData=$hasProviderData, work_history_data=$savedWorkHistoryData');
         return hasSavedData || hasProviderData;
       case 'PAS Foto':
         return data.fotoPath?.isNotEmpty == true || data.isUploaded == true;
@@ -373,8 +369,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
   }) async {
     final sectionKey = _getSectionKeyFromName(sectionName);
     final hasNonEmptyData = await _hasNonEmptyData(sectionName, data);
-
-    debugPrint('ProfileSectionsPage: Updating status for $sectionName - userSaved=$userSaved, hasChanges=$hasChanges, justSaved=$justSaved, hasNonEmptyData=$hasNonEmptyData');
 
     if (hasChanges || justSaved) {
       _editedSections.add(sectionName);
@@ -512,8 +506,6 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
         userSaved = prefs.getBool('data_lamaran_user_saved') ?? false;
         break;
     }
-
-    debugPrint('ProfileSectionsPage: After navigation to $sectionName - hasChanges=$hasChanges, justSaved=$justSaved, userSaved=$userSaved, completedSections=$_completedSections');
 
     if (justSaved && mounted) {
       setState(() {
@@ -820,11 +812,11 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
                 return _buildMenuItem(
                   item.title,
                   item.icon,
-                  item.color,
                   isCompleted,
                   isEdited,
                   item.onTap,
                   theme,
+                  index,
                 );
               },
             ),
@@ -882,134 +874,157 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
   Widget _buildMenuItem(
     String title,
     IconData icon,
-    Color color,
     bool isCompleted,
     bool isEdited,
     VoidCallback onTap,
     dynamic theme,
+    int index,
   ) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isSmallPhone = screenWidth < 350;
-    final iconContainerSize = isSmallPhone ? 60.0 : (isTablet ? 80.0 : 70.0);
-    final iconSize = isSmallPhone ? 28.0 : (isTablet ? 40.0 : 35.0);
-    final fontSize = isSmallPhone ? 12.0 : (isTablet ? 14.0 : 13.0);
-    final padding = isSmallPhone ? 12.0 : 16.0;
-    final spacing = isSmallPhone ? 8.0 : 12.0;
+    final iconContainerSize = isSmallPhone ? 48.0 : (isTablet ? 56.0 : 48.0);
+    final iconSize = isSmallPhone ? 24.0 : (isTablet ? 28.0 : 24.0);
+    final fontSize = isSmallPhone ? 12.0 : (isTablet ? 14.0 : 12.0);
+    final padding = isSmallPhone ? 12.0 : (isTablet ? 20.0 : 16.0);
+    final spacing = isTablet ? 16.0 : 12.0;
     final statusSize = isSmallPhone ? 20.0 : 26.0;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (isEdited || isCompleted) const Expanded(flex: 1, child: SizedBox()) else const Expanded(flex: 2, child: SizedBox()),
-              Container(
-                width: iconContainerSize,
-                height: iconContainerSize,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          splashColor: theme.primarySwatch.withOpacity(0.1),
+          highlightColor: theme.primarySwatch.withOpacity(0.05),
+          child: Padding(
+            padding: EdgeInsets.all(padding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: iconContainerSize,
+                  height: iconContainerSize,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.primarySwatch.withOpacity(0.1),
+                        theme.primarySwatch.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: theme.primarySwatch.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(icon, size: iconSize, color: theme.primarySwatch),
+                  ),
                 ),
-                child: Center(
-                  child: Icon(icon, size: iconSize, color: Colors.white),
+                SizedBox(height: spacing),
+                Flexible(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typographyBold.bodySmall.copyWith(
+                      color: const Color(0xFF1E293B),
+                      fontSize: fontSize,
+                      height: 1.3,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: spacing),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  fontSize: fontSize,
-                  height: 1.2,
-                ),
-              ),
-              if (isEdited || isCompleted) const Expanded(flex: 1, child: SizedBox()) else const Expanded(flex: 2, child: SizedBox()),
-              if (isEdited || isCompleted)
-                SizedBox(
-                  height: statusSize,
-                  child: isEdited
-                      ? Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isSmallPhone ? 8 : 12,
-                            vertical: isSmallPhone ? 3 : 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade600,
-                            borderRadius: BorderRadius.circular(statusSize / 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.orange.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.edit_rounded,
-                                color: Colors.white,
-                                size: isSmallPhone ? 12.0 : 14.0,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Edited',
-                                style: theme.typographyRegular.bodySmall.copyWith(
-                                  fontSize: isSmallPhone ? 9.0 : 11.0,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                if (isEdited || isCompleted) SizedBox(height: spacing),
+                if (isEdited || isCompleted)
+                  SizedBox(
+                    height: statusSize,
+                    child: isEdited
+                        ? Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallPhone ? 8 : 12,
+                              vertical: isSmallPhone ? 3 : 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade600,
+                              borderRadius: BorderRadius.circular(statusSize / 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit_rounded,
+                                  color: Colors.white,
+                                  size: isSmallPhone ? 12.0 : 14.0,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Edited',
+                                  style: theme.typographyRegular.bodySmall.copyWith(
+                                    fontSize: isSmallPhone ? 9.0 : 11.0,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            width: statusSize,
+                            height: statusSize,
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade600,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: isSmallPhone ? 14.0 : 18.0,
                               ),
-                            ],
-                          ),
-                        )
-                      : Container(
-                          width: statusSize,
-                          height: statusSize,
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade600,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.green.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: isSmallPhone ? 14.0 : 18.0,
                             ),
                           ),
-                        ),
-                ),
-            ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1018,15 +1033,15 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
 
   List<MenuItemData> _getDataPribadiItems(BuildContext context) {
     return [
-      MenuItemData('Edit Profil', Icons.person, const Color(0xFFFF7B7B), onTap: () async => await _navigateToSection('editProfile', 'Edit Profil')),
-      MenuItemData('Identitas Diri', Icons.badge, const Color(0xFF64D8CB), onTap: () async => await _navigateToSection('pribadi', 'Identitas Diri')),
-      MenuItemData('Honorarium', Icons.payments, const Color(0xFF5BA7F7), onTap: () async => await _navigateToSection('honorarium', 'Honorarium')),
-      MenuItemData('Keluarga', Icons.family_restroom, const Color(0xFF9BCF9B), onTap: () async => await _navigateToSection('keluarga', 'Keluarga')),
-      MenuItemData('PAS Foto', Icons.contact_phone, const Color(0xFFFFC85C), onTap: () async => await _navigateToSection('idCard', 'PAS Foto')),
-      MenuItemData('Dokumen', Icons.folder, const Color(0xFF8B7CF6), onTap: () async => await _navigateToSection('dokumen', 'Dokumen')),
-      MenuItemData('Pendidikan', Icons.school, const Color(0xFFFF9999), onTap: () async => await _navigateToSection('pendidikan', 'Pendidikan')),
-      MenuItemData('Riwayat Pekerjaan', Icons.work, const Color(0xFFFFB1B1), onTap: () async => await _navigateToSection('riwayatPekerjaan', 'Riwayat Pekerjaan')),
-      MenuItemData('Data Lamaran', Icons.card_membership, const Color(0xFF70D4AA), onTap: () async => await _navigateToSection('dataLamaran', 'Data Lamaran')),
+      MenuItemData('Edit Profil', Icons.person, onTap: () async => await _navigateToSection('editProfile', 'Edit Profil')),
+      MenuItemData('Identitas Diri', Icons.badge, onTap: () async => await _navigateToSection('pribadi', 'Identitas Diri')),
+      MenuItemData('Honorarium', Icons.payments, onTap: () async => await _navigateToSection('honorarium', 'Honorarium')),
+      MenuItemData('Keluarga', Icons.family_restroom, onTap: () async => await _navigateToSection('keluarga', 'Keluarga')),
+      MenuItemData('PAS Foto', Icons.contact_phone, onTap: () async => await _navigateToSection('idCard', 'PAS Foto')),
+      MenuItemData('Dokumen', Icons.folder, onTap: () async => await _navigateToSection('dokumen', 'Dokumen')),
+      MenuItemData('Pendidikan', Icons.school, onTap: () async => await _navigateToSection('pendidikan', 'Pendidikan')),
+      MenuItemData('Riwayat Pekerjaan', Icons.work, onTap: () async => await _navigateToSection('riwayatPekerjaan', 'Riwayat Pekerjaan')),
+      MenuItemData('Data Lamaran', Icons.card_membership, onTap: () async => await _navigateToSection('dataLamaran', 'Data Lamaran')),
     ];
   }
 }
@@ -1034,8 +1049,7 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
 class MenuItemData {
   final String title;
   final IconData icon;
-  final Color color;
   final VoidCallback onTap;
 
-  MenuItemData(this.title, this.icon, this.color, {required this.onTap});
+  MenuItemData(this.title, this.icon, {required this.onTap});
 }
