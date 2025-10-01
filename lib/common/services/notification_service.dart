@@ -36,11 +36,18 @@ class NotificationService {
     // Create notification channels
     await _createNotificationChannels();
 
-    // Request basic permissions - simple approach
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    // Request notification permissions
+    final androidPlugin = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidPlugin != null) {
+      final granted = await androidPlugin.requestNotificationsPermission();
+      print('DEBUG: 📱 Notification permissions granted: $granted');
+      
+      // Also request exact alarm permission for Android 12+
+      await androidPlugin.requestExactAlarmsPermission();
+      print('DEBUG: 📱 Exact alarms permission requested');
+    }
   }
 
   // Create notification channels for Android
@@ -63,23 +70,83 @@ class NotificationService {
       playSound: true,
     );
 
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(taskChannel);
+    const AndroidNotificationChannel mediaSosialChannel = AndroidNotificationChannel(
+      'media_sosial_notifications',
+      'Media Sosial Notifications',
+      description: 'Notifications for media sosial activities',
+      importance: Importance.high,
+      enableVibration: true,
+      playSound: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 255, 0, 0),
+    );
 
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(dueDateChannel);
+    const AndroidNotificationChannel absensiChannel = AndroidNotificationChannel(
+      'absensi_notifications',
+      'Absensi Notifications', 
+      description: 'Notifications for attendance check-in and check-out',
+      importance: Importance.high,
+      enableVibration: true,
+      playSound: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 0, 255, 0),
+    );
+
+    final androidPlugin = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.createNotificationChannel(taskChannel);
+    await androidPlugin?.createNotificationChannel(dueDateChannel);
+    await androidPlugin?.createNotificationChannel(mediaSosialChannel);
+    await androidPlugin?.createNotificationChannel(absensiChannel);
+    
+    print('DEBUG: 📱 Created notification channels including media_sosial_notifications');
   }
 
-  // Simple permission check - always return true for simplicity
+  // Check if notification permissions are granted
   static Future<bool> hasNotificationPermissions() async {
-    return true; // Simplified - assume permissions are available
+    final androidPlugin = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidPlugin != null) {
+      final granted = await androidPlugin.areNotificationsEnabled();
+      print('DEBUG: 📱 Notifications enabled: $granted');
+      return granted ?? false;
+    }
+    
+    return true; // For iOS or other platforms
   }
 
-  // Simple permission request - always return true
+  // Request notification permissions
   static Future<bool> requestPermissionsWithDialog(BuildContext context) async {
-    return true; // Simplified - no complex permission dialogs
+    final androidPlugin = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidPlugin != null) {
+      final granted = await androidPlugin.requestNotificationsPermission();
+      print('DEBUG: 📱 Permission request result: $granted');
+      return granted ?? false;
+    }
+    
+    return true; // For iOS or other platforms
+  }
+
+  // Test notification - untuk debugging
+  static Future<void> showTestNotification() async {
+    try {
+      print('DEBUG: 📱 Sending test notification...');
+      
+      await showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Test Notification',
+        body: 'Ini adalah test notifikasi untuk memastikan sistem berfungsi dengan baik.',
+        payload: 'test_notification',
+      );
+      
+      print('DEBUG: ✅ Test notification sent successfully');
+    } catch (e) {
+      print('DEBUG: ❌ Failed to send test notification: $e');
+    }
   }
 
   // Show immediate notification
@@ -97,6 +164,40 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      notificationDetails,
+      payload: payload,
+    );
+  }
+
+  // Show absensi notification
+  static Future<void> showAbsensiNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'absensi_notifications',
+      'Absensi Notifications',
+      channelDescription: 'Notifications for attendance check-in and check-out',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 0, 255, 0),
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
@@ -200,6 +301,88 @@ class NotificationService {
       title: 'Task Completed! ',
       body: 'Great job completing "$taskTitle"',
     );
+  }
+
+  // Show media sosial notification (generic)
+  static Future<void> showMediaSosialNotification({
+    required String platform,
+    required String username,
+    String? action = 'ditambahkan',
+  }) async {
+    try {
+      await showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Media Sosial Berhasil ${action!.toUpperCase()}',
+        body: 'Media sosial $platform dengan username @$username telah berhasil $action',
+        payload: 'media_sosial_$platform',
+      );
+      
+      print('DEBUG: 📱 Media sosial notification sent successfully');
+    } catch (e) {
+      print('DEBUG: ❌ Failed to send media sosial notification: $e');
+    }
+  }
+
+  // Show media sosial added notification
+  static Future<void> showMediaSosialAddedNotification({
+    required String platform,
+    required String username,
+    int? followers,
+    bool isVerified = false,
+  }) async {
+    try {
+      final followersText = followers != null ? ' ($followers followers)' : '';
+      final verifiedText = isVerified ? ' ✓' : '';
+      
+      await showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Media Sosial Berhasil Ditambahkan',
+        body: 'Akun $platform ($username)$followersText$verifiedText telah berhasil ditambahkan ke media sosial Anda.',
+        payload: 'medsos_added_${platform}_$username',
+      );
+      
+      print('DEBUG: 📱 Media sosial added notification sent successfully');
+    } catch (e) {
+      print('DEBUG: ❌ Failed to send added notification: $e');
+    }
+  }
+
+  // Show media sosial updated notification
+  static Future<void> showMediaSosialUpdatedNotification({
+    required String platform,
+    required String username,
+  }) async {
+    try {
+      await showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Media Sosial Berhasil Diperbarui',
+        body: 'Akun $platform ($username) telah berhasil diperbarui.',
+        payload: 'medsos_updated_${platform}_$username',
+      );
+      
+      print('DEBUG: 📱 Media sosial updated notification sent successfully');
+    } catch (e) {
+      print('DEBUG: ❌ Failed to send updated notification: $e');
+    }
+  }
+
+  // Show media sosial deleted notification
+  static Future<void> showMediaSosialDeletedNotification({
+    required String platform,
+    required String username,
+  }) async {
+    try {
+      await showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Media Sosial Berhasil Dihapus',
+        body: 'Akun $platform ($username) telah berhasil dihapus dari media sosial Anda.',
+        payload: 'medsos_deleted_${platform}_$username',
+      );
+      
+      print('DEBUG: 📱 Media sosial deleted notification sent successfully');
+    } catch (e) {
+      print('DEBUG: ❌ Failed to send deleted notification: $e');
+    }
   }
 
   // Cancel specific notification

@@ -1106,7 +1106,7 @@ class _AppSearchBarState extends State<AppSearchBar>
           Container(
             padding: widget.padding,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1730,8 +1730,8 @@ class HeaderCardComponent extends StatelessWidget {
                           style: theme.typographyRegular.bodyLarge.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
-                            fontSize: isTablet ? 40.0 : 32.0,
-                            letterSpacing: 1.2,
+                            fontSize: isLargeTablet ? 32.0 : (isTablet ? 28.0 : 24.0),
+                            letterSpacing: 1.0,
                           ),
                         ),
                         const SizedBox(height: 4),

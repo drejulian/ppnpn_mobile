@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'daftar_pengajuan_rumah_aspirasi.dart' show rumahAspirasiDataProvider;
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/kegiatan_rumah_aspirasi_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/kegiatan_rumah_aspirasi_model.dart';
 
 class TambahRumahAspirasiPage extends ConsumerStatefulWidget {
   const TambahRumahAspirasiPage({super.key});
@@ -20,19 +19,25 @@ class _TambahRumahAspirasiPageState
     extends ConsumerState<TambahRumahAspirasiPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final _tanggalSuratController = TextEditingController();
-  final _tahunSidangController = TextEditingController();
-  final _anggotaController = TextEditingController();
-  final _noAnggotaController = TextEditingController();
-  final _nikAnggotaController = TextEditingController();
-  final _fraksiAnggotaController = TextEditingController();
-  final _dapilAnggotaController = TextEditingController();
-  final _rekeningController = TextEditingController();
-  final _namaRekeningController = TextEditingController();
-  final _kodeBankController = TextEditingController();
-  final _namaBankController = TextEditingController();
+  final _namaKegiatanController = TextEditingController();
+  final _tanggalKegiatanController = TextEditingController();
+  final _waktuMulaiController = TextEditingController();
+  final _waktuSelesaiController = TextEditingController();
+  final _tempatController = TextEditingController();
+  final _picController = TextEditingController();
+  final _kontakPicController = TextEditingController();
+  final _jumlahPesertaController = TextEditingController();
+  final _deskripsiController = TextEditingController();
 
+  String _selectedStatus = 'direncanakan';
   DateTime? _selectedDate;
+
+  final List<String> _statusOptions = [
+    'direncanakan',
+    'berlangsung',
+    'selesai',
+    'dibatalkan',
+  ];
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -45,7 +50,7 @@ class _TambahRumahAspirasiPageState
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _tanggalSuratController.text =
+        _tanggalKegiatanController.text =
             '${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}';
       });
     }
@@ -53,17 +58,15 @@ class _TambahRumahAspirasiPageState
 
   @override
   void dispose() {
-    _tanggalSuratController.dispose();
-    _tahunSidangController.dispose();
-    _anggotaController.dispose();
-    _noAnggotaController.dispose();
-    _nikAnggotaController.dispose();
-    _fraksiAnggotaController.dispose();
-    _dapilAnggotaController.dispose();
-    _rekeningController.dispose();
-    _namaRekeningController.dispose();
-    _kodeBankController.dispose();
-    _namaBankController.dispose();
+    _namaKegiatanController.dispose();
+    _tanggalKegiatanController.dispose();
+    _waktuMulaiController.dispose();
+    _waktuSelesaiController.dispose();
+    _tempatController.dispose();
+    _picController.dispose();
+    _kontakPicController.dispose();
+    _jumlahPesertaController.dispose();
+    _deskripsiController.dispose();
     super.dispose();
   }
 
@@ -85,15 +88,23 @@ class _TambahRumahAspirasiPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Data Surat Section
+              // Data Kegiatan Section
               AppFormCard(
-                title: 'Data Surat',
-                titleIcon: Icons.description,
+                title: 'Data Kegiatan',
+                titleIcon: Icons.business_center,
                 fields: [
                   FormFieldConfig(
-                    label: 'Tanggal Surat',
+                    label: 'Nama Kegiatan',
+                    icon: Icons.event,
+                    controller: _namaKegiatanController,
+                    hintText: 'Masukkan nama kegiatan',
+                    type: FormFieldType.textRequired,
+                    isRequired: true,
+                  ),
+                  FormFieldConfig(
+                    label: 'Tanggal Kegiatan',
                     icon: Icons.calendar_today,
-                    controller: _tanggalSuratController,
+                    controller: _tanggalKegiatanController,
                     hintText: 'dd-mm-yyyy',
                     type: FormFieldType.datePicker,
                     suffixIcon: Icons.calendar_today,
@@ -101,67 +112,52 @@ class _TambahRumahAspirasiPageState
                     onTap: () => _pickDate(),
                   ),
                   FormFieldConfig(
-                    label: 'Tahun Sidang',
-                    icon: Icons.event_note,
-                    controller: _tahunSidangController,
-                    hintText: 'Contoh: 2024-2025',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                    isLast: true,
-                  ),
-                ],
-                onSave: null, 
-              ),
-              const SizedBox(height: 16),
-
-              // Data Anggota Section
-              AppFormCard(
-                title: 'Data Anggota',
-                titleIcon: Icons.person,
-                fields: [
-                  FormFieldConfig(
-                    label: 'Anggota',
-                    icon: Icons.person,
-                    controller: _anggotaController,
-                    hintText: 'Nama lengkap anggota',
+                    label: 'Waktu Mulai',
+                    icon: Icons.access_time,
+                    controller: _waktuMulaiController,
+                    hintText: 'HH:MM (contoh: 09:00)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                   ),
                   FormFieldConfig(
-                    label: 'No. Anggota',
-                    icon: Icons.badge,
-                    controller: _noAnggotaController,
-                    hintText: 'Nomor anggota',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    keyboardType: TextInputType.number,
-                  ),
-                  FormFieldConfig(
-                    label: 'NIK Anggota',
-                    icon: Icons.credit_card,
-                    controller: _nikAnggotaController,
-                    hintText: '16 digit NIK',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    keyboardType: TextInputType.number,
-                  ),
-                  FormFieldConfig(
-                    label: 'Fraksi Anggota',
-                    icon: Icons.groups,
-                    controller: _fraksiAnggotaController,
-                    hintText: 'Nama fraksi',
+                    label: 'Waktu Selesai',
+                    icon: Icons.access_time_filled,
+                    controller: _waktuSelesaiController,
+                    hintText: 'HH:MM (contoh: 17:00)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                   ),
                   FormFieldConfig(
-                    label: 'Dapil Anggota',
+                    label: 'Tempat',
                     icon: Icons.location_on,
-                    controller: _dapilAnggotaController,
-                    hintText: 'Daerah pemilihan',
+                    controller: _tempatController,
+                    hintText: 'Masukkan lokasi kegiatan',
                     type: FormFieldType.textRequired,
                     isRequired: true,
+                  ),
+                  FormFieldConfig(
+                    label: 'PIC (Person In Charge)',
+                    icon: Icons.person,
+                    controller: _picController,
+                    hintText: 'Nama penanggung jawab',
+                    type: FormFieldType.textRequired,
+                    isRequired: true,
+                  ),
+                  FormFieldConfig(
+                    label: 'Kontak PIC (Opsional)',
+                    icon: Icons.phone,
+                    controller: _kontakPicController,
+                    hintText: 'Nomor telepon PIC',
+                    type: FormFieldType.text,
+                    isRequired: false,
+                  ),
+                  FormFieldConfig(
+                    label: 'Estimasi Jumlah Peserta',
+                    icon: Icons.people,
+                    controller: _jumlahPesertaController,
+                    hintText: 'Contoh: 50',
+                    type: FormFieldType.textRequired,
+                    isRequired: false,
                     isLast: true,
                   ),
                 ],
@@ -169,90 +165,226 @@ class _TambahRumahAspirasiPageState
               ),
               const SizedBox(height: 16),
 
-              // Data Bank Section
+              // Status dan Deskripsi Section
               AppFormCard(
-                title: 'Data Bank',
-                titleIcon: Icons.account_balance,
+                title: 'Status dan Deskripsi',
+                titleIcon: Icons.info_outline,
                 fields: [
                   FormFieldConfig(
-                    label: 'Rekening',
-                    icon: Icons.account_balance_wallet,
-                    controller: _rekeningController,
-                    hintText: 'Nomor rekening',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    keyboardType: TextInputType.number,
-                  ),
-                  FormFieldConfig(
-                    label: 'Nama Rekening',
-                    icon: Icons.person_outline,
-                    controller: _namaRekeningController,
-                    hintText: 'Nama pemilik rekening',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                  ),
-                  FormFieldConfig(
-                    label: 'Kode Bank',
-                    icon: Icons.pin,
-                    controller: _kodeBankController,
-                    hintText: 'Kode bank (3 digit)',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    keyboardType: TextInputType.number,
-                  ),
-                  FormFieldConfig(
-                    label: 'Nama Bank',
-                    icon: Icons.account_balance,
-                    controller: _namaBankController,
-                    hintText: 'Nama bank',
-                    type: FormFieldType.textRequired,
-                    isRequired: true,
+                    label: 'Deskripsi (Opsional)',
+                    icon: Icons.description,
+                    controller: _deskripsiController,
+                    hintText: 'Deskripsi kegiatan...',
+                    type: FormFieldType.multiline,
+                    isRequired: false,
+                    maxLines: 3,
                     isLast: true,
                   ),
                 ],
-                onSave: () {
-                  if (!_formKey.currentState!.validate()) return;
+                onSave: null,
+              ),
+              const SizedBox(height: 16),
 
-                  ref
-                      .read(rumahAspirasiDataProvider.notifier)
-                      .addRumahAspirasi({
-                        'tanggalSurat': _tanggalSuratController.text.trim(),
-                        'tahunSidang': _tahunSidangController.text.trim(),
-                        'anggota': _anggotaController.text.trim(),
-                        'noAnggota': _noAnggotaController.text.trim(),
-                        'nikAnggota': _nikAnggotaController.text.trim(),
-                        'fraksiAnggota': _fraksiAnggotaController.text.trim(),
-                        'dapilAnggota': _dapilAnggotaController.text.trim(),
-                        'rekening': _rekeningController.text.trim(),
-                        'namaRekening': _namaRekeningController.text.trim(),
-                        'kodeBank': _kodeBankController.text.trim(),
-                        'namaBank': _namaBankController.text.trim(),
-                      });
-
-                  // Tambahkan notifikasi ke dalam app (page notifikasi)
-                  ref.read(notificationProvider.notifier).addRumahAspirasiNotification(
-                    namaAnggota: _anggotaController.text.trim(),
-                    fraksi: _fraksiAnggotaController.text.trim(),
-                    dapil: _dapilAnggotaController.text.trim(),
-                    tanggalSurat: _tanggalSuratController.text.trim(),
-                  );
-
-                  // Kirim notifikasi lokal langsung
-                  _showLocalNotification();
-
-                  context.pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Kegiatan rumah aspirasi berhasil ditambahkan dan notifikasi dikirim',
-                      ),
-                      backgroundColor: Colors.green,
+              // Status Dropdown
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
-                  );
-                },
-                saveButtonText: 'TAMBAH KEGIATAN',
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.flag_outlined,
+                          color: theme.primarySwatch,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Status Kegiatan',
+                          style: theme.typographyBold.bodyMedium.copyWith(
+                            color: theme.primarySwatch,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedStatus,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: theme.primarySwatch, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: _statusOptions.map((String status) {
+                        return DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(status),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedStatus = newValue;
+                          });
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Status kegiatan harus dipilih';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Tombol Simpan
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.primarySwatch,
+                      theme.primarySwatch.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primarySwatch.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    if (!_formKey.currentState!.validate()) return;
+
+                    try {
+                      final kegiatan = KegiatanRumahAspirasiModel(
+                        namaKegiatan: _namaKegiatanController.text.trim(),
+                        tanggalKegiatan: _tanggalKegiatanController.text.trim(),
+                        waktuMulai: _waktuMulaiController.text.trim(),
+                        waktuSelesai: _waktuSelesaiController.text.trim(),
+                        tempat: _tempatController.text.trim(),
+                        pic: _picController.text.trim(),
+                        kontakPic: _kontakPicController.text.trim().isEmpty 
+                            ? null 
+                            : _kontakPicController.text.trim(),
+                        jumlahPeserta: int.tryParse(_jumlahPesertaController.text.trim()) ?? 0,
+                        status: _selectedStatus,
+                        deskripsi: _deskripsiController.text.trim().isEmpty 
+                            ? null 
+                            : _deskripsiController.text.trim(),
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      );
+
+                      final success = await ref
+                          .read(kegiatanRumahAspirasiProvider.notifier)
+                          .addKegiatan(
+                            namaKegiatan: kegiatan.namaKegiatan,
+                            tanggalKegiatan: kegiatan.tanggalKegiatan,
+                            waktuMulai: kegiatan.waktuMulai,
+                            waktuSelesai: kegiatan.waktuSelesai,
+                            tempat: kegiatan.tempat,
+                            pic: kegiatan.pic,
+                            kontakPic: kegiatan.kontakPic,
+                            jumlahPeserta: kegiatan.jumlahPeserta,
+                            status: kegiatan.status,
+                            deskripsi: kegiatan.deskripsi,
+                          );
+
+                      if (mounted && success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Kegiatan "${kegiatan.namaKegiatan}" berhasil ditambahkan',
+                            ),
+                            backgroundColor: Colors.green[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                        
+                        // Send notification
+                        await _showLocalNotification();
+                        
+                        // Force refresh data dan pop dengan result
+                        await ref.read(kegiatanRumahAspirasiProvider.notifier).loadKegiatan();
+                        context.pop(true); // Pass true untuk menandakan data berhasil ditambah
+                      } else if (mounted) {
+                        // Jika addKegiatan return false
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Gagal menambahkan kegiatan'),
+                            backgroundColor: Colors.red[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Gagal menambahkan kegiatan: $e'),
+                            backgroundColor: Colors.red[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(Icons.save_rounded, size: 20),
+                  label: Text(
+                    'SIMPAN KEGIATAN',
+                    style: theme.typographyBold.bodyMedium.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -267,8 +399,8 @@ class _TambahRumahAspirasiPageState
       await NotificationService.showNotification(
         id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title: 'Kegiatan Rumah Aspirasi Berhasil Ditambahkan',
-        body: 'Kegiatan rumah aspirasi untuk ${_anggotaController.text.trim()} telah berhasil ditambahkan.',
-        payload: 'rumah_aspirasi_${_anggotaController.text.trim()}',
+        body: 'Kegiatan "${_namaKegiatanController.text.trim()}" telah berhasil ditambahkan.',
+        payload: 'rumah_aspirasi_${_namaKegiatanController.text.trim()}',
       );
     } catch (e) {
       // Jika notifikasi gagal, tidak perlu mengganggu user

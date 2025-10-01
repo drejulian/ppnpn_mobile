@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
+import '../../../providers/sihaki/kunker_provider.dart';
 
 class TambahKunkerPeroranganPage extends ConsumerStatefulWidget {
   const TambahKunkerPeroranganPage({super.key});
@@ -871,7 +872,7 @@ class _TambahKunkerPeroranganPageState
     };
   }
 
-  void _save() {
+  void _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final data = _collectFormData();
     if (data['no_surat'].toString().isEmpty) {
@@ -898,7 +899,42 @@ class _TambahKunkerPeroranganPageState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pengajuan kunker ditambahkan dan notifikasi dikirim')),
     );
-    Navigator.pop(context);
+
+    try {
+      final success = await ref.read(kunkerProvider.notifier).addKunker(data);
+      Navigator.pop(context); // Close loading dialog
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Pengajuan kunker berhasil ditambahkan'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gagal menambahkan pengajuan kunker'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   // Method untuk mengirim notifikasi lokal

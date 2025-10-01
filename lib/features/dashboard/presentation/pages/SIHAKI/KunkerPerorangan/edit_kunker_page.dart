@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import '../../../providers/sihaki/kunker_provider.dart';
 
 class EditKunkerPeroranganPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> kunkerData;
@@ -1063,7 +1064,7 @@ class _EditKunkerPeroranganPageState
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  void _saveChanges() {
+  void _saveChanges() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final updated = <String, dynamic>{
@@ -1101,11 +1102,33 @@ class _EditKunkerPeroranganPageState
     };
 
     final keyNoSurat = widget.kunkerData['no_surat']?.toString() ?? '';
-    if (keyNoSurat.isNotEmpty) {
-      ref.read(kunkerDataProvider.notifier).updateKunker(keyNoSurat, updated);
+    if (keyNoSurat.isEmpty) {
+      _showSnack('No. Surat tidak valid');
+      return;
     }
 
-    _showSnack('Perubahan berhasil disimpan');
-    Navigator.pop(context);
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final success = await ref.read(kunkerProvider.notifier).updateKunker(keyNoSurat, updated);
+      Navigator.pop(context); // Close loading dialog
+
+      if (success) {
+        _showSnack('Perubahan berhasil disimpan');
+        Navigator.pop(context);
+      } else {
+        _showSnack('Gagal menyimpan perubahan');
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showSnack('Error: $e');
+    }
   }
 }

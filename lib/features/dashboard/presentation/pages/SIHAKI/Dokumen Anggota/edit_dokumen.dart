@@ -6,6 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/SIHAKI/Database%20Anggota%20DPR%20RI/providers.dart';
+// SQLite Integration imports
+import 'package:ppnpm_dpr/common/data/models/sihaki/dokumen_anggota_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/dokumen_anggota_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/services/file_storage_service.dart';
+// SharedPreferences for persistence
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DataDokumenAnggotaPage extends ConsumerStatefulWidget {
   const DataDokumenAnggotaPage({super.key});
@@ -25,26 +31,191 @@ class _DataDokumenAnggotaPageState
   final TextEditingController _memberNameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isEditing = false;
-
-  static final Map<String, File?> _persistentFiles = {};
-  static final Map<String, String> _persistentFileTypes = {};
-  static final Map<String, String> _persistentFileSizes = {};
-  static final Map<String, String> _persistentChangeLogs = {};
-  static String _persistentMemberName = '';
+  bool _isLoadingData = false;
+  
+  // SQLite integration
+  late final FileStorageService _fileStorageService;
 
   @override
   void initState() {
     super.initState();
-    _uploadedFiles.addAll(_persistentFiles);
-    _fileTypes.addAll(_persistentFileTypes);
-    _fileSizes.addAll(_persistentFileSizes);
-    _changeLogs.addAll(_persistentChangeLogs);
+    _fileStorageService = FileStorageService();
+    
+    // Load persisted data immediately when page opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPersistedData();
+    });
+  }
 
-    if (_persistentMemberName.isNotEmpty) {
-      _memberNameController.text = _persistentMemberName;
+  // Load persisted data from SharedPreferences and database
+  Future<void> _loadPersistedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedMemberName = prefs.getString('last_member_name') ?? '';
+      
+      print('DEBUG: _loadPersistedData called');
+      print('DEBUG: Found saved member name: "$savedMemberName"');
+      
+      if (savedMemberName.isNotEmpty) {
+        setState(() {
+          _memberNameController.text = savedMemberName;
+        });
+        
+        print('DEBUG: Loading persisted member name: $savedMemberName');
+        
+        // Load documents from database
+        await _loadSavedDocuments();
+      } else {
+        print('DEBUG: No saved member name found, checking for any existing data in database');
+        // Even if no name is saved, try to load any existing data
+        await _loadAllAvailableDocuments();
+      }
+    } catch (e) {
+      print('DEBUG: Error loading persisted data: $e');
     }
+  }
 
-    _updateFilledStatus();
+  // Load all available documents to check if there's any data
+  Future<void> _loadAllAvailableDocuments() async {
+    try {
+      print('DEBUG: Checking for any available documents in database');
+      // Get all documents from database to see if there's any data
+      final allDocuments = await ref.read(dokumenAnggotaRepositoryProvider).getAllDokumenAnggota();
+      
+      print('DEBUG: Found ${allDocuments.length} total documents in database');
+      
+      if (allDocuments.isNotEmpty) {
+        // Get the most recent member name
+        final recentDoc = allDocuments.first;
+        final memberName = recentDoc.namaAnggota;
+        
+        print('DEBUG: Found recent data for member: $memberName');
+        
+        setState(() {
+          _memberNameController.text = memberName;
+        });
+        
+        // Save this name to preferences and load documents
+        await _saveMemberNameToPrefs(memberName);
+        await _loadSavedDocuments();
+      } else {
+        print('DEBUG: No documents found in database');
+      }
+    } catch (e) {
+      print('DEBUG: Error loading all available documents: $e');
+    }
+  }
+
+  // Save member name to SharedPreferences
+  Future<void> _saveMemberNameToPrefs(String memberName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_member_name', memberName);
+      print('DEBUG: Saved member name to SharedPreferences: $memberName');
+    } catch (e) {
+      print('DEBUG: Error saving member name to SharedPreferences: $e');
+    }
+  }
+
+  // Load saved documents from database
+  Future<void> _loadSavedDocuments() async {
+    final memberName = _memberNameController.text.trim();
+    if (memberName.isNotEmpty) {
+      setState(() {
+        _isLoadingData = true;
+      });
+      
+      try {
+        print('DEBUG: Loading documents for member: $memberName');
+        
+        final documents = await ref.read(dokumenAnggotaRepositoryProvider).getDokumenAnggotaByNama(memberName);
+        
+        print('DEBUG: Found ${documents.length} documents in database');
+        
+        setState(() {
+          // Clear existing data first
+          _uploadedFiles.clear();
+          _fileTypes.clear();
+          _fileSizes.clear();
+          _changeLogs.clear();
+          
+          // Update UI with saved documents
+          for (final doc in documents) {
+            print('DEBUG: Loading document: ${doc.documentId} - ${doc.documentTitle}');
+            print('DEBUG: File path: ${doc.filePath}');
+            
+            if (doc.filePath.isNotEmpty) {
+              // Try to load the file even if it doesn't exist physically
+              // This maintains the record in UI
+              _uploadedFiles[doc.documentId] = File(doc.filePath);
+              _fileTypes[doc.documentId] = doc.fileType;
+              _fileSizes[doc.documentId] = _formatFileSize(int.tryParse(doc.fileSize) ?? 0);
+              _changeLogs[doc.documentId] = _formatDateTime(DateTime.tryParse(doc.uploadedAt) ?? DateTime.now());
+              
+              if (File(doc.filePath).existsSync()) {
+                print('DEBUG: ✅ Successfully loaded document: ${doc.documentId}');
+              } else {
+                print('DEBUG: ⚠️ Document record loaded but physical file not found: ${doc.documentId} at path: ${doc.filePath}');
+              }
+            } else {
+              print('DEBUG: ❌ Empty file path for document: ${doc.documentId}');
+            }
+          }
+        });
+        
+        _updateFilledStatus();
+        
+        // Save current member name to preferences
+        await _saveMemberNameToPrefs(memberName);
+        
+      } catch (e) {
+        print('DEBUG: Error loading saved documents: $e');
+      } finally {
+        setState(() {
+          _isLoadingData = false;
+        });
+      }
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    } else {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+    }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.toLocal().toString().split('.')[0]} WIB';
+  }
+
+
+
+  // Verify that data was actually saved to database
+  Future<void> _verifyDataSaved(String memberName, String documentId) async {
+    try {
+      print('DEBUG: Verifying data was saved...');
+      
+      final documents = await ref.read(dokumenAnggotaRepositoryProvider).getDokumenAnggotaByNama(memberName);
+      print('DEBUG: Found ${documents.length} documents for $memberName in verification');
+      
+      final foundDoc = documents.where((doc) => doc.documentId == documentId).firstOrNull;
+      if (foundDoc != null) {
+        print('DEBUG: ✅ Document $documentId verified as saved');
+        print('DEBUG: Saved file path: ${foundDoc.filePath}');
+      } else {
+        print('DEBUG: ❌ Document $documentId NOT found in database!');
+      }
+
+      // Also verify SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('last_member_name');
+      print('DEBUG: SharedPreferences saved name: "$savedName"');
+      
+    } catch (e) {
+      print('DEBUG: Error verifying saved data: $e');
+    }
   }
 
   final List<DocumentItem> _documents = [
@@ -115,7 +286,12 @@ class _DataDokumenAnggotaPageState
             _updateFilledStatus();
           });
 
-          _showSuccessDialog('File PDF berhasil dipilih: ${platformFile.name}');
+          // Auto-save to database immediately after file selection
+          if (_memberNameController.text.trim().isNotEmpty) {
+            await _uploadFile(documentId);
+          } else {
+            _showSuccessDialog('File PDF berhasil dipilih: ${platformFile.name}\nMasukkan nama anggota untuk menyimpan ke database.');
+          }
         } else {
           _showErrorDialog('Path file tidak valid.');
         }
@@ -130,25 +306,87 @@ class _DataDokumenAnggotaPageState
       _showErrorDialog('Silakan pilih file PDF terlebih dahulu');
       return;
     }
+    
+    if (_memberNameController.text.trim().isEmpty) {
+      _showErrorDialog('Nama anggota wajib diisi sebelum upload');
+      return;
+    }
 
     setState(() {
       _uploading[documentId] = true;
     });
 
     try {
-      // Simulasi upload dengan delay
-      await Future.delayed(const Duration(seconds: 2));
+      final file = _uploadedFiles[documentId]!;
+      final memberName = _memberNameController.text.trim();
+      final originalFileName = file.path.split('/').last;
+      
+      // Save file to organized storage
+      final savedFile = await _fileStorageService.saveUploadedFile(
+        sourceFile: file,
+        namaAnggota: memberName,
+        documentId: documentId,
+        originalFileName: originalFileName,
+      );
+      
+      // Create document model
+      final document = DokumenAnggotaModel(
+        id: null,
+        namaAnggota: memberName,
+        documentId: documentId,
+        documentTitle: _documents.firstWhere((doc) => doc.id == documentId).title,
+        filePath: savedFile.path,
+        fileName: originalFileName,
+        fileType: _fileTypes[documentId] ?? 'PDF',
+        fileSize: file.lengthSync().toString(),
+        isRequired: _documents.firstWhere((doc) => doc.id == documentId).isRequired,
+        uploadedAt: DateTime.now().toIso8601String(),
+        createdAt: DateTime.now().toIso8601String(),
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+      
+      // Check if document already exists for this member and documentId
+      final existingDocs = await ref.read(dokumenAnggotaRepositoryProvider).getDokumenAnggotaByNama(memberName);
+      final existingDoc = existingDocs.where((doc) => doc.documentId == documentId).firstOrNull;
+      
+      // Save to database
+      print('DEBUG: About to save document to database...');
+      print('DEBUG: Document data:');
+      print('  - namaAnggota: ${document.namaAnggota}');
+      print('  - documentId: ${document.documentId}');
+      print('  - filePath: ${document.filePath}');
+      
+      if (existingDoc != null) {
+        // Update existing document
+        final updatedDocument = document.copyWith(id: existingDoc.id);
+        await ref.read(dokumenAnggotaRepositoryProvider).updateDokumenAnggota(updatedDocument);
+        print('DEBUG: Updated existing document with ID: ${existingDoc.id}');
+      } else {
+        // Add new document
+        final savedId = await ref.read(dokumenAnggotaRepositoryProvider).addDokumenAnggota(document);
+        print('DEBUG: Added new document with ID: $savedId');
+      }
 
       final now = DateTime.now();
       setState(() {
-        _changeLogs[documentId] =
-            '${now.toLocal().toString().split('.')[0]} WIB';
+        _changeLogs[documentId] = '${now.toLocal().toString().split('.')[0]} WIB';
         _updateFilledStatus();
       });
 
-      _showSuccessDialog('File PDF berhasil diupload!');
+      // Save member name to preferences after successful upload
+      await _saveMemberNameToPrefs(memberName);
+      print('DEBUG: Member name saved to SharedPreferences: $memberName');
+
+      // Verify data was saved by reading it back
+      await _verifyDataSaved(memberName, documentId);
+      
+      // Refresh the UI to show updated data
+      await _loadSavedDocuments();
+
+      _showSuccessDialog('✅ File PDF berhasil disimpan ke database!\n📁 ${_documents.firstWhere((doc) => doc.id == documentId).title}');
     } catch (e) {
       _showErrorDialog('Gagal mengupload file: ${e.toString()}');
+      print('DEBUG: Upload error: $e');
     } finally {
       setState(() {
         _uploading[documentId] = false;
@@ -167,54 +405,112 @@ class _DataDokumenAnggotaPageState
         return;
       }
 
-      _persistentFiles.addAll(_uploadedFiles);
-      _persistentFileTypes.addAll(_fileTypes);
-      _persistentFileSizes.addAll(_fileSizes);
-      _persistentChangeLogs.addAll(_changeLogs);
+      try {
+        final memberName = _memberNameController.text.trim();
+        
+        print('DEBUG: Starting save process for member: $memberName');
+        print('DEBUG: Number of uploaded files to save: ${_uploadedFiles.length}');
+        
+        // First, delete existing documents for this member to prevent duplicates
+        final existingDocs = await ref.read(dokumenAnggotaRepositoryProvider).getDokumenAnggotaByNama(memberName);
+        print('DEBUG: Found ${existingDocs.length} existing documents to update');
+        
+        for (final existingDoc in existingDocs) {
+          await ref.read(dokumenAnggotaRepositoryProvider).deleteDokumenAnggota(existingDoc.id!);
+          print('DEBUG: Deleted existing document: ${existingDoc.documentId}');
+        }
+        
+        // Save all current documents to database
+        for (final entry in _uploadedFiles.entries) {
+          final documentId = entry.key;
+          final file = entry.value;
+          
+          if (file != null) {
+            // Get original filename
+            final originalFileName = file.path.split('/').last;
+            
+            // Save file to organized storage
+            final savedFile = await _fileStorageService.saveUploadedFile(
+              sourceFile: file,
+              namaAnggota: memberName,
+              documentId: documentId,
+              originalFileName: originalFileName,
+            );
+            
+            // Create document model
+            final document = DokumenAnggotaModel(
+              id: null, // Auto-increment
+              namaAnggota: memberName,
+              documentId: documentId,
+              documentTitle: _documents.firstWhere((doc) => doc.id == documentId).title,
+              filePath: savedFile.path,
+              fileName: originalFileName,
+              fileType: _fileTypes[documentId] ?? 'PDF',
+              fileSize: file.lengthSync().toString(),
+              isRequired: _documents.firstWhere((doc) => doc.id == documentId).isRequired,
+              uploadedAt: DateTime.now().toIso8601String(),
+              createdAt: DateTime.now().toIso8601String(),
+              updatedAt: DateTime.now().toIso8601String(),
+            );
+            
+            // Save to database
+            final savedId = await ref.read(dokumenAnggotaRepositoryProvider).addDokumenAnggota(document);
+            
+            print('DEBUG: Saved document $documentId for member $memberName with ID: $savedId');
+          }
+        }
 
-      // Save member name
-      _persistentMemberName = _memberNameController.text.trim();
+        final isFilled = _isAllRequiredFilled();
+        ref.read(dataDokumenAnggotaFilledProvider.notifier).state = isFilled;
 
-      final isFilled = _isAllRequiredFilled();
-      ref.read(dataDokumenAnggotaFilledProvider.notifier).state = isFilled;
-
-      await showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Text(
-                'Simpan Data Dokumen Anggota',
-                style: theme.typographyRegular.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              'Simpan Data Dokumen Anggota',
+              style: theme.typographyRegular.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-              content: const Text('Data dokumen anggota berhasil disimpan.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
             ),
-      );
-
-      // Reset editing mode after save
-      setState(() {
-        _isEditing = false;
-      });
-
-      if (context.mounted) {
-        context.go(
-          '/home',
-          extra: {
-            'justSaved': true,
-            'sourcePage': '/data-dokumen-anggota',
-            'memberName': _memberNameController.text.trim(),
-            'uploadedDocuments': _uploadedFiles.length,
-          },
+            content: const Text('Data dokumen anggota berhasil disimpan ke database.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
+
+        // Save member name to SharedPreferences
+        await _saveMemberNameToPrefs(memberName);
+        
+        // Reset editing mode after save
+        setState(() {
+          _isEditing = false;
+        });
+
+        // Reload data to show updated information
+        await _loadSavedDocuments();
+        
+        print('DEBUG: Data saved successfully and reloaded');
+
+        if (context.mounted) {
+          context.go(
+            '/home',
+            extra: {
+              'justSaved': true,
+              'sourcePage': '/data-dokumen-anggota',
+              'memberName': memberName,
+              'uploadedDocuments': _uploadedFiles.length,
+            },
+          );
+        }
+      } catch (e) {
+        _showErrorDialog('Gagal menyimpan data: ${e.toString()}');
+        print('DEBUG: Error saving data: $e');
       }
     }
   }
@@ -278,6 +574,79 @@ class _DataDokumenAnggotaPageState
     );
   }
 
+
+
+  // Show debug information
+  Future<void> _showDebugInfo() async {
+    try {
+      print('DEBUG: ========== DEBUG INFO START ==========');
+      
+      // Check SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('last_member_name') ?? '';
+      print('DEBUG: SharedPreferences saved name: "$savedName"');
+      
+      // Check all documents in database
+      final allDocs = await ref.read(dokumenAnggotaRepositoryProvider).getAllDokumenAnggota();
+      print('DEBUG: Total documents in database: ${allDocs.length}');
+      
+      for (final doc in allDocs) {
+        print('DEBUG: Document - ${doc.namaAnggota}: ${doc.documentId} (${doc.documentTitle})');
+        print('DEBUG:   File path: ${doc.filePath}');
+        print('DEBUG:   File exists: ${File(doc.filePath).existsSync()}');
+      }
+      
+      // Check current UI state
+      print('DEBUG: Current member name in UI: "${_memberNameController.text}"');
+      print('DEBUG: Current uploaded files count: ${_uploadedFiles.length}');
+      print('DEBUG: Is editing: $_isEditing');
+      print('DEBUG: Is loading data: $_isLoadingData');
+      
+      print('DEBUG: ========== DEBUG INFO END ==========');
+      
+      // Show dialog with info
+      final theme = ref.read(themeProvider);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            'Debug Information',
+            style: theme.typographyRegular.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.blue[700],
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('SharedPreferences: "$savedName"'),
+                const SizedBox(height: 8),
+                Text('Database docs: ${allDocs.length}'),
+                const SizedBox(height: 8),
+                Text('UI files: ${_uploadedFiles.length}'),
+                const SizedBox(height: 8),
+                Text('Member name: "${_memberNameController.text}"'),
+                const SizedBox(height: 8),
+                const Text('Check console for detailed logs'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      
+    } catch (e) {
+      print('DEBUG: Error showing debug info: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
@@ -290,6 +659,27 @@ class _DataDokumenAnggotaPageState
         title: 'Data Dokumen Anggota',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              print('DEBUG: Manual refresh triggered');
+              await _loadSavedDocuments();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data berhasil di-refresh'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            tooltip: 'Refresh Data',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: _showDebugInfo,
+            tooltip: 'Debug Info',
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -301,6 +691,55 @@ class _DataDokumenAnggotaPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Data persistence status banner
+              if (_uploadedFiles.isNotEmpty && !_isLoadingData)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.green[100]!, Colors.green[50]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green[700],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Data Tersimpan',
+                              style: theme.typographyRegular.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green[800],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ditemukan ${_uploadedFiles.length} dokumen untuk ${_memberNameController.text.trim()}',
+                              style: theme.typographyRegular.bodySmall.copyWith(
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
+              // Info Section with SIHAKI component
               SIHAKIDataCard(
                 title: 'Informasi Penting',
                 subtitle: 'Petunjuk Upload Dokumen Anggota',
@@ -334,10 +773,7 @@ class _DataDokumenAnggotaPageState
                     icon: Icons.person,
                     controller: _memberNameController,
                     hintText: 'Masukkan nama lengkap anggota',
-                    type:
-                        _isEditing
-                            ? FormFieldType.textRequired
-                            : FormFieldType.disabled,
+                    type: _isEditing ? FormFieldType.textRequired : FormFieldType.disabled,
                     isRequired: true,
                     enabled: _isEditing,
                     validator: (value) {
@@ -345,6 +781,25 @@ class _DataDokumenAnggotaPageState
                         return 'Nama anggota wajib diisi';
                       }
                       return null;
+                    },
+                    onChanged: (value) {
+                      // Save name to preferences immediately when changed
+                      if (value != null && value.trim().isNotEmpty) {
+                        _saveMemberNameToPrefs(value.trim());
+                      }
+                      
+                      // Don't auto-load when in editing mode to prevent data loss
+                      if (!_isEditing && value != null && value.trim().isNotEmpty) {
+                        print('DEBUG: Name changed to: "$value", loading documents...');
+                        // Add a small delay to prevent too frequent database calls
+                        Future.delayed(const Duration(milliseconds: 800), () {
+                          if (_memberNameController.text.trim() == value.trim() && mounted) {
+                            _loadSavedDocuments();
+                          }
+                        });
+                      } else if (_isEditing) {
+                        print('DEBUG: In editing mode, not auto-loading to prevent data loss');
+                      }
                     },
                     isLast: true,
                   ),
@@ -355,18 +810,20 @@ class _DataDokumenAnggotaPageState
 
               // Document Section with modern card
               SIHAKIDataCard(
-                title: 'Data Dokumen Anggota',
+                title: _isLoadingData ? 'Loading Data Dokumen...' : 'Data Dokumen Anggota',
                 subtitle:
                     _memberNameController.text.trim().isNotEmpty
                         ? 'Anggota: ${_memberNameController.text.trim()}'
                         : 'Upload dokumen yang diperlukan',
-                leadingIcon: Icons.file_upload,
+                leadingIcon: _isLoadingData ? Icons.sync : Icons.file_upload,
                 statusColor:
                     _isAllRequiredFilled()
                         ? Colors.green[600]
                         : Colors.orange[600],
                 statusText:
-                    _isAllRequiredFilled() ? 'Lengkap' : 'Belum Lengkap',
+                    _isLoadingData 
+                        ? 'Loading...'
+                        : _isAllRequiredFilled() ? 'Lengkap' : 'Belum Lengkap',
                 fields: [
                   SIHAKIDataField(
                     label: 'Total Dokumen',
@@ -380,8 +837,23 @@ class _DataDokumenAnggotaPageState
                   SIHAKIDataField(
                     label: 'Sudah Upload',
                     value: '${_uploadedFiles.length} dokumen',
-                    isLast: true,
                   ),
+                  if (_uploadedFiles.isNotEmpty) 
+                    SIHAKIDataField(
+                      label: 'Terakhir Upload',
+                      value: _changeLogs.values.isNotEmpty 
+                          ? _changeLogs.values.last 
+                          : 'Belum ada upload',
+                      isLast: true,
+                    )
+                  else
+                    SIHAKIDataField(
+                      label: 'Status',
+                      value: _memberNameController.text.trim().isNotEmpty
+                          ? 'Siap untuk upload'
+                          : 'Masukkan nama anggota terlebih dahulu',
+                      isLast: true,
+                    ),
                 ],
                 actions: [],
                 isTablet: isTablet,
@@ -467,6 +939,7 @@ class _DataDokumenAnggotaPageState
                           setState(() {
                             _isEditing = true;
                           });
+                          print('DEBUG: Entered editing mode, auto-loading disabled');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.primarySwatch,
@@ -487,26 +960,58 @@ class _DataDokumenAnggotaPageState
                     ),
                   ],
                   if (_isEditing) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _saveData(context, ref, theme),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primarySwatch,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              setState(() {
+                                _isEditing = false;
+                              });
+                              // Reload original data
+                              await _loadSavedDocuments();
+                              print('DEBUG: Cancelled editing, reloaded original data');
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey[400]!),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'BATAL',
+                              style: theme.typographyRegular.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                                color: Colors.grey[600],
+                              ),
+                            ),
                           ),
                         ),
-                        child: Text(
-                          'SIMPAN',
-                          style: theme.typographyRegular.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () => _saveData(context, ref, theme),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.primarySwatch,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'SIMPAN PERUBAHAN',
+                              style: theme.typographyRegular.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ],
@@ -741,7 +1246,7 @@ class _DataDokumenAnggotaPageState
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'UPLOAD',
+                                    'SAVE TO DB',
                                     style: theme.typographyRegular.bodySmall
                                         .copyWith(
                                           color: Colors.white,

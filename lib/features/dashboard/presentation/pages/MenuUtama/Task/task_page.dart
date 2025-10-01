@@ -9,108 +9,235 @@ import 'task_data.dart';
 import 'edit_task_page.dart';
 import 'tambah_task_page.dart';
 
-// Task Providers
-class TaskNotifier extends StateNotifier<List<TaskData>> {
-  TaskNotifier()
-    : super([
-        TaskData(
-          title: 'Dashboard design for admin',
-          description: 'Create comprehensive admin dashboard with analytics',
-          dueDate: DateTime(2022, 10, 14),
-          priority: 'High',
-          status: 'Complete',
-          assignees: ['JD', 'SM'],
-          commentsCount: 5,
-          filesCount: 5,
-          priorityColor: Colors.red,
-          statusColor: Colors.green,
-          hasReminder: false,
-        ),
-        TaskData(
-          title: 'Konom web application',
-          description:
-              'Build responsive web application for content management',
-          dueDate: DateTime(2022, 11, 14),
-          priority: 'Low',
-          status: 'To Do',
-          assignees: ['AB', 'CD'],
-          commentsCount: 2,
-          filesCount: 4,
-          priorityColor: Colors.green,
-          statusColor: Colors.orange,
-          hasReminder: true,
-          reminderDateTime: DateTime.now().add(Duration(days: 1)),
-        ),
-        TaskData(
-          title: 'Research and development',
-          description: 'Conduct market research for new product features',
-          dueDate: DateTime(2022, 10, 14),
-          priority: 'Medium',
-          status: 'In Review',
-          assignees: ['EF', 'GH'],
-          commentsCount: 6,
-          filesCount: 2,
-          priorityColor: Colors.orange,
-          statusColor: Colors.purple,
-          hasReminder: false,
-        ),
-        TaskData(
-          title: 'Event booking application',
-          description: 'Develop mobile application for event management',
-          dueDate: DateTime(2022, 10, 14),
-          priority: 'Medium',
-          status: 'To Do',
-          assignees: ['IJ', 'KL'],
-          commentsCount: 5,
-          filesCount: 5,
-          priorityColor: Colors.orange,
-          statusColor: Colors.orange,
-          hasReminder: false,
-        ),
-      ]);
+// Import database and model
+import '../../../../../../common/data/models/menuutama/task_model.dart';
+import '../../../../../../common/data/database/app_database_helper.dart';
 
-  void add(TaskData task) {
-    state = [...state, task];
+// Provider untuk task list menggunakan database
+final taskListProvider = StateNotifierProvider<TaskListNotifier, AsyncValue<List<TaskData>>>((ref) {
+  return TaskListNotifier();
+});
+
+class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskData>>> {
+  TaskListNotifier() : super(const AsyncValue.loading()) {
+    _loadTasks();
   }
 
-  void remove(TaskData task) {
-    state = state.where((t) => t != task).toList();
-  }
-
-  void update(TaskData oldTask, TaskData newTask) {
-    final index = state.indexWhere(
-      (t) => t.title == oldTask.title && t.dueDate == oldTask.dueDate,
-    );
-    if (index != -1) {
-      final newState = [...state];
-      newState[index] = newTask;
-      state = newState;
+  Future<void> _loadTasks() async {
+    try {
+      state = const AsyncValue.loading();
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      final List<Map<String, dynamic>> maps = await database.query(
+        'tasks',
+        orderBy: 'created_at DESC',
+      );
+      
+      // Convert TaskModel to TaskData
+      final tasks = maps.map((map) {
+        final taskModel = TaskModel.fromMap(map);
+        return _convertTaskModelToTaskData(taskModel);
+      }).toList();
+      
+      state = AsyncValue.data(tasks);
+    } catch (e, stack) {
+      debugPrint('Error loading tasks: $e');
+      state = AsyncValue.error(e, stack);
     }
+  }
+
+  TaskData _convertTaskModelToTaskData(TaskModel taskModel) {
+    return TaskData(
+      title: taskModel.title,
+      description: taskModel.description ?? '',
+      dueDate: taskModel.dueDate ?? DateTime.now().add(const Duration(days: 7)),
+      priority: _mapPriority(taskModel.priority),
+      status: _mapStatus(taskModel.status),
+      assignees: [], // Database doesn't have assignees, use empty list
+      commentsCount: 0, // Default value
+      filesCount: 0, // Default value
+      priorityColor: _getPriorityColor(taskModel.priority),
+      statusColor: _getStatusColor(taskModel.status),
+    );
+  }
+
+  String _mapPriority(String dbPriority) {
+    switch (dbPriority) {
+      case 'low': return 'Low';
+      case 'medium': return 'Medium';
+      case 'high': return 'High';
+      case 'urgent': return 'High'; // Map urgent to High for UI compatibility
+      default: return 'Medium';
+    }
+  }
+
+  String _mapStatus(String dbStatus) {
+    switch (dbStatus) {
+      case 'pending': return 'To Do';
+      case 'in_progress': return 'In Review';
+      case 'completed': return 'Complete';
+      case 'cancelled': return 'To Do';
+      default: return 'To Do';
+    }
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'urgent':
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.purple;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> addTask(TaskData taskData) async {
+    try {
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      // Convert TaskData to TaskModel
+      final taskModel = TaskModel.create(
+        title: taskData.title,
+        description: taskData.description.isNotEmpty ? taskData.description : null,
+        priority: _mapPriorityToDb(taskData.priority),
+        dueDate: taskData.dueDate,
+      );
+      
+      await database.insert('tasks', taskModel.toMap());
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error adding task: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateTask(TaskData taskData, int? taskId) async {
+    try {
+      if (taskId == null) return;
+      
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      // Get existing task first
+      final existing = await database.query(
+        'tasks',
+        where: 'id = ?',
+        whereArgs: [taskId],
+        limit: 1,
+      );
+      
+      if (existing.isEmpty) return;
+      
+      final existingTask = TaskModel.fromMap(existing.first);
+      final updatedTask = existingTask.copyWith(
+        title: taskData.title,
+        description: taskData.description.isNotEmpty ? taskData.description : null,
+        priority: _mapPriorityToDb(taskData.priority),
+        status: _mapStatusToDb(taskData.status),
+        dueDate: taskData.dueDate,
+        updatedAt: DateTime.now(),
+      );
+      
+      await database.update(
+        'tasks',
+        updatedTask.toMap(),
+        where: 'id = ?',
+        whereArgs: [taskId],
+      );
+      
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error updating task: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTask(int taskId) async {
+    try {
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      
+      await database.delete(
+        'tasks',
+        where: 'id = ?',
+        whereArgs: [taskId],
+      );
+      
+      await _loadTasks(); // Refresh the list
+    } catch (e) {
+      debugPrint('Error deleting task: $e');
+      rethrow;
+    }
+  }
+
+  String _mapPriorityToDb(String uiPriority) {
+    switch (uiPriority) {
+      case 'Low': return 'low';
+      case 'Medium': return 'medium';
+      case 'High': return 'high';
+      default: return 'medium';
+    }
+  }
+
+  String _mapStatusToDb(String uiStatus) {
+    switch (uiStatus) {
+      case 'To Do': return 'pending';
+      case 'In Review': return 'in_progress';
+      case 'Complete': return 'completed';
+      default: return 'pending';
+    }
+  }
+
+  void refresh() {
+    _loadTasks();
   }
 }
 
-final taskProvider = StateNotifierProvider<TaskNotifier, List<TaskData>>(
-  (ref) => TaskNotifier(),
-);
+// Search and filter providers
 final taskSearchProvider = StateProvider<String>((ref) => '');
-final taskStatusFilterProvider = StateProvider<String>((ref) => 'To Do');
+final taskStatusFilterProvider = StateProvider<String>((ref) => 'Semua');
 
 final filteredTaskProvider = Provider<List<TaskData>>((ref) {
-  final tasks = ref.watch(taskProvider);
+  final taskList = ref.watch(taskListProvider);
   final searchQuery = ref.watch(taskSearchProvider).toLowerCase().trim();
   final statusFilter = ref.watch(taskStatusFilterProvider);
 
-  return tasks.where((task) {
-    final matchesSearch =
-        searchQuery.isEmpty ||
-        task.title.toLowerCase().contains(searchQuery) ||
-        task.description.toLowerCase().contains(searchQuery);
+  return taskList.when(
+    data: (tasks) {
+      return tasks.where((task) {
+        final matchesSearch = searchQuery.isEmpty ||
+            task.title.toLowerCase().contains(searchQuery) ||
+            task.description.toLowerCase().contains(searchQuery);
 
-    final matchesStatus =
-        statusFilter == 'Semua' || task.status == statusFilter;
+        final matchesStatus = statusFilter == 'Semua' || task.status == statusFilter;
 
-    return matchesSearch && matchesStatus;
-  }).toList();
+        return matchesSearch && matchesStatus;
+      }).toList();
+    },
+    loading: () => <TaskData>[],
+    error: (_, __) => <TaskData>[],
+  );
 });
 
 class TaskPage extends ConsumerStatefulWidget {
@@ -280,11 +407,11 @@ class _TaskPageState extends ConsumerState<TaskPage> {
                           actions: [
                             AppViewDetailButton(
                               onPressed:
-                                  () => _showTaskDetailDialog(context, task),
+                                  () => _showTaskDetailDialog(context, task, index),
                               tooltip: 'Lihat Detail',
                             ),
                           ],
-                          onTap: () => _showTaskDetailDialog(context, task),
+                          onTap: () => _showTaskDetailDialog(context, task, index),
                         );
                       },
                     ),
@@ -302,22 +429,55 @@ class _TaskPageState extends ConsumerState<TaskPage> {
             (context) => EditTaskPage(
               taskData: task,
               onTaskUpdated: (updatedTask) {
-                setState(() {
-                  ref.read(taskProvider.notifier).update(task, updatedTask);
-                });
+                // Task will be automatically updated via provider refresh
+                ref.read(taskListProvider.notifier).refresh();
               },
             ),
       ),
     );
 
     if (updatedTask != null) {
-      setState(() {
-        ref.read(taskProvider.notifier).update(task, updatedTask);
-      });
+      try {
+        // Get task ID from database by matching title and other fields
+        final db = AppDatabaseHelper.instance;
+        final database = await db.database;
+        final existing = await database.query(
+          'tasks',
+          where: 'title = ? AND created_at IS NOT NULL',
+          whereArgs: [task.title],
+          orderBy: 'created_at DESC',
+          limit: 1,
+        );
+        
+        if (existing.isNotEmpty) {
+          final taskId = existing.first['id'] as int;
+          await ref.read(taskListProvider.notifier).updateTask(updatedTask, taskId);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Task updated successfully'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating task: $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
-  void _showTaskDetailDialog(BuildContext context, TaskData task) {
+  void _showTaskDetailDialog(BuildContext context, TaskData task, int taskIndex) {
     final dialogData = SIHAKIDialogData(
       title: 'Detail Task - ${task.title}',
       fields: [
@@ -373,31 +533,47 @@ class _TaskPageState extends ConsumerState<TaskPage> {
     );
   }
 
-  void _shareTask(TaskData task) {
-    // Implementasi share task
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sharing task: ${task.title}'),
-        backgroundColor: Colors.blue[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _deleteTask(TaskData task) {
-    setState(() {
-      ref.read(taskProvider.notifier).remove(task);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Task deleted successfully'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+  void _deleteTask(TaskData task) async {
+    try {
+      // Find and delete task from database
+      final db = AppDatabaseHelper.instance;
+      final database = await db.database;
+      final existing = await database.query(
+        'tasks',
+        where: 'title = ? AND created_at IS NOT NULL',
+        whereArgs: [task.title],
+        orderBy: 'created_at DESC',
+        limit: 1,
+      );
+      
+      if (existing.isNotEmpty) {
+        final taskId = existing.first['id'] as int;
+        await ref.read(taskListProvider.notifier).deleteTask(taskId);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Task deleted successfully'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting task: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showAddTaskDialog(BuildContext context) async {
@@ -406,11 +582,34 @@ class _TaskPageState extends ConsumerState<TaskPage> {
       MaterialPageRoute(builder: (context) => const TambahTaskPage()),
     );
 
-    // If a new task was returned, add it to the list
+    // If a new task was returned, add it to the database
     if (result != null && result is TaskData) {
-      setState(() {
-        ref.read(taskProvider.notifier).add(result);
-      });
+      try {
+        await ref.read(taskListProvider.notifier).addTask(result);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Task added successfully'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error adding task: $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 }

@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_pengajuan_BPJS.dart' show BPJSData, bpjsDataProvider;
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/bpjs_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/bpjs_model.dart';
 
 class EditBpjsPage extends ConsumerStatefulWidget {
-  final BPJSData bpjsItem;
+  final BPJSModel bpjsItem;
   final int index;
   const EditBpjsPage({super.key, required this.bpjsItem, required this.index});
   @override
@@ -23,6 +24,8 @@ class _EditBpjsPageState extends ConsumerState<EditBpjsPage> {
   late TextEditingController _tanggalLahirController;
   late TextEditingController _namaFaskesTingkat1Controller;
   DateTime? _selectedDate;
+  String _selectedStatus = 'aktif';
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _EditBpjsPageState extends ConsumerState<EditBpjsPage> {
     _namaFaskesTingkat1Controller = TextEditingController(
       text: widget.bpjsItem.namaFaskesTingkat1,
     );
+    _selectedStatus = widget.bpjsItem.status;
   }
 
   Future<void> _pickDate() async {
@@ -144,31 +148,148 @@ class _EditBpjsPageState extends ConsumerState<EditBpjsPage> {
                     isRequired: true,
                   ),
                 ],
-                onSave: () {
-                  if (!_formKey.currentState!.validate()) return;
-                  ref
-                      .read(bpjsDataProvider.notifier)
-                      .updateBPJSData(
-                        widget.index,
-                        BPJSData(
-                          nama: _namaController.text.trim(),
-                          noBPJS: _noBPJSController.text.trim(),
-                          nik: _nikController.text.trim(),
-                          hubunganKeluarga:
-                              _hubunganKeluargaController.text.trim(),
-                          tanggalLahir: _tanggalLahirController.text.trim(),
-                          namaFaskesTingkat1:
-                              _namaFaskesTingkat1Controller.text.trim(),
+                onSave: _isLoading ? null : _saveBPJSData,
+                saveButtonText: _isLoading ? 'MENYIMPAN...' : 'SIMPAN PERUBAHAN',
+              ),
+              const SizedBox(height: 16),
+              // Status Dropdown
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Status BPJS',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      );
-                  context.pop();
-                },
-                saveButtonText: 'SIMPAN PERUBAHAN',
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedStatus,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            items: ['aktif', 'non-aktif', 'pending']
+                                .map((status) => DropdownMenuItem(
+                                      value: status,
+                                      child: Text(status.toUpperCase()),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStatus = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _saveBPJSData() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (widget.bpjsItem.id == null) {
+        throw Exception('ID BPJS tidak ditemukan');
+      }
+
+      final updatedBPJS = widget.bpjsItem.copyWith(
+        nama: _namaController.text.trim(),
+        noBPJS: _noBPJSController.text.trim(),
+        nik: _nikController.text.trim(),
+        hubunganKeluarga: _hubunganKeluargaController.text.trim(),
+        tanggalLahir: _tanggalLahirController.text.trim(),
+        namaFaskesTingkat1: _namaFaskesTingkat1Controller.text.trim(),
+        status: _selectedStatus,
+        updatedAt: DateTime.now(),
+      );
+
+      final success = await ref.read(bpjsProvider.notifier).updateBPJS(updatedBPJS);
+      
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Data BPJS "${_namaController.text}" berhasil diperbarui',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          context.pop(true); // Return true to indicate success
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Gagal memperbarui data BPJS',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }

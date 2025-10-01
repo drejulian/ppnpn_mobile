@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/reimburse_model.dart';
 import 'daftar_reimburse_page.dart';
 
 class TambahReimbursePage extends ConsumerStatefulWidget {
@@ -309,11 +310,6 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                     if (!_formKey.currentState!.validate()) return;
 
                     try {
-                      // Generate ID
-                      final id =
-                          'REIMB-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-
-                      // Parse amount - handle both formatted and unformatted input
                       String amountText = _jumlahCtrl.text.trim();
                       if (amountText.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -342,20 +338,22 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                         return;
                       }
 
-                      // Create new reimburse data
-                      final newReimburse = {
-                        'id': id,
-                        'category': _kategoriCtrl.text,
-                        'amount': amount,
-                        'description': _deskripsiCtrl.text,
-                        'date': _selectedDate ?? DateTime.now(),
-                        'status': 'Menunggu Persetujuan',
-                        'fileName': _selectedFile?.name,
-                      };
+                      // Create new reimburse model
+                      final now = DateTime.now();
+                      final newReimburse = ReimburseModel(
+                        category: _kategoriCtrl.text,
+                        amount: amount,
+                        description: _deskripsiCtrl.text,
+                        date: _selectedDate ?? now,
+                        status: 'menunggu_persetujuan', // Use database format
+                        fileName: _selectedFile?.name,
+                        createdAt: now,
+                        updatedAt: now,
+                      );
 
                       // Add to provider
-                      ref
-                          .read(reimburseProvider.notifier)
+                      await ref
+                          .read(reimburseListProvider.notifier)
                           .addReimburse(newReimburse);
 
                       // Tambah notifikasi in-app
@@ -385,7 +383,7 @@ class _TambahReimbursePageState extends ConsumerState<TambahReimbursePage> {
                           ),
                         );
 
-                        context.pop();
+                        context.pop(true);
                       }
                     } catch (e) {
                       if (mounted) {

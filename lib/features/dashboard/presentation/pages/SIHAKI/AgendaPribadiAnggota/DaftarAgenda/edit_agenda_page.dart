@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'daftar_agenda.dart' show agendaDataProvider;
+import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/agenda_pribadi_anggota_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/agenda_pribadi_anggota_model.dart';
 
 class EditAgendaPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic> agendaItem;
+  final AgendaPribadiAnggotaModel agendaItem;
 
   const EditAgendaPage({super.key, required this.agendaItem});
   @override
@@ -15,13 +17,15 @@ class EditAgendaPage extends ConsumerStatefulWidget {
 class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
   final _formKey = GlobalKey<FormState>();
 
-  late TextEditingController _acaraController;
-  late TextEditingController _deskripsiController;
+  late TextEditingController _agendaController;
+  late TextEditingController _keteranganController;
   late TextEditingController _tanggalController;
   late TextEditingController _waktuController;
+  late TextEditingController _tempatController;
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
+  bool _isLoading = false;
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -63,23 +67,131 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
   @override
   void initState() {
     super.initState();
-    _acaraController = TextEditingController(text: widget.agendaItem['acara']);
-    _deskripsiController = TextEditingController(
-      text: widget.agendaItem['deskripsi'],
+    _agendaController = TextEditingController(text: widget.agendaItem.agenda);
+    _keteranganController = TextEditingController(
+      text: widget.agendaItem.keterangan ?? '',
     );
     _tanggalController = TextEditingController(
-      text: widget.agendaItem['tanggal'],
+      text: widget.agendaItem.tanggal,
     );
-    _waktuController = TextEditingController(text: widget.agendaItem['waktu']);
+    _waktuController = TextEditingController(text: widget.agendaItem.waktu);
+    _tempatController = TextEditingController(text: widget.agendaItem.tempat);
   }
 
   @override
   void dispose() {
-    _acaraController.dispose();
-    _deskripsiController.dispose();
+    _agendaController.dispose();
+    _keteranganController.dispose();
     _tanggalController.dispose();
     _waktuController.dispose();
+    _tempatController.dispose();
     super.dispose();
+  }
+
+  Future<void> _updateAgenda() async {
+    // Simple validation
+    if (_agendaController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Agenda tidak boleh kosong')),
+      );
+      return;
+    }
+    if (_tanggalController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tanggal tidak boleh kosong')),
+      );
+      return;
+    }
+    if (_waktuController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Waktu tidak boleh kosong')),
+      );
+      return;
+    }
+    if (_tempatController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tempat tidak boleh kosong')),
+      );
+      return;
+    }
+
+    // Check if ID exists
+    final agendaId = widget.agendaItem.id;
+    if (agendaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: ID agenda tidak ditemukan'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Create updated agenda
+      final updatedAgenda = widget.agendaItem.copyWith(
+        agenda: _agendaController.text.trim(),
+        tanggal: _tanggalController.text.trim(),
+        waktu: _waktuController.text.trim(),
+        tempat: _tempatController.text.trim(),
+        keterangan: _keteranganController.text.trim().isNotEmpty 
+            ? _keteranganController.text.trim() 
+            : null,
+        updatedAt: DateTime.now(),
+      );
+
+      final success = await ref
+          .read(agendaPribadiProvider.notifier)
+          .updateAgenda(updatedAgenda);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Agenda "${updatedAgenda.agenda}" berhasil diperbarui'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        context.pop();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gagal memperbarui agenda'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -106,7 +218,7 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                     label: 'ID Agenda',
                     icon: Icons.tag,
                     controller: TextEditingController(
-                      text: widget.agendaItem['id']?.toString() ?? 'NO-ID',
+                      text: widget.agendaItem.id?.toString() ?? 'NO-ID',
                     ),
                     hintText: 'ID Agenda',
                     type: FormFieldType.text,
@@ -140,100 +252,34 @@ class _EditAgendaPageState extends ConsumerState<EditAgendaPage> {
                     },
                   ),
                   FormFieldConfig(
-                    label: 'Acara',
+                    label: 'Agenda',
                     icon: Icons.event,
-                    controller: _acaraController,
-                    hintText: 'Masukkan nama acara',
+                    controller: _agendaController,
+                    hintText: 'Masukkan nama agenda',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                   ),
                   FormFieldConfig(
-                    label: 'Deskripsi',
+                    label: 'Tempat',
+                    icon: Icons.location_on,
+                    controller: _tempatController,
+                    hintText: 'Masukkan lokasi/tempat',
+                    type: FormFieldType.textRequired,
+                    isRequired: true,
+                  ),
+                  FormFieldConfig(
+                    label: 'Keterangan',
                     icon: Icons.description,
-                    controller: _deskripsiController,
-                    hintText: 'Tuliskan deskripsi agenda',
+                    controller: _keteranganController,
+                    hintText: 'Tuliskan keterangan agenda (opsional)',
                     type: FormFieldType.multiline,
                     maxLines: 3,
                     isLast: true,
-                    isRequired: true,
+                    isRequired: false,
                   ),
                 ],
-                onSave: () {
-                  // Simple validation instead of form validation
-                  if (_acaraController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Acara tidak boleh kosong')),
-                    );
-                    return;
-                  }
-                  if (_tanggalController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tanggal tidak boleh kosong'),
-                      ),
-                    );
-                    return;
-                  }
-                  if (_waktuController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Waktu tidak boleh kosong')),
-                    );
-                    return;
-                  }
-                  if (_deskripsiController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Deskripsi tidak boleh kosong'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  print('🚀 Starting edit agenda process...');
-                  print('📝 Original agenda: ${widget.agendaItem}');
-
-                  // Check if ID exists
-                  final agendaId = widget.agendaItem['id'];
-                  if (agendaId == null) {
-                    print('❌ Error: Agenda ID is null!');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Error: ID agenda tidak ditemukan'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  // Create updated agenda item
-                  final updatedAgenda = {
-                    'acara': _acaraController.text.trim(),
-                    'deskripsi': _deskripsiController.text.trim(),
-                    'tanggal': _tanggalController.text.trim(),
-                    'waktu': _waktuController.text.trim(),
-                  };
-
-                  print('📋 Updated agenda data: $updatedAgenda');
-                  print('🆔 Using ID: $agendaId');
-
-                  ref
-                      .read(agendaDataProvider.notifier)
-                      .updateAgenda(agendaId, updatedAgenda);
-
-                  print('✅ Update call completed');
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Agenda berhasil diperbarui'),
-                      backgroundColor: Colors.green[600],
-                    ),
-                  );
-
-                  print('🏠 Navigating back...');
-
-                  context.pop();
-                },
-                saveButtonText: 'SIMPAN PERUBAHAN',
+                onSave: _isLoading ? null : () => _updateAgenda(),
+                saveButtonText: _isLoading ? 'MENYIMPAN...' : 'SIMPAN PERUBAHAN',
               ),
             ],
           ),

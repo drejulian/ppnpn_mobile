@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});

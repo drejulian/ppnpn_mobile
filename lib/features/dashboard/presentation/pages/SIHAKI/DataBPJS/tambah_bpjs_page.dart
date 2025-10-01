@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'daftar_pengajuan_BPJS.dart' show BPJSData, bpjsDataProvider;
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/bpjs_provider.dart';
 
 class TambahBpjsPage extends ConsumerStatefulWidget {
   const TambahBpjsPage({super.key});
@@ -24,6 +23,7 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
   final _tanggalLahirController = TextEditingController();
   final _namaFaskesTingkat1Controller = TextEditingController();
   DateTime? _selectedDate;
+  String _selectedStatus = 'aktif';
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -55,7 +55,6 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeProvider);
     return Scaffold(
       appBar: AppCustomAppBar(
         title: 'Tambah Data BPJS',
@@ -85,21 +84,39 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                     label: 'Nomor BPJS',
                     icon: Icons.confirmation_num,
                     controller: _noBPJSController,
-                    hintText: 'Nomor BPJS',
+                    hintText: 'Nomor BPJS (13 digit)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Nomor BPJS harus diisi';
+                      }
+                      if (value.trim().length != 13) {
+                        return 'Nomor BPJS harus 13 digit';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'NIK',
                     icon: Icons.badge,
                     controller: _nikController,
-                    hintText: 'Nomor Induk Kependudukan',
+                    hintText: 'Nomor Induk Kependudukan (16 digit)',
                     type: FormFieldType.textRequired,
                     isRequired: true,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'NIK harus diisi';
+                      }
+                      if (value.trim().length != 16) {
+                        return 'NIK harus 16 digit';
+                      }
+                      return null;
+                    },
                   ),
                   FormFieldConfig(
                     label: 'Hubungan Keluarga',
@@ -128,23 +145,32 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                     isRequired: true,
                   ),
                 ],
-                onSave: () {
+                onSave: () async {
                   if (!_formKey.currentState!.validate()) return;
                   
-                  ref
-                      .read(bpjsDataProvider.notifier)
-                      .addBPJSData(
-                        BPJSData(
-                          nama: _namaController.text.trim(),
-                          noBPJS: _noBPJSController.text.trim(),
-                          nik: _nikController.text.trim(),
-                          hubunganKeluarga:
-                              _hubunganKeluargaController.text.trim(),
-                          tanggalLahir: _tanggalLahirController.text.trim(),
-                          namaFaskesTingkat1:
-                              _namaFaskesTingkat1Controller.text.trim(),
+                  final success = await ref
+                      .read(bpjsProvider.notifier)
+                      .addBPJS(
+                        nama: _namaController.text.trim(),
+                        noBPJS: _noBPJSController.text.trim(),
+                        nik: _nikController.text.trim(),
+                        hubunganKeluarga: _hubunganKeluargaController.text.trim(),
+                        tanggalLahir: _tanggalLahirController.text.trim(),
+                        namaFaskesTingkat1: _namaFaskesTingkat1Controller.text.trim(),
+                        status: _selectedStatus,
+                      );
+                  
+                  if (!success) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Gagal menambahkan data BPJS'),
+                          backgroundColor: Colors.red,
                         ),
                       );
+                    }
+                    return;
+                  }
                   
                   // Tambahkan notifikasi ke dalam app (page notifikasi)
                   ref.read(notificationProvider.notifier).addBPJSNotification(
@@ -164,7 +190,7 @@ class _TambahBpjsPageState extends ConsumerState<TambahBpjsPage> {
                         backgroundColor: Colors.green,
                       ),
                     );
-                    context.pop();
+                    context.pop(true); // Return true to indicate success
                   }
                 },
                 saveButtonText: 'TAMBAH DATA',

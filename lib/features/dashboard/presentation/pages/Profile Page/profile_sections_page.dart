@@ -742,24 +742,12 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
         await _onWillPop();
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'Edit Profil',
-            style: theme.typographyRegular.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () async {
-              await _onWillPop();
-            },
-          ),
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+          title: 'Edit Profil',
+          onBackPressed: () async {
+            await _onWillPop();
+          },
           actions: [
             Container(
               margin: const EdgeInsets.only(right: 16),

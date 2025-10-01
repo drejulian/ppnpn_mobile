@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Untuk HapticFeedback
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
@@ -34,6 +35,7 @@ class MainLayout extends ConsumerWidget {
     }
 
     return Scaffold(
+      extendBody: true, // Membuat body extend ke belakang navbar
       body: IndexedStack(index: currentIndex, children: _pages),
       bottomNavigationBar: const NavBar(),
     );
@@ -49,96 +51,91 @@ class NavBar extends ConsumerWidget {
     final currentIndex = ref.watch(bottomNavIndexProvider);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30), // Sudut lebih membulat
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Efek blur
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(
-                0.21,
-              ), // Semi-transparan untuk glassmorphism
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3), // Border halus
-                width: 1,
+      margin: const EdgeInsets.only(left: 40, right: 40, bottom: 24),
+      // Margin lebih besar agar tidak full kanan kiri
+      child: Material(
+        elevation: 8, // Elevasi ringan agar tetap mengambang
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        shadowColor: Colors.black.withOpacity(0.10),
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.grey.withOpacity(0.15),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 15,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 2),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: GNav(
+              backgroundColor: Colors.transparent,
+              gap: 8,
+              activeColor: theme.primarySwatch,
+              iconSize: 18,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 10,
+              ),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              tabBackgroundColor: theme.primarySwatch.withOpacity(0.12),
+              tabBorderRadius: 14,
+              color: theme.primarySwatch.withOpacity(0.7),
+              tabs: [
+                GButton(
+                  icon: Icons.home_rounded,
+                  text: 'Beranda',
+                  textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    color: theme.primarySwatch,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                GButton(
+                  icon: Icons.access_time_rounded,
+                  text: 'Absensi',
+                  textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    color: theme.primarySwatch,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                GButton(
+                  icon: Icons.analytics_rounded,
+                  text: 'SIHAKI',
+                  textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    color: theme.primarySwatch,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                GButton(
+                  icon: Icons.person_rounded,
+                  text: 'Profile',
+                  textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
+                    color: theme.primarySwatch,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: GNav(
-                backgroundColor: Colors.transparent,
-                gap: 10,
-                activeColor: Colors.white,
-                iconSize: 26, // Ikon sedikit lebih besar
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-                duration: const Duration(milliseconds: 400),
-                tabBackgroundGradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.primarySwatch.withOpacity(0.9),
-                    theme.secondarySwatch.withOpacity(0.9),
-                  ],
-                ),
-                color: theme.primarySwatch,
-                tabs: [
-                  GButton(
-                    icon: Icons.home_outlined,
-                    text: 'Beranda',
-                    textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  GButton(
-                    icon: Icons.schedule,
-                    text: 'Absensi',
-                    textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  GButton(
-                    icon: Icons.analytics_outlined,
-                    text: 'SIHAKI',
-                    textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  GButton(
-                    icon: Icons.person,
-                    text: 'Profile',
-                    textStyle: theme.typographyRegular.bodyExtraSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ],
-                selectedIndex: currentIndex,
-                onTabChange: (index) {
-                  if (index >= 0 && index < 4) {
-                    ref.read(bottomNavIndexProvider.notifier).state = index;
-                  }
-                },
-              ),
+              selectedIndex: currentIndex,
+              onTabChange: (index) {
+                if (index >= 0 && index < 4) {
+                  HapticFeedback.lightImpact();
+                  ref.read(bottomNavIndexProvider.notifier).state = index;
+                }
+              },
             ),
           ),
         ),

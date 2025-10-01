@@ -6,9 +6,10 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/models/family_member.dart' as dto;
 import 'providers/profile_data_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
+    as dto;
 
 final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {
   return [

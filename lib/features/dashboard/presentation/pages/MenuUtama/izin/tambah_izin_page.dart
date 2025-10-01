@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'daftar_izin_page.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/izin_provider.dart';
 
 class TambahIzinPage extends ConsumerStatefulWidget {
   const TambahIzinPage({super.key});
@@ -86,23 +86,6 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
       setState(() {
         _selectedFile = result.files.first;
       });
-    }
-  }
-
-  String _generateId() {
-    final now = DateTime.now();
-    return 'I-${now.millisecondsSinceEpoch % 10000}';
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Disetujui':
-        return Colors.green;
-      case 'Ditolak':
-        return Colors.red;
-      case 'Menunggu Persetujuan':
-      default:
-        return Colors.orange;
     }
   }
 
@@ -349,21 +332,20 @@ class _TambahIzinPageState extends ConsumerState<TambahIzinPage> {
                           _awalDate != null &&
                           _akhirDate != null) {
                         try {
-                          final newIzin = {
-                            'id': _generateId(),
-                            'type': _jenisCtrl.text,
-                            'date': _awalDate!,
-                            'duration': _formatDuration(),
-                            'reason': _alasanCtrl.text,
-                            'status': 'Menunggu Persetujuan',
-                            'statusColor': _getStatusColor(
-                              'Menunggu Persetujuan',
-                            ),
-                            'fileName': _selectedFile?.name,
-                          };
+                          // Tambah izin ke provider menggunakan method yang benar
+                          final success = await ref
+                              .read(izinProvider.notifier)
+                              .addIzin(
+                                type: _jenisCtrl.text,
+                                date: _awalDate!,
+                                duration: _formatDuration(),
+                                reason: _alasanCtrl.text,
+                                fileName: _selectedFile?.name,
+                              );
 
-                          // Tambah izin ke provider
-                          ref.read(izinProvider.notifier).add(newIzin);
+                          if (!success) {
+                            throw Exception('Gagal menyimpan data izin');
+                          }
 
                           // Tambah notifikasi in-app
                           ref

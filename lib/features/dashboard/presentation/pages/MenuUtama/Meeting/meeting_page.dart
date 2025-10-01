@@ -3,82 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/common/theme/my_theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/meeting_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/meeting_provider.dart';
 import 'edit_meeting_page.dart';
 import 'tambah_meeting_page.dart';
 import 'meeting_data.dart';
 
-// Meeting Providers
-class MeetingNotifier extends StateNotifier<List<MeetingData>> {
-  MeetingNotifier()
-    : super([
-        MeetingData(
-          title: 'Rapat Koordinasi Tim',
-          room: 'Meeting room - Gotham',
-          date: DateTime(2025, 9, 30),
-          startTime: '09:00',
-          endTime: '10:30',
-        ),
-        MeetingData(
-          title: 'Online - Project Review',
-          room: 'Online - Zoom Meeting',
-          date: DateTime(2025, 10, 2),
-          startTime: '14:00',
-          endTime: '15:30',
-        ),
-        MeetingData(
-          title: 'Presentasi Proposal',
-          room: 'Ruang Konferensi A',
-          date: DateTime(2025, 10, 5),
-          startTime: '10:00',
-          endTime: '11:30',
-        ),
-        MeetingData(
-          title: 'Daily Standup',
-          room: 'Online - Google Meet',
-          date: DateTime.now().add(const Duration(days: 1)),
-          startTime: '08:30',
-          endTime: '09:00',
-        ),
-        MeetingData(
-          title: 'Client Presentation',
-          room: 'Ruang Meeting Utama',
-          date: DateTime.now().add(const Duration(days: 3)),
-          startTime: '13:00',
-          endTime: '14:30',
-        ),
-      ]);
-
-  void add(MeetingData meeting) {
-    state = [...state, meeting];
-  }
-
-  void remove(MeetingData meeting) {
-    state = state.where((m) => m != meeting).toList();
-  }
-
-  void update(MeetingData oldMeeting, MeetingData newMeeting) {
-    final index = state.indexWhere(
-      (m) => m.title == oldMeeting.title && m.date == oldMeeting.date,
-    );
-    if (index != -1) {
-      final newState = [...state];
-      newState[index] = newMeeting;
-      state = newState;
-    }
-  }
-}
-
-final meetingProvider =
-    StateNotifierProvider<MeetingNotifier, List<MeetingData>>(
-      (ref) => MeetingNotifier(),
-    );
-final meetingSearchProvider = StateProvider<String>((ref) => '');
+// Search and filter providers untuk meeting
+final meetingSearchProvider = StateProvider<String>((ref) => ''); 
 final meetingTypeFilterProvider = StateProvider<String>((ref) => 'Semua');
 
-final filteredMeetingProvider = Provider<List<MeetingData>>((ref) {
-  final meetings = ref.watch(meetingProvider);
+final filteredMeetingProvider = Provider<List<MeetingModel>>((ref) {
+  final meetingState = ref.watch(meetingProvider);
+  final meetings = meetingState.meetings;
   final searchQuery = ref.watch(meetingSearchProvider).toLowerCase().trim();
   final typeFilter = ref.watch(meetingTypeFilterProvider);
 
@@ -88,15 +26,10 @@ final filteredMeetingProvider = Provider<List<MeetingData>>((ref) {
         meeting.title.toLowerCase().contains(searchQuery) ||
         meeting.room.toLowerCase().contains(searchQuery);
 
-    final isOnline =
-        meeting.room.toLowerCase().contains('online') ||
-        meeting.room.toLowerCase().contains('zoom') ||
-        meeting.room.toLowerCase().contains('meet');
-
     final matchesType =
         typeFilter == 'Semua' ||
-        (typeFilter == 'Online' && isOnline) ||
-        (typeFilter == 'Offline' && !isOnline);
+        (typeFilter == 'Online' && meeting.isOnline) ||
+        (typeFilter == 'Offline' && !meeting.isOnline);
 
     return matchesSearch && matchesType;
   }).toList();
@@ -113,6 +46,15 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Load meetings when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(meetingProvider.notifier).loadMeetings();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -121,8 +63,62 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final meetingState = ref.watch(meetingProvider);
     final filteredMeetings = ref.watch(filteredMeetingProvider);
     final typeFilter = ref.watch(meetingTypeFilterProvider);
+
+    // Show loading indicator if data is loading
+    if (meetingState.isLoading && meetingState.meetings.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+          title: 'Meeting',
+          onBackPressed: () => context.go('/home'),
+          backTooltip: 'Kembali ke Beranda',
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Show error message if there's an error
+    if (meetingState.error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+          title: 'Meeting',
+          onBackPressed: () => context.go('/home'),
+          backTooltip: 'Kembali ke Beranda',
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading meetings',
+                style: theme.typographyBold.bodyLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                meetingState.error!,
+                style: theme.typographyRegular.bodyMedium.copyWith(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(meetingProvider.notifier).loadMeetings(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -257,11 +253,8 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
     );
   }
 
-  Widget _buildMeetingCard(MeetingData meeting, MyTheme theme, int index) {
-    final isOnline =
-        meeting.room.toLowerCase().contains('online') ||
-        meeting.room.toLowerCase().contains('zoom') ||
-        meeting.room.toLowerCase().contains('meet');
+  Widget _buildMeetingCard(MeetingModel meeting, theme, int index) {
+    final isOnline = meeting.isOnline;
 
     return AppListCard(
       onTap: () => _showMeetingDetailDialog(context, meeting),
@@ -302,42 +295,68 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
     );
   }
 
-  void _editMeeting(MeetingData meeting) async {
+  void _editMeeting(MeetingModel meeting) async {
+    // Convert MeetingModel to MeetingData for compatibility with existing edit page
+    final meetingData = MeetingData(
+      title: meeting.title,
+      room: meeting.room,
+      date: meeting.date,
+      startTime: meeting.startTime,
+      endTime: meeting.endTime,
+    );
+    
     final result = await Navigator.push<MeetingData>(
       context,
       MaterialPageRoute(
-        builder: (context) => EditMeetingPage(meetingData: meeting),
+        builder: (context) => EditMeetingPage(
+          meetingData: meetingData,
+        ),
       ),
     );
-
-    if (result != null) {
-      ref.read(meetingProvider.notifier).update(meeting, result);
+    
+    if (result != null && meeting.id != null) {
+      // Update the meeting using the provider
+      final updatedMeeting = MeetingModel(
+        id: meeting.id,
+        meetingId: meeting.meetingId,
+        title: result.title,
+        description: meeting.description,
+        room: result.room,
+        date: result.date,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        organizer: meeting.organizer,
+        attendees: meeting.attendees,
+        isOnline: meeting.isOnline,
+        meetingLink: meeting.meetingLink,
+        status: meeting.status,
+        createdAt: meeting.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      
+      await ref.read(meetingProvider.notifier).updateMeeting(updatedMeeting);
     }
   }
 
-  void _showMeetingDetailDialog(BuildContext context, MeetingData meeting) {
-    final isOnline =
-        meeting.room.toLowerCase().contains('online') ||
-        meeting.room.toLowerCase().contains('zoom') ||
-        meeting.room.toLowerCase().contains('meet');
-
+  void _showMeetingDetailDialog(BuildContext context, MeetingModel meeting) {
+    final isOnline = meeting.isOnline;
+    
     final dialogData = SIHAKIDialogData(
       title: 'Detail Meeting - ${meeting.title}',
       fields: [
         SIHAKIDialogField(label: 'Title', value: meeting.title),
         SIHAKIDialogField(label: 'Room', value: meeting.room),
-        SIHAKIDialogField(
-          label: 'Date',
-          value: DateFormat('dd MMM yyyy').format(meeting.date),
-        ),
-        SIHAKIDialogField(
-          label: 'Time',
-          value: '${meeting.startTime} - ${meeting.endTime}',
-        ),
-        SIHAKIDialogField(
-          label: 'Type',
-          value: isOnline ? 'Online Meeting' : 'Offline Meeting',
-        ),
+        SIHAKIDialogField(label: 'Date', value: DateFormat('dd MMM yyyy').format(meeting.date)),
+        SIHAKIDialogField(label: 'Time', value: '${meeting.startTime} - ${meeting.endTime}'),
+        SIHAKIDialogField(label: 'Organizer', value: meeting.organizer),
+        SIHAKIDialogField(label: 'Status', value: meeting.status.label),
+        SIHAKIDialogField(label: 'Type', value: isOnline ? 'Online Meeting' : 'Offline Meeting'),
+        if (meeting.description != null && meeting.description!.isNotEmpty)
+          SIHAKIDialogField(label: 'Description', value: meeting.description!),
+        if (meeting.attendees.isNotEmpty)
+          SIHAKIDialogField(label: 'Attendees', value: meeting.attendees.join(', ')),
+        if (isOnline && meeting.meetingLink != null)
+          SIHAKIDialogField(label: 'Meeting Link', value: meeting.meetingLink!),
       ],
       actions: [
         SIHAKIDialogAction(
@@ -365,7 +384,7 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  void _confirmDeleteMeetingWithSIHAKI(MeetingData meeting) {
+  void _confirmDeleteMeetingWithSIHAKI(MeetingModel meeting) {
     SIHAKIConfirmationDialog.show(
       context,
       title: 'Hapus Meeting',
@@ -382,29 +401,21 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
     );
   }
 
-  void _shareMeeting(MeetingData meeting) {
-    // Implementasi share meeting
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sharing meeting: ${meeting.title}'),
-        backgroundColor: Colors.blue[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _deleteMeeting(MeetingData meeting) {
-    ref.read(meetingProvider.notifier).remove(meeting);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Meeting deleted successfully'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+  void _deleteMeeting(MeetingModel meeting) async {
+    if (meeting.id != null) {
+      await ref.read(meetingProvider.notifier).deleteMeeting(meeting.id!);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Meeting deleted successfully'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   void _showAddMeetingDialog(BuildContext context) async {
@@ -412,10 +423,20 @@ class _MeetingPageState extends ConsumerState<MeetingPage> {
       context,
       MaterialPageRoute(builder: (context) => const TambahMeetingPage()),
     );
-
-    // If a new meeting was returned, add it to the list
+    
+    // If a new meeting was returned, add it using the provider
     if (result != null && result is MeetingData) {
-      ref.read(meetingProvider.notifier).add(result);
+      // Convert MeetingData to MeetingModel and add via provider
+      final newMeeting = MeetingModel.fromFormData(
+        title: result.title,
+        room: result.room,
+        date: result.date,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        organizer: 'Current User', // Default organizer
+      );
+      
+      await ref.read(meetingProvider.notifier).addMeeting(newMeeting);
     }
   }
 }

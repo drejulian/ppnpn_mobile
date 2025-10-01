@@ -3,69 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/lembur_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/lembur_model.dart';
 import 'package:intl/intl.dart';
-
-class LemburNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  LemburNotifier()
-    : super([
-        {
-          'id': 'L-001',
-          'type': 'Lembur Komisi',
-          'date': DateTime.now().subtract(const Duration(days: 2)),
-          'duration': '3 jam',
-          'reason': 'Support acara komisi',
-          'status': 'Menunggu Persetujuan',
-          'statusColor': Colors.orange,
-          'fileName': null,
-          'jamMulai': '19:00',
-          'jamSelesai': '22:00',
-        },
-        {
-          'id': 'L-002',
-          'type': 'Lembur Anggaran',
-          'date': DateTime.now().subtract(const Duration(days: 5)),
-          'duration': '2.5 jam',
-          'reason': 'Rekap data anggaran',
-          'status': 'Disetujui',
-          'statusColor': Colors.green,
-          'fileName': null,
-          'jamMulai': '18:30',
-          'jamSelesai': '21:00',
-        },
-      ]);
-
-  void add(Map<String, dynamic> row) => state = [...state, row];
-  void removeAt(int index) => state = [...state]..removeAt(index);
-  void update(String id, Map<String, dynamic> updated) {
-    final i = state.indexWhere((e) => e['id'] == id);
-    if (i == -1) return;
-    final list = [...state];
-    list[i] = {...state[i], ...updated};
-    state = list;
-  }
-}
-
-final lemburProvider =
-    StateNotifierProvider<LemburNotifier, List<Map<String, dynamic>>>(
-      (ref) => LemburNotifier(),
-    );
-final lemburSearchProvider = StateProvider<String>((ref) => '');
-final lemburStatusFilterProvider = StateProvider<String>((ref) => 'Semua');
-
-final filteredLemburProvider = Provider<List<Map<String, dynamic>>>((ref) {
-  final list = ref.watch(lemburProvider);
-  final q = ref.watch(lemburSearchProvider).toLowerCase().trim();
-  final status = ref.watch(lemburStatusFilterProvider);
-  return list.where((e) {
-    final matchesQuery =
-        q.isEmpty ||
-        (e['type']?.toString().toLowerCase().contains(q) ?? false) ||
-        (e['reason']?.toString().toLowerCase().contains(q) ?? false) ||
-        (e['id']?.toString().toLowerCase().contains(q) ?? false);
-    final matchesStatus = status == 'Semua' || e['status'] == status;
-    return matchesQuery && matchesStatus;
-  }).toList();
-});
 
 class DaftarLemburPage extends ConsumerStatefulWidget {
   const DaftarLemburPage({super.key});
@@ -94,43 +34,53 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
     }
   }
 
-  void _showDetailDialog(Map<String, dynamic> lembur) {
+  void _showDetailDialog(LemburModel lembur) {
     final theme = ref.read(themeProvider);
-    final statusColor =
-        lembur['statusColor'] as Color? ?? _statusColor(lembur['status']);
+    final statusColor = _statusColor(lembur.uiStatus);
     final canEdit = _canEdit(lembur);
-
-    final List<String> missingFields = [];
-    if (lembur['id'] == null || lembur['id'].toString().isEmpty)
-      missingFields.add('ID');
-    if (lembur['type'] == null || lembur['type'].toString().isEmpty)
-      missingFields.add('Jenis Lembur');
-    if (lembur['reason'] == null || lembur['reason'].toString().isEmpty)
-      missingFields.add('Kegiatan');
-    if (lembur['duration'] == null || lembur['duration'].toString().isEmpty)
-      missingFields.add('Durasi');
-
+    
+    // Status field untuk header
     final statusField = SIHAKIDialogField(
       label: 'Status Pengajuan',
-      value: lembur['status'] ?? 'N/A',
+      value: lembur.uiStatus,
       valueStyle: theme.typographyBold.bodyMedium.copyWith(color: statusColor),
       valueColor: statusColor,
     );
 
     final dataFields = [
-      SIHAKIDialogField(label: 'ID Lembur', value: lembur['id'] ?? 'N/A'),
       SIHAKIDialogField(
-        label: 'Tanggal',
-        value: DateFormat(
-          'dd MMMM yyyy',
-          'id_ID',
-        ).format(lembur['date'] as DateTime? ?? DateTime.now()),
+        label: 'ID Lembur',
+        value: lembur.id?.toString() ?? 'N/A',
       ),
-      SIHAKIDialogField(label: 'Jenis Lembur', value: lembur['type'] ?? 'N/A'),
-      SIHAKIDialogField(label: 'Durasi', value: lembur['duration'] ?? 'N/A'),
-      SIHAKIDialogField(label: 'Kegiatan', value: lembur['reason'] ?? 'N/A'),
-      if (lembur['fileName'] != null)
-        SIHAKIDialogField(label: 'Berkas Lampiran', value: lembur['fileName']),
+      SIHAKIDialogField(
+        label: 'Jenis Lembur',
+        value: lembur.type,
+      ),
+      SIHAKIDialogField(
+        label: 'Tanggal Lembur',
+        value: DateFormat('dd MMMM yyyy', 'id_ID').format(lembur.date),
+      ),
+      SIHAKIDialogField(
+        label: 'Durasi',
+        value: lembur.duration,
+      ),
+      SIHAKIDialogField(
+        label: 'Jam Mulai',
+        value: lembur.startTime,
+      ),
+      SIHAKIDialogField(
+        label: 'Jam Selesai',
+        value: lembur.endTime,
+      ),
+      SIHAKIDialogField(
+        label: 'Kegiatan',
+        value: lembur.reason,
+      ),
+      if (lembur.fileName != null)
+        SIHAKIDialogField(
+          label: 'Berkas Lampiran',
+          value: lembur.fileName!,
+        ),
     ];
 
     final allFields = [statusField, ...dataFields];
@@ -171,71 +121,22 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
       );
     }
 
-    Widget? additionalContent;
-    if (missingFields.isNotEmpty) {
-      additionalContent = Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Data tidak lengkap: ${missingFields.join(', ')} belum diisi',
-                style: theme.typographyRegular.bodySmall.copyWith(
-                  color: Colors.red[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     final dialogData = SIHAKIDialogData(
       title: 'Detail Lembur',
       fields: allFields,
       actions: actions,
-      additionalContent: additionalContent,
     );
 
     SIHAKIDetailDialog.show(context, dialogData);
   }
 
-  bool _canEdit(Map<String, dynamic> lembur) {
-    final status = lembur['status'];
+  bool _canEdit(LemburModel lembur) {
+    final status = lembur.uiStatus;
     return status == 'Menunggu Persetujuan' || status == 'Ditolak';
   }
 
-  String _formatTimeRange(Map<String, dynamic> row) {
-    // Try new format first (jamMulai, jamSelesai)
-    final jamMulai = row['jamMulai'];
-    final jamSelesai = row['jamSelesai'];
-
-    if (jamMulai != null && jamSelesai != null) {
-      return '$jamMulai - $jamSelesai';
-    }
-
-    // Fallback to old format (mulai, selesai) with :00 suffix
-    final mulai = row['mulai'];
-    final selesai = row['selesai'];
-
-    if (mulai != null && selesai != null) {
-      return '$mulai:00 - $selesai:00';
-    }
-
-    return 'N/A';
-  }
-
-  void _confirmDelete(Map<String, dynamic> lembur) {
-    final id = lembur['id']?.toString() ?? '';
+  void _confirmDelete(LemburModel lembur) {
+    final id = lembur.id?.toString() ?? '';
 
     SIHAKIConfirmationDialog.show(
       context,
@@ -246,23 +147,32 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.red[600],
       isDestructive: true,
-      onConfirm: () {
-        final lemburList = ref.read(lemburProvider.notifier);
-        final index = ref
-            .read(lemburProvider)
-            .indexWhere((item) => item['id'] == lembur['id']);
-        if (index != -1) {
-          lemburList.removeAt(index);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Pengajuan lembur berhasil dihapus'),
-              backgroundColor: Colors.green[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      onConfirm: () async {
+        if (lembur.id != null) {
+          try {
+            await ref.read(lemburProvider.notifier).deleteLembur(lembur.id!);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Pengajuan lembur berhasil dihapus'),
+                backgroundColor: Colors.green[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-          );
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Gagal menghapus lembur: $e'),
+                backgroundColor: Colors.red[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          }
         }
         Navigator.of(context).pop();
       },
@@ -272,8 +182,8 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
-    final data = ref.watch(filteredLemburProvider);
-    final status = ref.watch(lemburStatusFilterProvider);
+    final filteredList = ref.watch(filteredLemburProvider);
+    final statusFilter = ref.watch(lemburStatusFilterProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -291,7 +201,7 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
               controller: _searchController,
               hintText: 'Cari ID, jenis, atau kegiatan lembur...',
               margin: const EdgeInsets.symmetric(vertical: 8),
-              hasActiveFilters: status != 'Semua',
+              hasActiveFilters: statusFilter != 'Semua',
               onChanged:
                   (value) =>
                       ref.read(lemburSearchProvider.notifier).state = value,
@@ -326,7 +236,7 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
                                   statusOption,
                                   style: TextStyle(color: theme.primarySwatch),
                                 ),
-                                selected: status == statusOption,
+                                selected: statusFilter == statusOption,
                                 onSelected:
                                     (_) =>
                                         ref
@@ -387,79 +297,71 @@ class _DaftarLemburPageState extends ConsumerState<DaftarLemburPage> {
 
           // List Section
           Expanded(
-            child:
-                data.isEmpty
-                    ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 48,
-                            color: Colors.grey[400],
+            child: filteredList.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.schedule, size: 48, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Tidak ada data lembur',
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredList.length,
+                            itemBuilder: (context, index) {
+                              final lembur = filteredList[index];
+                              final statusColor = _statusColor(lembur.uiStatus);
+                              
+                              return AppListCard(
+                                title: lembur.type,
+                                subtitle: lembur.id?.toString() ?? 'N/A',
+                                leading: CircleAvatar(
+                                  backgroundColor: theme.primarySwatch.withOpacity(0.1),
+                                  child: Icon(
+                                    Icons.schedule,
+                                    color: theme.primarySwatch,
+                                    size: 20,
+                                  ),
+                                ),
+                                trailing: AppStatusChip(
+                                  label: lembur.uiStatus,
+                                  color: statusColor,
+                                ),
+                                chips: [
+                                  AppPillChip(
+                                    icon: Icons.access_time,
+                                    label: '${lembur.startTime} - ${lembur.endTime}',
+                                  ),
+                                  AppPillChip(
+                                    icon: Icons.timer,
+                                    label: lembur.duration,
+                                  ),
+                                  AppPillChip(
+                                    icon: Icons.description,
+                                    label: lembur.reason,
+                                  ),
+                                ],
+                                actions: [
+                                  IconButton(
+                                    icon: const Icon(Icons.visibility, size: 20),
+                                    onPressed: () => _showDetailDialog(lembur),
+                                    tooltip: 'Lihat Detail',
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: theme.primarySwatch.withOpacity(0.1),
+                                      foregroundColor: theme.primarySwatch,
+                                    ),
+                                  ),
+                                ],
+                                onTap: () => _showDetailDialog(lembur),
+                              );
+                            },
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Tidak ada data lembur',
-                            style: TextStyle(
-                              color: theme.primarySwatch,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                    : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: data.length,
-                      itemBuilder: (context, index) {
-                        final row = data[index];
-                        final statusColor =
-                            row['statusColor'] as Color? ??
-                            _statusColor(row['status']);
-
-                        return AppListCard(
-                          title: row['type'] ?? 'N/A',
-                          subtitle: row['id'] ?? 'N/A',
-                          leading: CircleAvatar(
-                            backgroundColor: theme.primarySwatch.withOpacity(
-                              0.1,
-                            ),
-                            child: Icon(
-                              Icons.schedule,
-                              color: theme.primarySwatch,
-                              size: 20,
-                            ),
-                          ),
-                          trailing: AppStatusChip(
-                            label: row['status'] ?? 'N/A',
-                            color: statusColor,
-                          ),
-                          chips: [
-                            AppPillChip(
-                              icon: Icons.access_time,
-                              label: _formatTimeRange(row),
-                            ),
-                            AppPillChip(
-                              icon: Icons.timer,
-                              label: row['duration'] ?? 'N/A',
-                            ),
-                            AppPillChip(
-                              icon: Icons.description,
-                              label: row['reason'] ?? 'N/A',
-                            ),
-                          ],
-                          actions: [
-                            AppViewDetailButton(
-                              onPressed: () => _showDetailDialog(row),
-                              tooltip: 'Lihat Detail',
-                            ),
-                          ],
-                          onTap: () => _showDetailDialog(row),
-                        );
-                      },
-                    ),
           ),
         ],
       ),

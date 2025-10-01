@@ -5,9 +5,10 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/cuti_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'daftar_cuti_page.dart';
+import 'package:ppnpm_dpr/common/data/models/menuutama/cuti_model.dart';
 
 class TambahCutiPage extends ConsumerStatefulWidget {
   const TambahCutiPage({super.key});
@@ -109,53 +110,48 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
-      final newCuti = {
-      
-        'id': _generateId(),
-        'type': _jenisCtrl.text,
-        'date': _awalDate!,
-        'duration': _formatDuration(),
-        'reason': _alasanCtrl.text,
-        'status': 'Menunggu Persetujuan',
-        'statusColor': _getStatusColor('Menunggu Persetujuan'),
-        'fileName': _selectedFile?.name,
-        
-
-        'jenis': _jenisCtrl.text,
-        'tanggal_awal': _awalCtrl.text,
-        'tanggal_akhir': _akhirCtrl.text,
-        'alasan': _alasanCtrl.text,
-      };
-
       try {
-        // Tambahkan ke provider cuti
-        ref.read(cutiProvider.notifier).add(newCuti);
-
-        // Tambahkan notifikasi ke dalam app
-        ref.read(notificationProvider.notifier).addCutiNotification(
-          jenisCtri: _jenisCtrl.text,
-          tanggalAwal: _awalCtrl.text,
-          tanggalAkhir: _akhirCtrl.text,
+        // Tambahkan ke provider cuti menggunakan method yang tepat
+        final success = await ref.read(cutiProvider.notifier).addCuti(
+          type: CutiType.fromString(_jenisCtrl.text),
+          tanggalMulai: _awalDate!,
+          tanggalSelesai: _akhirDate!,
           alasan: _alasanCtrl.text,
+          fileName: _selectedFile?.name,
         );
 
-        // Kirim notifikasi lokal setelah 2 detik
-        await NotificationService.scheduleTaskReminder(
-          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          title: 'Pengajuan Cuti Berhasil',
-          body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
-          scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
-        );
+        if (success) {
+          print('DEBUG: ✅ Cuti berhasil disimpan dengan tanggal:');
+          print('  - Mulai: ${_formatDate(_awalDate!)}');
+          print('  - Selesai: ${_formatDate(_akhirDate!)}');
+          print('  - Durasi: ${_akhirDate!.difference(_awalDate!).inDays + 1} hari');
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Pengajuan cuti berhasil ditambahkan dan notifikasi akan segera muncul'),
-              backgroundColor: Colors.green,
-            ),
+          // Tambahkan notifikasi ke dalam app
+          ref.read(notificationProvider.notifier).addCutiNotification(
+            jenisCtri: _jenisCtrl.text,
+            tanggalAwal: _awalCtrl.text,
+            tanggalAkhir: _akhirCtrl.text,
+            alasan: _alasanCtrl.text,
           );
 
-          context.pop();
+          // Kirim notifikasi lokal setelah 2 detik
+          await NotificationService.scheduleTaskReminder(
+            id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            title: 'Pengajuan Cuti Berhasil',
+            body: 'Pengajuan ${_jenisCtrl.text} Anda telah dikirim dan sedang menunggu persetujuan.',
+            scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Pengajuan cuti berhasil ditambahkan dan notifikasi akan segera muncul'),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            context.pop(true);
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -388,14 +384,18 @@ class _TambahCutiPageState extends ConsumerState<TambahCutiPage> {
                       ),
                       elevation: 2,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() && _awalDate != null && _akhirDate != null) {
                         _submitForm();
                       } else if (_awalDate == null || _akhirDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
-                            backgroundColor: Colors.red,
+                          SnackBar(
+                            content: const Text('Pilih tanggal mulai dan selesai cuti terlebih dahulu'),
+                            backgroundColor: Colors.red[600],
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         );
                       }

@@ -5,7 +5,7 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/theme/my_theme.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'task_data.dart';
 
 class TambahTaskPage extends ConsumerStatefulWidget {

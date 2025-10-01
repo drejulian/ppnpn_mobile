@@ -556,16 +556,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     const loginTime = '12:17';
 
-    final displayName = editProfileData.nama.isNotEmpty 
-        ? editProfileData.nama
-        : 'Airlangga Eka Wardhana, S.Kom, M.T.I';
-    final displayJob = editProfileData.bidangKeahlian.isNotEmpty 
-        ? editProfileData.bidangKeahlian 
-        : '';
-    final displayNik = editProfileData.nik.isNotEmpty 
-        ? editProfileData.nik 
-        : '';
-
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
@@ -575,13 +565,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 horizontal: isTablet ? 24.0 : 16.0, 
                 vertical: 16.0
               ),
-              child: HeaderCardProfileComponent(
-                title: displayName,  
-                subtitle: displayJob.isNotEmpty ? displayJob : 'Kelola data profil Anda!',  
-                description: 'Kelola data pribadi, identitas, dan dokumen Anda dengan mudah dan efisien',  
-                icon: null,  
-                leadingWidget: _buildProfilePhoto(theme),
-                nik: displayNik,
+              child: HeaderCardComponent(
+                title: 'Profil Saya',
+                subtitle: 'Data Pribadi & Profesional',
+                description: 'Kelola dan pantau kelengkapan data profil pribadi, pendidikan, riwayat pekerjaan, dan dokumen penting Anda',
+                icon: Icons.person_outline,
                 isTablet: isTablet,
                 isLargeTablet: MediaQuery.of(context).size.width > 900,
                 theme: theme,
@@ -942,7 +930,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         color: isMissing ? Colors.red.withOpacity(0.02) : Colors.grey.withOpacity(0.02),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.grey.withOpacity(0.2),
+          color: isMissing ? Colors.red.withOpacity(0.15) : Colors.grey.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -993,7 +981,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 color: Colors.red[50],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.red.withOpacity(0.2),
+                  color: Colors.red.withOpacity(0.15),
                   width: 1,
                 ),
               ),
@@ -1137,12 +1125,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   List<Widget> _buildEducationItems(dynamic theme) {
-    final pendidikanData = ref.watch(pendidikanDataProvider);
-    final hasPendidikanData = pendidikanData.tingkatPendidikan.isNotEmpty ||
-        pendidikanData.namaInstitusi.isNotEmpty ||
-        pendidikanData.jurusan.isNotEmpty ||
-        pendidikanData.tahunLulus.isNotEmpty;
-
     if (!_educationDataLoaded) {
       return [
         _buildInfoItem(Icons.hourglass_empty, 'Status', 'Memuat...', theme),
@@ -1433,36 +1415,4 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Widget _buildProfilePhoto(dynamic theme) {
-    final idCardData = ref.watch(idCardDataProvider);
-    final isTablet = MediaQuery.of(context).size.width > 600;
-    final size = isTablet ? 120.0 : 100.0;
-
-    if (idCardData.fotoPath.isNotEmpty && _isValidLocalFile(idCardData.fotoPath)) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: FileImage(File(idCardData.fotoPath)),
-            fit: BoxFit.cover,
-          ),
-        ),
-      );
-    }
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: theme.primarySwatch.withOpacity(0.1),
-      ),
-      child: Icon(
-        Icons.person_outline,
-        size: 20,
-        color: theme.primarySwatch,
-      ),
-    );
-  }
 }

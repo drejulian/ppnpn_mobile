@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
-import 'package:ppnpm_dpr/features/dashboard/providers/notification_provider.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/sihaki/agenda_pribadi_anggota_provider.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/agenda_pribadi_anggota_model.dart';
+import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'daftar_agenda.dart' show agendaDataProvider;
 
 class TambahAgendaPage extends ConsumerStatefulWidget {
   const TambahAgendaPage({super.key});
@@ -17,8 +18,10 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
   final _formKey = GlobalKey<FormState>();
   final _tanggalController = TextEditingController();
   final _waktuController = TextEditingController();
-  final _acaraController = TextEditingController();
-  final _deskripsiController = TextEditingController();
+  final _agendaController = TextEditingController();
+  final _tempatController = TextEditingController();
+  final _keteranganController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -60,9 +63,94 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
   void dispose() {
     _tanggalController.dispose();
     _waktuController.dispose();
-    _acaraController.dispose();
-    _deskripsiController.dispose();
+    _agendaController.dispose();
+    _tempatController.dispose();
+    _keteranganController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveAgenda() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final agenda = AgendaPribadiAnggotaModel(
+        agenda: _agendaController.text.trim(),
+        tanggal: _tanggalController.text.trim(),
+        waktu: _waktuController.text.trim(),
+        tempat: _tempatController.text.trim(),
+        keterangan: _keteranganController.text.trim().isNotEmpty 
+            ? _keteranganController.text.trim() 
+            : null,
+      );
+
+      final success = await ref
+          .read(agendaPribadiProvider.notifier)
+          .addAgenda(agenda);
+
+      if (success && mounted) {
+        // Tambah notifikasi in-app
+        ref.read(notificationProvider.notifier).addAgendaNotification(
+          namaAcara: agenda.agenda,
+          tanggal: agenda.tanggal,
+          waktu: agenda.waktu,
+          deskripsi: agenda.keterangan ?? 'Agenda pribadi di ${agenda.tempat}',
+        );
+        
+        // Kirim notifikasi lokal setelah 2 detik
+        await NotificationService.scheduleTaskReminder(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: 'Agenda Pribadi Berhasil Ditambahkan',
+          body: '${agenda.agenda} pada ${agenda.tanggal} pukul ${agenda.waktu} telah berhasil dijadwalkan.',
+          scheduledDate: DateTime.now().add(const Duration(seconds: 2)),
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Agenda "${agenda.agenda}" berhasil ditambahkan dan notifikasi akan segera muncul'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        context.pop();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gagal menambahkan agenda'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -112,81 +200,39 @@ class _TambahAgendaPageState extends ConsumerState<TambahAgendaPage> {
                     },
                   ),
                   FormFieldConfig(
-                    label: 'Acara',
+                    label: 'Agenda',
                     icon: Icons.event,
                     type: FormFieldType.textRequired,
-                    controller: _acaraController,
+                    controller: _agendaController,
                     isRequired: true,
-                    hintText: 'Masukkan nama acara',
+                    hintText: 'Masukkan nama agenda',
                   ),
                   FormFieldConfig(
-                    label: 'Deskripsi',
+                    label: 'Tempat',
+                    icon: Icons.location_on,
+                    type: FormFieldType.textRequired,
+                    controller: _tempatController,
+                    isRequired: true,
+                    hintText: 'Masukkan lokasi/tempat',
+                  ),
+                  FormFieldConfig(
+                    label: 'Keterangan',
                     icon: Icons.description,
                     type: FormFieldType.multiline,
-                    controller: _deskripsiController,
-                    isRequired: true,
-                    hintText: 'Tuliskan deskripsi agenda',
+                    controller: _keteranganController,
+                    isRequired: false,
+                    hintText: 'Tuliskan keterangan agenda (opsional)',
                     maxLines: 3,
                     isLast: true,
                   ),
                 ],
-                onSave: () async {
-                  if (!_formKey.currentState!.validate()) return;
-
-                  ref.read(agendaDataProvider.notifier).addAgenda({
-                    'tanggal': _tanggalController.text.trim(),
-                    'waktu': _waktuController.text.trim(),
-                    'acara': _acaraController.text.trim(),
-                    'deskripsi': _deskripsiController.text.trim(),
-                  });
-
-                  // Tambahkan notifikasi ke dalam app (page notifikasi)
-                  ref
-                      .read(notificationProvider.notifier)
-                      .addAgendaNotification(
-                        namaAcara: _acaraController.text.trim(),
-                        tanggal: _tanggalController.text.trim(),
-                        waktu: _waktuController.text.trim(),
-                        deskripsi: _deskripsiController.text.trim(),
-                      );
-
-                  // Kirim notifikasi lokal langsung
-                  await _showLocalNotification();
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Agenda berhasil ditambahkan dan notifikasi dikirim',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    context.pop();
-                  }
-                },
-                saveButtonText: 'TAMBAH AGENDA',
+                onSave: _isLoading ? null : _saveAgenda,
+                saveButtonText: _isLoading ? 'MENYIMPAN...' : 'TAMBAH AGENDA',
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  // Method untuk mengirim notifikasi lokal
-  Future<void> _showLocalNotification() async {
-    try {
-      await NotificationService.showNotification(
-        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        title: 'Agenda Pribadi Berhasil Ditambahkan',
-        body:
-            '${_acaraController.text.trim()} pada ${_tanggalController.text.trim()} pukul ${_waktuController.text.trim()} telah berhasil dijadwalkan.',
-        payload: 'agenda_${_acaraController.text.trim()}',
-      );
-    } catch (e) {
-      // Jika notifikasi gagal, tidak perlu mengganggu user
-      debugPrint('Gagal mengirim notifikasi: $e');
-    }
   }
 }
