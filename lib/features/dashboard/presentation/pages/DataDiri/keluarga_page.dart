@@ -3,61 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
-import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'providers/profile_data_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
 import 'package:ppnpm_dpr/common/services/profile_service.dart';
 
+// SQLite-powered dynamic family data provider - starts empty
 final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {
-  return [
-    dto.FamilyMemberDto(
-      id: '1',
-      nama: 'RENI GUMILA DEWI',
-      hubungan: 'ISTRI',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(1982, 9, 4),
-      jenisKelamin: 'Perempuan',
-      pekerjaan: 'IBU RUMAH TANGGA',
-      tanggalMenikah: DateTime(2008, 12, 14),
-    ),
-    dto.FamilyMemberDto(
-      id: '2',
-      nama: 'ARVIE PRAMATYA ALGHANI',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(1998, 9, 25),
-      jenisKelamin: 'Laki-laki',
-      pekerjaan: 'Pelajar',
-    ),
-    dto.FamilyMemberDto(
-      id: '3',
-      nama: 'DYLAN PRADIPTA ALGHANI',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(2011, 7, 7),
-      jenisKelamin: 'Laki-laki',
-      pekerjaan: 'Pelajar',
-    ),
-    dto.FamilyMemberDto(
-      id: '4',
-      nama: 'nadine rafarindya alghani',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(2016, 2, 25),
-      jenisKelamin: 'Perempuan',
-      pekerjaan: 'belum/Tidak bekerja',
-    ),
-  ];
+  return <dto.FamilyMemberDto>[];
 });
 
-final keluargaRemoteProvider = FutureProvider.autoDispose<List<dto.FamilyMemberDto>>((ref) async {
-  final api = ref.read(keluargaApiProvider);
-  return api.fetchMembers();
-});
+// SQLite-only implementation - no more API provider needed
 
 class KeluargaPage extends ConsumerStatefulWidget {
   const KeluargaPage({super.key});
@@ -92,7 +52,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
       await _profileService.hasKeluargaData();
       
       // Load existing data from SQLite
-      await _loadDataFromSQLite();
+      await _refreshDataFromSQLite();
       
       setState(() {
         _isInitialized = true;
@@ -185,14 +145,37 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         
         print('KeluargaPage: ✅ Loaded ${familyMembers.length} family members from SQLite');
       } else {
-        print('KeluargaPage: No SQLite data found, using default data');
-        final remote = ref.read(keluargaRemoteProvider);
-        _originalFamilyData = List.from(remote.asData?.value ?? ref.read(familyDataProvider));
+        print('KeluargaPage: No SQLite data found, starting with empty list');
+        // Start with empty list - user can add family members manually
+        ref.read(familyDataProvider.notifier).state = <dto.FamilyMemberDto>[];
+        _originalFamilyData = <dto.FamilyMemberDto>[];
       }
     } catch (e) {
       print('KeluargaPage: Error loading SQLite data: $e');
-      final remote = ref.read(keluargaRemoteProvider);
-      _originalFamilyData = List.from(remote.asData?.value ?? ref.read(familyDataProvider));
+      // On error, start with empty list
+      ref.read(familyDataProvider.notifier).state = <dto.FamilyMemberDto>[];
+      _originalFamilyData = <dto.FamilyMemberDto>[];
+    }
+  }
+
+  /// Helper method to refresh data from SQLite after operations
+  Future<void> _refreshDataFromSQLite() async {
+    try {
+      await _loadDataFromSQLite();
+      if (mounted) {
+        setState(() {
+          // Trigger UI rebuild
+        });
+      }
+    } catch (e) {
+      print('KeluargaPage: Error refreshing SQLite data: $e');
+    }
+  }
+
+  /// Force refresh data from SQLite (use when needed explicitly)
+  Future<void> forceRefreshFromSQLite() async {
+    if (_isInitialized) {
+      await _refreshDataFromSQLite();
     }
   }
 
@@ -200,11 +183,16 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_hasLoadedInitialData && _isInitialized) {
-      final remote = ref.read(keluargaRemoteProvider);
       if (_originalFamilyData.isEmpty) {
-        _originalFamilyData = List.from(remote.asData?.value ?? ref.read(familyDataProvider));
+        _originalFamilyData = List.from(ref.read(familyDataProvider));
       }
       _hasLoadedInitialData = true;
+    }
+    
+    // Only refresh from SQLite if we're just initializing, not when returning from add/edit
+    // This prevents overwriting newly added data that might not be saved to SQLite yet
+    if (_isInitialized && _hasLoadedInitialData && _originalFamilyData.isEmpty) {
+      _refreshDataFromSQLite();
     }
   }
 
@@ -215,12 +203,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   }
 
   bool _hasUnsavedChanges() {
-    final remote = ref.read(keluargaRemoteProvider);
-    final currentFamilyData = remote.asData?.value ?? ref.read(familyDataProvider);
-
-    if (currentFamilyData == null) {
-      return false;
-    }
+    final currentFamilyData = ref.read(familyDataProvider);
 
     if (_originalFamilyData.length != currentFamilyData.length) {
       return true;
@@ -274,8 +257,8 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final remote = ref.watch(keluargaRemoteProvider);
-    List<dto.FamilyMemberDto> allFamilyMembers = remote.asData?.value ?? ref.watch(familyDataProvider);
+    List<dto.FamilyMemberDto> allFamilyMembers = ref.watch(familyDataProvider);
+    print('KeluargaPage: Current family members count: ${allFamilyMembers.length}');
     final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
 
     final filteredMembers = allFamilyMembers.where((member) {
@@ -300,9 +283,9 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
-        title: 'Data Keluarga',
-        onBackPressed: () => Navigator.of(context).pop(),
-        backTooltip: 'Kembali',
+        title: 'Detail Data Keluarga',
+        onBackPressed: () => context.go('/profile-sections'),
+        backTooltip: 'Kembali ke Keluarga',
       ),
         body: Form(
           key: _formKey,
@@ -320,39 +303,6 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
                 const SizedBox(height: 20),
                 _buildAddFamilyButton(theme),
                 const SizedBox(height: 20),
-                if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
-                if (remote.hasError)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: const BorderRadius.all(Radius.circular(12.0)),
-                      border: Border.all(
-                        color: Colors.orange.withOpacity(0.4),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_amber, color: Colors.orange),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Gagal memuat data dari server. Menampilkan data lokal.',
-                            style: theme.typographyRegular.bodySmall.copyWith(
-                              color: Colors.orange[900],
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.refresh),
-                          color: Colors.orange,
-                          onPressed: () => ref.invalidate(keluargaRemoteProvider),
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 12),
                 _buildFamilyCards(theme, filteredMembers),
                 const SizedBox(height: 30),
                 SizedBox(
@@ -898,8 +848,15 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     }
   }
 
-  void _addFamilyMember() {
-    context.go('/add-data-keluarga');
+  Future<void> _addFamilyMember() async {
+    // Navigate to add page and wait for result
+    final result = await context.pushNamed(Routes.addDataKeluarga.name);
+    
+    // If data was added successfully, refresh from SQLite to ensure consistency
+    if (result == 'saved' && mounted) {
+      print('KeluargaPage: User returned from add page, refreshing data...');
+      await forceRefreshFromSQLite();
+    }
   }
 
   Future<void> _deleteFamilyMember(dto.FamilyMemberDto member) async {
@@ -1039,6 +996,9 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         
         _originalFamilyData = List.from(familyList);
 
+        // Refresh data from SQLite to ensure consistency
+        await _refreshDataFromSQLite();
+
         if (mounted) {
           await ProfileCompletionNotifierCard.show(
             context,
@@ -1084,14 +1044,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     context.go('/detail-data-keluarga/${member.id}');
   }
 
-  /// Show debug page for testing SQLite operations
-  void _showKeluargaDebug(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => KeluargaDebugPage(profileService: _profileService),
-      ),
-    );
-  }
+
 }
 
 // Debug page for testing Keluarga SQLite operations

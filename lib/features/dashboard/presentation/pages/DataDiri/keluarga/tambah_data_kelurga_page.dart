@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
+import '../keluarga_page.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
+import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
+    as dto;
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
 
 class TambahAnggotaKeluargaPage extends ConsumerStatefulWidget {
   const TambahAnggotaKeluargaPage({super.key});
@@ -20,6 +22,7 @@ class _TambahAnggotaKeluargaPageState
     extends ConsumerState<TambahAnggotaKeluargaPage> {
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
+  final ProfileService _profileService = ProfileService();
 
   // Text Controllers
   final _namaController = TextEditingController();
@@ -668,28 +671,30 @@ class _TambahAnggotaKeluargaPageState
       final hubungan =
           _selectedHubungan == 'Anak' ? 'AK' : _selectedHubungan!.toUpperCase();
 
-      // Build payload aligned with backend keys
-      final payload = <String, dynamic>{
-        'nama': _namaController.text.trim(),
-        'hubungan': hubungan,
-        'tempat_lahir': _tempatLahirController.text.trim(),
-        'tanggal_lahir': _selectedTanggalLahir!.toIso8601String(),
-        'jenis_kelamin': _selectedGender!,
-        'pekerjaan': _pekerjaanController.text.trim(),
-        if (_selectedTanggalPerkawinan != null)
-          'tanggal_menikah': _selectedTanggalPerkawinan!.toIso8601String(),
-        // Optional fields from form
-        'nik': _nikController.text.trim(),
-        'agama': _selectedAgama,
-        'handphone': _handphoneController.text.trim(),
-        'bpjs': _bpjsController.text.trim(),
-        'surat_kuliah': _suratKuliahController.text.trim(),
-      };
-
-      await ref.read(keluargaApiProvider).createMember(payload);
-
-      // Refresh list
-      ref.invalidate(keluargaRemoteProvider);
+      // Create new FamilyMemberDto and add to local SQLite provider
+      final newMember = dto.FamilyMemberDto(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        nama: _namaController.text.trim(),
+        hubungan: hubungan,
+        tempatLahir: _tempatLahirController.text.trim(),
+        tanggalLahir: _selectedTanggalLahir!,
+        jenisKelamin: _selectedGender!,
+        pekerjaan: _pekerjaanController.text.trim(),
+        tanggalMenikah: _selectedTanggalPerkawinan,
+      );
+      
+      // Add to familyDataProvider
+      final currentData = ref.read(familyDataProvider);
+      print('TambahKeluarga: Current data length before add: ${currentData.length}');
+      final updatedData = [...currentData, newMember];
+      print('TambahKeluarga: Updated data length after add: ${updatedData.length}');
+      
+      ref.read(familyDataProvider.notifier).state = updatedData;
+      print('TambahKeluarga: ✅ Data added to provider');
+      
+      // Also save the entire family data to SQLite to maintain consistency
+      await _saveFamilyDataToSQLite(updatedData);
+      print('TambahKeluarga: ✅ Data saved to SQLite');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -700,7 +705,7 @@ class _TambahAnggotaKeluargaPageState
           ),
         );
         if (context.canPop()) {
-          context.pop();
+          context.pop('saved'); // Return 'saved' result
         } else {
           context.go('/keluarga');
         }
@@ -717,6 +722,63 @@ class _TambahAnggotaKeluargaPageState
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Save family data to SQLite database
+  Future<void> _saveFamilyDataToSQLite(List<dto.FamilyMemberDto> familyList) async {
+    try {
+      String namaAyah = '';
+      String namaIbu = '';
+      String namaPasangan = '';
+      String namaAnak = '';
+      String pekerjaanAyah = '';
+      String pekerjaanIbu = '';
+      String pekerjaanPasangan = '';
+
+      for (final member in familyList) {
+        switch (member.hubungan) {
+          case 'AYAH':
+            namaAyah = member.nama;
+            pekerjaanAyah = member.pekerjaan;
+            break;
+          case 'IBU':
+            namaIbu = member.nama;
+            pekerjaanIbu = member.pekerjaan;
+            break;
+          case 'ISTRI':
+          case 'SUAMI':
+            namaPasangan = member.nama;
+            pekerjaanPasangan = member.pekerjaan;
+            break;
+          case 'AK':
+            if (namaAnak.isEmpty) {
+              namaAnak = member.nama;
+            } else {
+              namaAnak += ', ${member.nama}';
+            }
+            break;
+        }
+      }
+
+      // Save to SQLite using ProfileService
+      final success = await _profileService.saveKeluargaData(
+        namaAyah: namaAyah,
+        namaIbu: namaIbu,
+        namaPasangan: namaPasangan,
+        namaAnak: namaAnak,
+        pekerjaanAyah: pekerjaanAyah,
+        pekerjaanIbu: pekerjaanIbu,
+        pekerjaanPasangan: pekerjaanPasangan,
+      );
+
+      if (!success) {
+        print('TambahKeluarga: Warning - SQLite save failed');
+      } else {
+        print('TambahKeluarga: ✅ SQLite save successful');
+      }
+    } catch (e) {
+      print('TambahKeluarga: Error saving to SQLite: $e');
     }
   }
 }

@@ -4,16 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
-// Remote provider to fetch a member by ID
-final keluargaMemberProvider = FutureProvider.autoDispose
-    .family<dto.FamilyMemberDto, String>(
-      (ref, id) => ref.read(keluargaApiProvider).getMember(id),
-    );
+// SQLite-only implementation - no more API provider needed
 
 class DetailDataKeluargaPage extends ConsumerWidget {
   final String memberId;
@@ -23,16 +18,13 @@ class DetailDataKeluargaPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
-    final remote = ref.watch(keluargaMemberProvider(memberId));
-    // Fallback to local list when remote not available
+    // Get member data from SQLite via familyDataProvider
     final localList = ref.watch(familyDataProvider);
-    dto.FamilyMemberDto? member = remote.asData?.value;
-    if (member == null) {
-      for (final m in localList) {
-        if (m.id == memberId) {
-          member = m;
-          break;
-        }
+    dto.FamilyMemberDto? member;
+    for (final m in localList) {
+      if (m.id == memberId) {
+        member = m;
+        break;
       }
     }
 
@@ -43,49 +35,17 @@ class DetailDataKeluargaPage extends ConsumerWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
         title: 'Detail Data Keluarga',
-        onBackPressed: () => Navigator.of(context).pop(),
-        backTooltip: 'Kembali',
+        onBackPressed: () => context.go('/keluarga'),
+        backTooltip: 'Kembali ke Keluarga',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 24.0 : 16.0,
+          horizontal: isTablet ? 12.0 : 8.0, // Reduced horizontal padding for wider containers
           vertical: 16.0,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Ensure full width stretch
           children: [
-            if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
-            if (remote.hasError)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  border: Border.all(color: Colors.orange.withOpacity(0.4)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.orange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Gagal memuat detail dari server. Menampilkan data lokal bila tersedia.',
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          color: Colors.orange[900],
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed:
-                          () =>
-                              ref.invalidate(keluargaMemberProvider(memberId)),
-                      icon: const Icon(Icons.refresh, color: Colors.orange),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
 
             if (member == null)
               Center(
@@ -127,7 +87,9 @@ class DetailDataKeluargaPage extends ConsumerWidget {
 
   Widget _buildProfileHeader(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(horizontal: 0), // Remove horizontal margin
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -202,6 +164,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
 
   Widget _buildPersonalInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -279,6 +242,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
 
   Widget _buildFamilyInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -339,6 +303,7 @@ class DetailDataKeluargaPage extends ConsumerWidget {
 
   Widget _buildMarriageInfoSection(dynamic theme, dto.FamilyMemberDto member) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -606,19 +571,11 @@ class DetailDataKeluargaPage extends ConsumerWidget {
                 onPressed: () async {
                   Navigator.pop(context);
 
-                  // Try API deletion, fallback to local removal
-                  try {
-                    await ref.read(keluargaApiProvider).deleteMember(member.id);
-                    // Refresh remote list and member detail providers
-                    ref.invalidate(keluargaRemoteProvider);
-                    ref.invalidate(keluargaMemberProvider(member.id));
-                  } catch (_) {
-                    // Fallback: update local provider
-                    final currentData = ref.read(familyDataProvider);
-                    final updatedData =
-                        currentData.where((m) => m.id != member.id).toList();
-                    ref.read(familyDataProvider.notifier).state = updatedData;
-                  }
+                  // Delete from local SQLite data
+                  final currentData = ref.read(familyDataProvider);
+                  final updatedData =
+                      currentData.where((m) => m.id != member.id).toList();
+                  ref.read(familyDataProvider.notifier).state = updatedData;
 
                   // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
