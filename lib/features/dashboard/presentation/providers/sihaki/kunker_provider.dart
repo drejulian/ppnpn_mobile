@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
-import '../../../../../common/data/repositories/kunker_repository.dart';
-import '../../../../../common/data/models/sihaki/kunker_model.dart';
+import '../../../../../common/data/repositories/sihaki/kunker_perorangan_repository.dart';
+import '../../../../../common/data/models/sihaki/kunker_perorangan_model.dart';
 
 // Repository provider
 final kunkerRepositoryProvider = Provider<KunkerRepository>((ref) {
@@ -67,7 +67,6 @@ class KunkerState {
 // Kunker StateNotifier
 class KunkerNotifier extends StateNotifier<KunkerState> {
   final KunkerRepository _repository;
-  bool _isAddingKunker = false; // Simple lock for preventing concurrent adds
 
   KunkerNotifier(this._repository) : super(const KunkerState()) {
     loadKunkerData();
@@ -110,45 +109,17 @@ class KunkerNotifier extends StateNotifier<KunkerState> {
 
   // Add new kunker
   Future<bool> addKunker(Map<String, dynamic> kunkerData) async {
-    final noSurat = kunkerData['no_surat']?.toString().trim() ?? '';
-    
-    // Prevent concurrent adds
-    if (_isAddingKunker || state.isLoading) {
-      throw Exception('Sedang memproses pengajuan sebelumnya, silakan tunggu');
-    }
-    
-    _isAddingKunker = true;
-    state = state.copyWith(isLoading: true, error: null);
-    
+    print('DEBUG KunkerProvider: Adding new kunker with no_surat: ${kunkerData['no_surat']}');
     try {
-      // Validate no_surat is not empty
-      if (noSurat.isEmpty) {
-        throw Exception('No. Surat tidak boleh kosong');
-      }
-      
-      // Let the database helper handle duplicate validation
       await _repository.addKunkerFromUIMap(kunkerData);
-      
-      // Refresh the list without changing loading state
-      await _refreshDataSilently();
-      
-      state = state.copyWith(isLoading: false);
+      print('DEBUG KunkerProvider: Successfully added kunker to database');
+      await loadKunkerData(); // Refresh the list
+      print('DEBUG KunkerProvider: Refreshed data after adding kunker');
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
-      return false;
-    } finally {
-      _isAddingKunker = false;
-    }
-  }
-
-  // Refresh data without changing loading state
-  Future<void> _refreshDataSilently() async {
-    try {
-      final kunkerList = await _repository.getAllKunker();
-      state = state.copyWith(kunkerList: kunkerList, error: null);
-    } catch (e) {
+      print('DEBUG KunkerProvider: Error adding kunker: $e');
       state = state.copyWith(error: e.toString());
+      return false;
     }
   }
 
@@ -217,12 +188,6 @@ class KunkerNotifier extends StateNotifier<KunkerState> {
   // Clear error
   void clearError() {
     state = state.copyWith(error: null);
-  }
-
-  // Reset loading state (for debugging/emergency)
-  void resetState() {
-    _isAddingKunker = false;
-    state = state.copyWith(isLoading: false, error: null);
   }
 
   // Backward compatibility methods for existing UI
@@ -307,8 +272,8 @@ class LegacyKunkerNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       state = next.uiKunkerList;
     });
     
-    // Don't load initial data here to avoid race condition
-    // Let the main provider handle initial loading
+    // Load initial data
+    _ref.read(kunkerProvider.notifier).loadKunkerData();
   }
 
   void addKunker(Map<String, dynamic> kunker) {

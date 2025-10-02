@@ -65,8 +65,12 @@ class AppDatabaseHelper {
     
     // For BPJS fix, drop all tables and recreate
     if (oldVersion < newVersion) {
-      // Drop SIHAKI tables first (reverse order to avoid foreign key constraints)
       try {
+        // TEMPORARILY DISABLE foreign key constraints during upgrade
+        await db.execute('PRAGMA foreign_keys = OFF');
+        
+        // Drop SIHAKI tables first (reverse order to avoid foreign key constraints)
+        await db.execute('DROP TABLE IF EXISTS notifications');
         await db.execute('DROP TABLE IF EXISTS kesehatan');
         await db.execute('DROP TABLE IF EXISTS kontak');
         await db.execute('DROP TABLE IF EXISTS penerbangan');
@@ -109,7 +113,12 @@ class AppDatabaseHelper {
         // Insert default user untuk foreign key constraints
         await _createDefaultUser(db);
         
+        // RE-ENABLE foreign key constraints after upgrade
+        await db.execute('PRAGMA foreign_keys = ON');
+        
       } catch (e) {
+        // Ensure foreign keys are re-enabled even if error occurs
+        await db.execute('PRAGMA foreign_keys = ON');
         rethrow;
       }
     }
@@ -1956,7 +1965,9 @@ class AppDatabaseHelper {
       
       // Delete database file
       String path = join(await getDatabasesPath(), 'ppnpn_app.db');
-      await File(path).delete();
+      if (await File(path).exists()) {
+        await File(path).delete();
+      }
       
       // Reinitialize database
       _database = await _initDatabase();
@@ -1985,6 +1996,41 @@ class AppDatabaseHelper {
       'default_user_exists': defaultUser.isNotEmpty,
       'default_user_data': defaultUser.isNotEmpty ? defaultUser.first : null,
     };
+  }
+
+  // Method untuk fix database corruption atau foreign key issues
+  Future<void> fixDatabaseIssues() async {
+    try {
+      print('DEBUG: Starting database fix...');
+      
+      // Close current connection
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
+      
+      // Get database path
+      String path = join(await getDatabasesPath(), 'ppnpn_app.db');
+      
+      // Delete corrupted database
+      if (await File(path).exists()) {
+        await File(path).delete();
+        print('DEBUG: Deleted corrupted database file');
+      }
+      
+      // Recreate database with fresh schema
+      _database = await _initDatabase();
+      print('DEBUG: Recreated database with fresh schema');
+      
+      // Verify default user exists
+      await _ensureDefaultUser();
+      print('DEBUG: Ensured default user exists');
+      
+      print('DEBUG: Database fix completed successfully');
+    } catch (e) {
+      print('DEBUG: Error during database fix: $e');
+      rethrow;
+    }
   }
 
 }

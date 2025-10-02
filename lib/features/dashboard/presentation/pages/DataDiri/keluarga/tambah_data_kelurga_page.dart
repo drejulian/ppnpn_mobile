@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 class TambahAnggotaKeluargaPage extends ConsumerStatefulWidget {
   const TambahAnggotaKeluargaPage({super.key});
@@ -71,28 +72,11 @@ class _TambahAnggotaKeluargaPageState
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Tambah Anggota Keluarga',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/keluarga');
-            }
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Tambah Anggota Keluarga',
+        onBackPressed: () => context.go('/keluarga'),
+        backTooltip: 'Kembali ke keluarga',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

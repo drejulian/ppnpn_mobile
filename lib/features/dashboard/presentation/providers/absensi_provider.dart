@@ -150,7 +150,8 @@ class AbsensiNotifier extends StateNotifier<AsyncValue<void>> {
       String title = type == 'checkin' ? 'Check In Berhasil!' : 'Check Out Berhasil!';
       String body = '${type == 'checkin' ? 'Check In' : 'Check Out'} pada $time - Status: $status';
       
-      await NotificationService.showAbsensiNotification(
+      // Use showNotification (same as media sosial) instead of showAbsensiNotification
+      await NotificationService.showNotification(
         id: DateTime.now().millisecondsSinceEpoch % 100000,
         title: title,
         body: body,

@@ -326,13 +326,6 @@ class _DaftarReimbursePageState extends ConsumerState<DaftarReimbursePage> {
         title: 'Daftar Reimburse',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.refresh(reimburseListProvider),
-            tooltip: 'Refresh Data',
-          ),
-        ],
       ),
       body: Column(
         children: [

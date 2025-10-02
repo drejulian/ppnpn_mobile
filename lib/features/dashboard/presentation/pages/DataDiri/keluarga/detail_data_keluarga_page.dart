@@ -7,6 +7,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarg
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 // Remote provider to fetch a member by ID
 final keluargaMemberProvider = FutureProvider.autoDispose
@@ -39,64 +40,11 @@ class DetailDataKeluargaPage extends ConsumerWidget {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Detail Anggota Keluarga',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/keluarga');
-            }
-          },
-        ),
-        actions: [
-          IconButton(
-            onPressed:
-                member == null
-                    ? null
-                    : () {
-                      final m = member;
-                      if (m != null) _editFamilyMember(context, m);
-                    },
-            icon: const Icon(Icons.edit, color: Colors.white),
-            tooltip: 'Edit Data',
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onSelected: (value) {
-              if (value == 'delete') {
-                if (member != null) {
-                  _deleteFamilyMember(context, ref, member);
-                }
-              }
-            },
-            itemBuilder:
-                (BuildContext context) => [
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red, size: 20),
-                        SizedBox(width: 8),
-                        Text('Hapus Data'),
-                      ],
-                    ),
-                  ),
-                ],
-          ),
-        ],
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Detail Data Keluarga',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

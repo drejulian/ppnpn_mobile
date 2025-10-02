@@ -9,6 +9,11 @@ import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'providers/profile_data_provider.dart';
 import 'pendidikan/tambah_data_pendidikan_page.dart';
 import 'pendidikan/edit_data_pendidikan_page.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
+import 'package:ppnpm_dpr/common/data/models/profile_models.dart';
 
 class PendidikanPage extends ConsumerStatefulWidget {
   const PendidikanPage({super.key});
@@ -23,6 +28,11 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
   bool _isSaving = false;
+  
+  // SQLite service
+  final ProfileService _profileService = ProfileService();
+
+  // SQLite service
 
   @override
   void initState() {
@@ -62,7 +72,9 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
       return;
     }
 
+    // Load data from both SharedPreferences and SQLite, then merge
     await _loadEducationData();
+    await _loadDataFromSQLite();
   }
 
   Future<void> _loadEducationData() async {
@@ -102,6 +114,65 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     _originalData = _getCurrentData();
     setState(() => _dataLoaded = true);
     debugPrint('PendidikanPage: Loaded education data: $_educationData');
+  }
+
+  /// Load data from SQLite database
+  Future<void> _loadDataFromSQLite() async {
+    try {
+      debugPrint('PendidikanPage: Loading data from SQLite...');
+      
+      // Initialize ProfileService
+      await _profileService.initialize();
+      
+      // Get all pendidikan data from SQLite
+      final List<PendidikanModel> pendidikanModels = await _profileService.getAllPendidikanData();
+      
+      if (pendidikanModels.isNotEmpty) {
+        debugPrint('PendidikanPage: Found ${pendidikanModels.length} records in SQLite');
+        
+        // Convert PendidikanModel to Map<String, String> format
+        final List<Map<String, String>> sqliteEducationData = pendidikanModels.map((model) {
+          return {
+            'id': model.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'jenjang': model.jenjang,
+            'jurusan': model.jurusan,
+            'institusi': model.institusi,
+            'kota': model.kota,
+            'tahun_mulai': model.tahunMulai,
+            'tahun_selesai': model.tahunSelesai,
+            'ipk': model.ipk,
+            'created_at': model.createdAt.toIso8601String(),
+            'updated_at': model.updatedAt.toIso8601String(),
+          };
+        }).toList();
+        
+        // Merge dengan data yang sudah ada (jika ada)
+        for (final sqliteData in sqliteEducationData) {
+          // Check if data already exists (by comparing institusi, jurusan, and tahun_selesai)
+          final exists = _educationData.any((existing) =>
+              existing['institusi'] == sqliteData['institusi'] &&
+              existing['jurusan'] == sqliteData['jurusan'] &&
+              existing['tahun_selesai'] == sqliteData['tahun_selesai']);
+          
+          if (!exists) {
+            _educationData.add(sqliteData);
+            debugPrint('PendidikanPage: Added SQLite data: ${sqliteData['jurusan']} - ${sqliteData['institusi']}');
+          }
+        }
+        
+        // Update provider with latest data
+        _updateProviderFromEducationData();
+        
+        // Save to SharedPreferences to sync
+        await _saveEducationDataToStorage();
+        
+        debugPrint('PendidikanPage: Successfully loaded and merged SQLite data');
+      } else {
+        debugPrint('PendidikanPage: No pendidikan data found in SQLite');
+      }
+    } catch (e) {
+      debugPrint('PendidikanPage: Error loading data from SQLite: $e');
+    }
   }
 
   void _updateProviderFromEducationData() {
@@ -285,20 +356,71 @@ class _PendidikanPageState extends ConsumerState<PendidikanPage> {
     });
 
     try {
+      debugPrint('PendidikanPage: Starting save process...');
+      
+      // 1. Save to SharedPreferences first
       await _saveEducationDataToStorage();
       _updateProviderFromEducationData();
       _originalData = _getCurrentData();
+
+      // 2. Save to SQLite database
+      debugPrint('PendidikanPage: Saving ${_educationData.length} records to SQLite...');
+      
+      // Initialize ProfileService
+      await _profileService.initialize();
+      
+      // Clear existing data and save new ones
+      await _profileService.deleteAllPendidikanData();
+      
+      int savedCount = 0;
+      for (final educationItem in _educationData) {
+        try {
+          final success = await _profileService.savePendidikanData(
+            jenjang: educationItem['jenjang'] ?? '',
+            jurusan: educationItem['jurusan'] ?? '',
+            institusi: educationItem['institusi'] ?? '',
+            kota: educationItem['kota'] ?? '',
+            tahunMulai: educationItem['tahun_mulai'] ?? '',
+            tahunSelesai: educationItem['tahun_selesai'] ?? '',
+            ipk: educationItem['ipk'] ?? '',
+          );
+          
+          if (success) {
+            savedCount++;
+            debugPrint('PendidikanPage: ✅ Saved: ${educationItem['jurusan']} - ${educationItem['institusi']}');
+          } else {
+            debugPrint('PendidikanPage: ❌ Failed to save: ${educationItem['jurusan']} - ${educationItem['institusi']}');
+          }
+        } catch (e) {
+          debugPrint('PendidikanPage: ❌ Error saving individual record: $e');
+        }
+      }
+      
+      debugPrint('PendidikanPage: Saved $savedCount/${_educationData.length} records to SQLite');
+
+      // 3. Update SQLite provider with latest data
+      try {
+        final allPendidikan = await _profileService.getAllPendidikanData();
+        ref.read(pendidikanSQLiteProvider.notifier).updatePendidikanData(allPendidikan);
+        debugPrint('PendidikanPage: ✅ Updated SQLite provider with ${allPendidikan.length} records');
+      } catch (e) {
+        debugPrint('PendidikanPage: ❌ Failed to update SQLite provider: $e');
+      }
+
+      // 4. Update SharedPreferences flags to indicate SQLite save success
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('pendidikan_just_saved', true);
 
       if (mounted) {
         await ProfileCompletionNotifierCard.show(
           context,
           title: 'Berhasil Menyimpan Data Pendidikan',
-          message: 'Data pendidikan Anda telah diperbarui dan tersimpan dengan sukses.',
+          message: 'Data pendidikan Anda telah diperbarui dan tersimpan dengan sukses di database.',
           onConfirm: () {
             if (mounted) {
               notification.NotificationUtils.showSuccess(
                 context,
-                'Data pendidikan telah disimpan',
+                'Data pendidikan telah disimpan ke database',
               );
               context.pop('saved');
             }

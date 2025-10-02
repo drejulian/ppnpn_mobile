@@ -545,23 +545,6 @@ class _DataKomisiPageState extends ConsumerState<DataKomisiPage> {
           }
         },
         backTooltip: 'Kembali',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshData,
-            tooltip: 'Refresh Data',
-          ),
-          IconButton(
-            icon: const Icon(Icons.restart_alt),
-            onPressed: _resetAllData,
-            tooltip: 'Reset All',
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showDatabaseInfo,
-            tooltip: 'Database Info',
-          ),
-        ],
       ),
       body: Consumer(
         builder: (context, ref, child) {

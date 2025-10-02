@@ -47,13 +47,6 @@ class _DaftarCutiPageState extends ConsumerState<DaftarCutiPage> {
         title: 'Daftar Cuti',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(cutiProvider.notifier).loadCuti(),
-            tooltip: 'Refresh Data',
-          ),
-        ],
       ),
       body: cutiState.isLoading 
         ? const Center(child: CircularProgressIndicator())

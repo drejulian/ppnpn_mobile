@@ -7,6 +7,7 @@ import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarg
 import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 // Local provider for fetching a member by ID
 final editMemberProvider = FutureProvider.autoDispose
@@ -115,27 +116,19 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          _isEditing ? 'Edit Data Keluarga' : 'Tambah Data Keluarga',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/keluarga');
-            }
-          },
-        ),
+      appBar: AppCustomAppBar(
+        title: _isEditing ? 'Edit Data Keluarga' : 'Tambah Data Keluarga',
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/keluarga');
+          }
+        },
+        backTooltip: 'Kembali ke halaman keluarga',
+        backgroundColor: Colors.white,
+        titleColor: theme.primarySwatch,
+        iconColor: theme.primarySwatch,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

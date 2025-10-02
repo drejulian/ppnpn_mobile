@@ -7,6 +7,10 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'providers/profile_data_provider.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
+// Debug imports
+import 'package:ppnpm_dpr/features/profile/pages/idcard_debug.dart';
 
 class IdCardPage extends ConsumerStatefulWidget {
   const IdCardPage({super.key});
@@ -22,30 +26,98 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
 
+  // SQLite service
+  final ProfileService _profileService = ProfileService();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     if (!_dataLoaded) {
-      // Load data from provider when page is loaded
+      // Initialize and load data from SQLite first
+      _initializeAndLoadData();
+      _dataLoaded = true;
+    }
+  }
+
+  /// Initialize SQLite and load existing data
+  Future<void> _initializeAndLoadData() async {
+    try {
+      print('IdCardPage: Initializing SQLite and loading data...');
+      
+      // Load data from SQLite first
+      await _loadDataFromSQLite();
+      
+      // If no SQLite data, try loading from provider for backward compatibility
+      if (_selectedImage == null) {
+        await _loadDataFromProvider();
+      }
+      
+      // Backup original data for change detection
+      _originalData = _getCurrentData();
+      
+      print('IdCardPage: Initialization completed');
+    } catch (e) {
+      print('IdCardPage: Error during initialization: $e');
+    }
+  }
+
+  /// Load ID card data from SQLite
+  Future<void> _loadDataFromSQLite() async {
+    try {
+      print('IdCardPage: Loading ID card data from SQLite...');
+      
+      final idCardData = await _profileService.getCurrentIdCardData();
+      
+      if (idCardData != null && mounted) {
+        print('IdCardPage: Found existing ID card data, populating fields...');
+        print('  - Foto Path: ${idCardData.fotoPath}');
+        print('  - Is Uploaded: ${idCardData.isUploaded}');
+        
+        if (idCardData.fotoPath.isNotEmpty) {
+          final File savedFile = File(idCardData.fotoPath);
+          if (_isValidImageFile(savedFile)) {
+            setState(() {
+              _selectedImage = savedFile;
+            });
+            print('IdCardPage: ✅ Photo loaded from SQLite successfully');
+          } else {
+            print('IdCardPage: ⚠️ Invalid photo file at path: ${idCardData.fotoPath}');
+          }
+        }
+      } else {
+        print('IdCardPage: No existing ID card data found in SQLite');
+      }
+    } catch (e) {
+      print('IdCardPage: Error loading ID card data from SQLite: $e');
+    }
+  }
+
+  /// Load data from provider (fallback for backward compatibility)
+  Future<void> _loadDataFromProvider() async {
+    try {
+      print('IdCardPage: Loading data from provider as fallback...');
+      
       final savedData = ref.read(idCardDataProvider);
 
       // Only set data if not already set and data exists
       if (_selectedImage == null && savedData.fotoPath.isNotEmpty) {
         final File savedFile = File(savedData.fotoPath);
         if (_isValidImageFile(savedFile)) {
-          _selectedImage = savedFile;
+          setState(() {
+            _selectedImage = savedFile;
+          });
+          print('IdCardPage: ✅ Photo loaded from provider successfully');
         } else {
           // Clear invalid path from provider
           ref
               .read(idCardDataProvider.notifier)
               .updateData(IdCardData(fotoPath: '', isUploaded: false));
+          print('IdCardPage: ⚠️ Invalid photo file, cleared from provider');
         }
       }
-
-      // Backup original data for change detection
-      _originalData = _getCurrentData();
-      _dataLoaded = true;
+    } catch (e) {
+      print('IdCardPage: Error loading data from provider: $e');
     }
   }
 
@@ -176,6 +248,20 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         title: 'ID Card',
         onBackPressed: () => Navigator.of(context).pop(),
         backTooltip: 'Kembali',
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const IdCardDebugPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Debug SQLite',
+          ),
+        ],
       ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
@@ -566,7 +652,12 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     );
   }
 
-  void _saveData(BuildContext context, dynamic theme) {
+  void _saveData(BuildContext context, dynamic theme) async {
+    // Debug logging
+    print('IdCardPage: Validating and saving data...');
+    print('Selected image path: ${_selectedImage?.path ?? "None"}');
+    print('Is valid image: ${_selectedImage != null ? _isValidImageFile(_selectedImage!) : false}');
+
     // Validate image before saving
     String validatedPath = '';
     bool isValidImage = false;
@@ -575,47 +666,81 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       if (_isValidImageFile(_selectedImage!)) {
         validatedPath = _selectedImage!.path;
         isValidImage = true;
+        print('IdCardPage: ✅ Image validation passed');
       } else {
         setState(() {
           _selectedImage = null;
         });
+        print('IdCardPage: ❌ Image validation failed, clearing selection');
       }
+    } else {
+      print('IdCardPage: ℹ️ No image selected');
     }
 
-    // Save data to provider
-    final idCardData = IdCardData(
-      fotoPath: validatedPath,
-      isUploaded: isValidImage,
-    );
+    try {
+      // Save to SQLite first
+      print('IdCardPage: 🔄 Calling ProfileService.saveIdCardData()...');
+      final sqliteSuccess = await _profileService.saveIdCardData(
+        fotoPath: validatedPath,
+        isUploaded: isValidImage,
+      );
 
-    ref.read(idCardDataProvider.notifier).updateData(idCardData);
-
-    // Show immediate feedback with SnackBar
-    notification.NotificationUtils.showSuccess(
-      context,
-      'Data ID Card telah disimpan',
-    );
-
-    // Show success dialog with delay to ensure SnackBar is visible first
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && context.mounted) {
-        ProfileCompletionNotifierCard.show(
+      print('IdCardPage: 📋 SQLite save result: $sqliteSuccess');
+      
+      if (!sqliteSuccess) {
+        print('IdCardPage: ❌ SQLite save failed - showing error dialog');
+        notification.NotificationUtils.showError(
           context,
-          title: 'Berhasil Menyimpan ID Card',
-          message: 'Data ID Card Anda telah diperbarui dan tersimpan dengan sukses.',
-          onConfirm: () {
-            // Update original data to clear unsaved changes flag
-            _originalData = _getCurrentData();
-
-            // Safe navigation back to previous page
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context, 'saved');
-            } else {
-              context.go('/profile-sections');
-            }
-          },
+          'Gagal menyimpan data ke database. Silakan coba lagi.',
         );
+        return;
       }
-    });
+
+      print('IdCardPage: ✅ Data saved to SQLite successfully!');
+
+      // Update SharedPreferences provider for compatibility
+      final idCardData = IdCardData(
+        fotoPath: validatedPath,
+        isUploaded: isValidImage,
+      );
+
+      ref.read(idCardDataProvider.notifier).updateData(idCardData);
+
+      print('IdCardPage: ✅ Provider updated successfully');
+
+      // Show immediate feedback with SnackBar
+      notification.NotificationUtils.showSuccess(
+        context,
+        'Data ID Card telah disimpan',
+      );
+
+      // Show success dialog with delay to ensure SnackBar is visible first
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && context.mounted) {
+          ProfileCompletionNotifierCard.show(
+            context,
+            title: 'Berhasil Menyimpan ID Card',
+            message: 'Data ID Card Anda telah diperbarui dan tersimpan dengan sukses.',
+            onConfirm: () {
+              // Update original data to clear unsaved changes flag
+              _originalData = _getCurrentData();
+
+              // Safe navigation back to previous page
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context, 'saved');
+              } else {
+                context.go('/profile-sections');
+              }
+            },
+          );
+        }
+      });
+    } catch (e) {
+      print('IdCardPage: ❌ Error during save process: $e');
+      notification.NotificationUtils.showError(
+        context,
+        'Terjadi kesalahan saat menyimpan data ID Card: $e',
+      );
+    }
   }
 }

@@ -569,14 +569,24 @@ class AbsensiPage extends ConsumerWidget {
                   (!kIsWeb && selectedImage != null);
               
               bool canSubmit = false;
-              locationValidationAsync.whenData((result) {
-                final typeAllowed = (absensiType == 'checkin' && canCheckIn) ||
-                    (absensiType == 'checkout' && canCheckOut);
-                canSubmit = typeAllowed &&
-                    hasImage &&
-                    currentLocation != null &&
-                    result.isValid;
-              });
+              
+              locationValidationAsync.when(
+                data: (result) {
+                  final typeAllowed = (absensiType == 'checkin' && canCheckIn) ||
+                      (absensiType == 'checkout' && canCheckOut);
+                  
+                  canSubmit = typeAllowed &&
+                      hasImage &&
+                      currentLocation != null &&
+                      result.isValid;
+                },
+                loading: () {
+                  canSubmit = false;
+                },
+                error: (error, _) {
+                  canSubmit = false;
+                },
+              );
 
               return _buildAbsensiFormContent(
                 theme,

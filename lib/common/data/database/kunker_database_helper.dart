@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import '../models/sihaki/kunker_model.dart';
+import '../models/sihaki/kunker_perorangan_model.dart';
 import 'app_database_helper.dart';
 
 class KunkerDatabaseHelper {
@@ -47,20 +47,26 @@ class KunkerDatabaseHelper {
   static const String columnUpdatedAt = 'updated_at';
 
   Future<Database> get database async {
+    print('🎯 KunkerDatabaseHelper: Getting database...');
     final db = await _dbHelper.database;
     
     // Verify table structure
     try {
       final tableInfo = await db.rawQuery("PRAGMA table_info(kunker_perorangan)");
+      print('🔍 KunkerDatabaseHelper - Table structure verification:');
+      for (var column in tableInfo) {
+        print('   - ${column['name']}: ${column['type']}');
+      }
       
       // Check if no_surat column exists
       final hasNoSurat = tableInfo.any((col) => col['name'] == 'no_surat');
+      print('✅ Has no_surat column: $hasNoSurat');
       
       if (!hasNoSurat) {
-        // Handle missing column case if needed
+        print('❌ CRITICAL: no_surat column missing! Available columns: ${tableInfo.map((col) => col['name']).join(', ')}');
       }
     } catch (e) {
-      // Handle error silently
+      print('❌ Error checking table structure: $e');
     }
     
     return db;
@@ -278,22 +284,13 @@ class KunkerDatabaseHelper {
   Future<int> insertKunker(KunkerModel kunker) async {
     await initializeTable();
     final db = await database;
-    
-    // Trim and normalize no_surat for better validation
-    final normalizedNoSurat = kunker.noSurat.trim();
-    
     try {
-      final kunkerWithNormalizedNoSurat = kunker.copyWith(noSurat: normalizedNoSurat);
-      final result = await db.insert(tableName, kunkerWithNormalizedNoSurat.toMap());
-      return result;
-      
+      return await db.insert(tableName, kunker.toMap());
     } catch (e) {
-      // Handle specific UNIQUE constraint violation
-      if (e.toString().contains('UNIQUE constraint failed: kunker_perorangan.no_surat')) {
-        throw Exception('No. Surat "$normalizedNoSurat" sudah ada, gunakan nomor yang berbeda');
+      // Handle unique constraint violation
+      if (e.toString().contains('UNIQUE constraint failed')) {
+        throw Exception('No. Surat sudah ada');
       }
-      
-      // For other errors, re-throw as is
       rethrow;
     }
   }
@@ -369,85 +366,8 @@ class KunkerDatabaseHelper {
     await db.delete(tableName);
   }
 
-  // Check if no_surat already exists (case-insensitive)
-  Future<bool> isNoSuratExists(String noSurat) async {
-    await initializeTable();
-    final db = await database;
-    
-    final normalizedNoSurat = noSurat.trim().toUpperCase();
-    print('DEBUG: Checking if no_surat exists: "$normalizedNoSurat"');
-    
-    final result = await db.query(
-      tableName,
-      where: 'UPPER($columnNoSurat) = ?',
-      whereArgs: [normalizedNoSurat],
-    );
-    
-    final exists = result.isNotEmpty;
-    if (exists) {
-      print('DEBUG: No_surat exists: "${result.first['no_surat']}"');
-    } else {
-      print('DEBUG: No_surat is available');
-    }
-    
-    return exists;
-  }
-
-  // Get all existing no_surat for debugging
-  Future<List<String>> getAllNoSurat() async {
-    await initializeTable();
-    final db = await database;
-    
-    final result = await db.query(
-      tableName,
-      columns: [columnNoSurat],
-    );
-    
-    final noSuratList = result.map((row) => row[columnNoSurat].toString()).toList();
-    print('DEBUG: Existing no_surat list: $noSuratList');
-    
-    return noSuratList;
-  }
-
-  // Method untuk debug: hapus semua data dan reset sample data
-  Future<void> resetSampleData() async {
-    final db = await database;
-    
-    // Clear all data
-    await db.delete(tableName);
-    print('DEBUG: Cleared all kunker data');
-    
-    // Insert fresh sample data
-    await _insertSampleData(db);
-    print('DEBUG: Inserted fresh sample data');
-  }
-
-  // Method untuk debug: cek apakah ada data
-  Future<void> debugDatabaseState() async {
-    await initializeTable();
-    final db = await database;
-    
-    final count = await db.rawQuery('SELECT COUNT(*) as count FROM $tableName');
-    final totalCount = count.first['count'] as int;
-    print('DEBUG: Total records in database: $totalCount');
-    
-    if (totalCount > 0) {
-      final allRecords = await db.query(tableName, columns: [columnNoSurat, 'created_at']);
-      print('DEBUG: All records:');
-      for (final record in allRecords) {
-        print('DEBUG:   - No Surat: "${record[columnNoSurat]}", Created: ${record['created_at']}');
-      }
-    }
-  }
-
   // Helper method to convert UI format to database format
   Future<int> insertKunkerFromUIMap(Map<String, dynamic> uiData) async {
-    // Trim the no_surat from UI data
-    if (uiData['no_surat'] != null) {
-      uiData = Map<String, dynamic>.from(uiData);
-      uiData['no_surat'] = uiData['no_surat'].toString().trim();
-    }
-    
     final kunker = KunkerModel.fromUIMap(uiData);
     return await insertKunker(kunker);
   }

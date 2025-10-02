@@ -5,7 +5,6 @@ import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/providers/MenuUtama/notification_provider.dart';
 import 'package:ppnpm_dpr/common/services/notification_service.dart';
-import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
 import '../../../providers/sihaki/kunker_provider.dart';
 
 class TambahKunkerPeroranganPage extends ConsumerStatefulWidget {
@@ -129,8 +128,12 @@ class _TambahKunkerPeroranganPageState
                       _noSuratController,
                       Icons.receipt_long,
                       theme,
-                      hintText: 'Wajib diisi',
-                      isRequired: true,
+                      hintText: 'Kosongkan untuk auto-generate',
+                      isRequired: false, // Allow empty for auto-generation
+                      validator: (value) {
+                        // No required validation since we auto-generate if empty
+                        return null;
+                      },
                     ),
                     _buildDropdownField(
                       'Jenis Perjadin',
@@ -834,77 +837,74 @@ class _TambahKunkerPeroranganPageState
   }
 
   Map<String, dynamic> _collectFormData() {
+    // Konversi data form ke format yang sesuai dengan KunkerModel.fromUIMap
     return {
-      'no_surat': _noSuratController.text.trim(),
-      'jenis_perjadin': _selectedJenisPerjadin,
-      'tanggal_surat': _tanggalSuratController.text.trim(),
-      'tanggal_awal': _tanggalAwalController.text.trim(),
-      'tanggal_akhir': _tanggalAkhirController.text.trim(),
-      'anggota': _anggotaController.text.trim(),
-      'tenaga_ahli':
-          _taController.text.trim().isNotEmpty ? _taController.text.trim() : '',
-      'dapil': _dapilAnggotaController.text.trim(),
-      'status_pengajuan': 'Menunggu Konfirmasi',
-      'status_pencairan': '-',
-
-      'masa_persidangan': _masaPersidangan,
-      'tahun_sidang': _tahunSidangController.text.trim(),
-      'no_anggota': _noAnggotaController.text.trim(),
-      'nik_anggota': _nikAnggotaController.text.trim(),
-      'fraksi': _fraksiAnggotaController.text.trim(),
-      'rek_anggota': _rekAnggotaController.text.trim(),
-      'nama_rek_anggota': _namaRekAnggotaController.text.trim(),
-      'kode_bank_anggota': _kodeBankAnggotaController.text.trim(),
-      'nama_bank_anggota': _namaBankAnggotaController.text.trim(),
-      'ta': _taController.text.trim(),
-      'no_ta': _noTaController.text.trim(),
-      'nik_ta': _nikTaController.text.trim(),
-      'hp_ta': _hpTaController.text.trim(),
-      'email_ta': _emailTaController.text.trim(),
-      'rek_ta': _rekTaController.text.trim(),
-      'nama_rek_ta': _namaRekTaController.text.trim(),
-      'kode_bank_ta': _kodeBankTaController.text.trim(),
-      'nama_bank_ta': _namaBankTaController.text.trim(),
-      'moda': _modaTransportasi,
+      // Field utama untuk KunkerModel.fromUIMap
+      'nomor_surat': _noSuratController.text.trim(),
+      'keperluan': _selectedJenisPerjadin,
+      'tanggal_berangkat': _tanggalAwalController.text.trim(),
+      'tanggal_kembali': _tanggalAkhirController.text.trim(),
+      'tujuan': '${_provinsiController.text.trim()}, ${_kotaController.text.trim()}',
       'negara': _negaraController.text.trim(),
-      'provinsi': _provinsiController.text.trim(),
       'kota': _kotaController.text.trim(),
+      'status': 'diajukan',
+      'keterangan': 'Anggota: ${_anggotaController.text.trim()}, TA: ${_taController.text.trim()}, Dapil: ${_dapilAnggotaController.text.trim()}',
     };
   }
 
   void _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final data = _collectFormData();
-    if (data['no_surat'].toString().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No. Surat wajib diisi')));
-      return;
+    
+    // Validasi no_surat dengan key yang benar
+    String noSurat = data['nomor_surat']?.toString().trim() ?? '';
+    if (noSurat.isEmpty) {
+      // Auto-generate nomor surat jika kosong
+      final now = DateTime.now();
+      noSurat = 'KNK-${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}-${now.millisecondsSinceEpoch.toString().substring(8)}';
+      data['nomor_surat'] = noSurat;
+      
+      // Inform user about auto-generated number
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No. Surat otomatis dibuat: $noSurat'),
+          backgroundColor: Colors.blue[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      
+      // Update controller untuk menampilkan nomor yang dibuat
+      _noSuratController.text = noSurat;
     }
     
-    ref.read(kunkerDataProvider.notifier).addKunker(data);
-    
-    // Tambahkan notifikasi ke dalam app (page notifikasi)
-    ref.read(notificationProvider.notifier).addKunkerNotification(
-      noSurat: data['no_surat'].toString(),
-      tanggalAwal: data['tanggal_awal'].toString(),
-      tanggalAkhir: data['tanggal_akhir'].toString(),
-      lokasi: data['lokasi_kunjungan']?.toString() ?? 'Tidak diketahui',
-      jenisPerjadin: data['jenis_perjadin']?.toString() ?? _selectedJenisPerjadin,
-    );
-    
-    // Kirim notifikasi lokal langsung
-    _showLocalNotification(data);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pengajuan kunker ditambahkan dan notifikasi dikirim')),
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
     );
 
     try {
+      // Simpan ke SQLite database
       final success = await ref.read(kunkerProvider.notifier).addKunker(data);
       Navigator.pop(context); // Close loading dialog
 
       if (success) {
+        // Tambahkan notifikasi ke dalam app (page notifikasi)
+        ref.read(notificationProvider.notifier).addKunkerNotification(
+          noSurat: data['nomor_surat']?.toString() ?? data['no_surat']?.toString() ?? '',
+          tanggalAwal: data['tanggal_berangkat']?.toString() ?? data['tanggal_awal']?.toString() ?? '',
+          tanggalAkhir: data['tanggal_kembali']?.toString() ?? data['tanggal_akhir']?.toString() ?? '',
+          lokasi: data['tujuan']?.toString() ?? data['lokasi_kunjungan']?.toString() ?? 'Tidak diketahui',
+          jenisPerjadin: data['keperluan']?.toString() ?? data['jenis_perjadin']?.toString() ?? '',
+        );
+        
+        // Kirim notifikasi lokal langsung
+        _showLocalNotification(data);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Pengajuan kunker berhasil ditambahkan'),
@@ -926,12 +926,26 @@ class _TambahKunkerPeroranganPageState
       }
     } catch (e) {
       Navigator.pop(context); // Close loading dialog
+      
+      String errorMessage = 'Error: $e';
+      Color errorColor = Colors.red[600]!;
+      
+      // Handle duplicate no_surat error specifically
+      if (e.toString().contains('No. Surat sudah ada')) {
+        errorMessage = 'No. Surat "$noSurat" sudah digunakan. Silakan gunakan nomor yang berbeda atau kosongkan untuk auto-generate.';
+        errorColor = Colors.orange[600]!;
+        
+        // Clear the no_surat field so user can enter a new one
+        _noSuratController.clear();
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red[600],
+          content: Text(errorMessage),
+          backgroundColor: errorColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 5), // Longer duration for important message
         ),
       );
     }

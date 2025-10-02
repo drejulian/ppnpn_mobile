@@ -278,28 +278,6 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
             ),
             textAlign: TextAlign.center,
           ),
-          if (searchQuery.isEmpty) ...[
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () => context.pushNamed(Routes.tambahAgenda.name),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primarySwatch,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.add),
-              label: Text(
-                'Tambah Agenda',
-                style: theme.typographyBold.bodyMedium,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -407,8 +385,7 @@ class _DaftarAgendaPageState extends ConsumerState<DaftarAgendaPage> {
       actions: [
         SIHAKIDialogAction(
           icon: Icons.edit_rounded,
-          label: 'Edit Agenda',
-          backgroundColor: Colors.orange[600],
+          label: 'Ubah Agenda',
           textColor: Colors.white,
           onTap: () {
             Navigator.of(context).pop();

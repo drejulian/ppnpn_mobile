@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
-import 'daftar_pengajuan_kunker_page.dart' show kunkerDataProvider;
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import '../../../providers/sihaki/kunker_provider.dart';
 
@@ -31,8 +30,7 @@ class _EditKunkerPeroranganPageState
   late TextEditingController _tanggalSuratController;
   late TextEditingController _tanggalAwalController;
   late TextEditingController _tanggalAkhirController;
-  String _masaPersidangan = 'II';
-  final List<String> _masaPersidanganOptions = ['I', 'II', 'III', 'IV'];
+
   late TextEditingController _tahunSidangController;
 
   // Data Anggota
@@ -58,20 +56,9 @@ class _EditKunkerPeroranganPageState
   late TextEditingController _namaBankTaController;
 
   // Detail Perjalanan
-  String _modaTransportasi = 'Pesawat';
-  final List<String> _modaOptions = ['Pesawat', 'Kereta', 'Kapal', 'Mobil'];
   late TextEditingController _negaraController;
   late TextEditingController _provinsiController;
   late TextEditingController _kotaController;
-
-  // Status
-  late String _statusPengajuan;
-  late String _statusPencairan;
-  final List<String> _statusPengajuanOptions = [
-    'Menunggu Konfirmasi',
-    'Konfirmasi',
-  ];
-  final List<String> _statusPencairanOptions = ['-', 'Disetujui', 'Ditolak'];
 
   String _coerceOption(String? raw, List<String> allowed, String fallback) {
     if (raw == null) return fallback;
@@ -91,120 +78,112 @@ class _EditKunkerPeroranganPageState
   void initState() {
     super.initState();
 
+    // Debug: Print data yang diterima untuk troubleshooting
+    print('DEBUG EditKunkerPage: Data received = ${widget.kunkerData}');
+
+    // Informasi Surat
     _noSuratController = TextEditingController(
-      text: widget.kunkerData['no_surat'] ?? '',
+      text: widget.kunkerData['no_surat']?.toString() ?? '',
     );
     _selectedJenisPerjadin = _coerceOption(
-      widget.kunkerData['jenis_perjadin'],
-      _jenisPerjadinOptions,
-      _jenisPerjadinOptions.first,
+      widget.kunkerData['jenis_perjadin'], 
+      _jenisPerjadinOptions, 
+      _jenisPerjadinOptions.first
     );
     _tanggalSuratController = TextEditingController(
-      text: widget.kunkerData['tanggal_surat'] ?? '',
+      text: widget.kunkerData['tanggal_surat']?.toString() ?? '',
     );
     _tanggalAwalController = TextEditingController(
-      text: widget.kunkerData['tanggal_awal'] ?? '',
+      text: widget.kunkerData['tanggal_awal']?.toString() ?? '',
     );
     _tanggalAkhirController = TextEditingController(
-      text: widget.kunkerData['tanggal_akhir'] ?? '',
-    );
-    _masaPersidangan = _coerceOption(
-      widget.kunkerData['masa_persidangan'],
-      _masaPersidanganOptions,
-      _masaPersidangan,
-    );
-    _tahunSidangController = TextEditingController(
-      text: widget.kunkerData['tahun_sidang'] ?? '2024-2025',
+      text: widget.kunkerData['tanggal_akhir']?.toString() ?? '',
     );
 
+    _tahunSidangController = TextEditingController(
+      text: widget.kunkerData['tahun_sidang']?.toString() ?? '2024-2025',
+    );
+
+    // Data Anggota
     _anggotaController = TextEditingController(
-      text: widget.kunkerData['anggota'] ?? '',
+      text: widget.kunkerData['anggota']?.toString() ?? '',
     );
     _noAnggotaController = TextEditingController(
-      text: widget.kunkerData['no_anggota'] ?? '',
+      text: widget.kunkerData['no_anggota']?.toString() ?? '',
     );
     _nikAnggotaController = TextEditingController(
-      text: widget.kunkerData['nik_anggota'] ?? '',
+      text: widget.kunkerData['nik_anggota']?.toString() ?? '',
     );
     _fraksiAnggotaController = TextEditingController(
-      text: widget.kunkerData['fraksi'] ?? '',
+      text: widget.kunkerData['fraksi']?.toString() ?? '',
     );
     _dapilAnggotaController = TextEditingController(
-      text: widget.kunkerData['dapil'] ?? '',
+      text: widget.kunkerData['dapil']?.toString() ?? '',
     );
     _rekAnggotaController = TextEditingController(
-      text: widget.kunkerData['rek_anggota'] ?? '',
+      text: widget.kunkerData['rek_anggota']?.toString() ?? '',
     );
     _namaRekAnggotaController = TextEditingController(
-      text: widget.kunkerData['nama_rek_anggota'] ?? '',
+      text: widget.kunkerData['nama_rek_anggota']?.toString() ?? '',
     );
     _kodeBankAnggotaController = TextEditingController(
-      text: widget.kunkerData['kode_bank_anggota'] ?? '',
+      text: widget.kunkerData['kode_bank_anggota']?.toString() ?? '',
     );
     _namaBankAnggotaController = TextEditingController(
-      text: widget.kunkerData['nama_bank_anggota'] ?? '',
+      text: widget.kunkerData['nama_bank_anggota']?.toString() ?? '',
     );
 
-    _taController = TextEditingController(text: widget.kunkerData['ta'] ?? '');
+    // Data TA
+    _taController = TextEditingController(
+      text: widget.kunkerData['tenaga_ahli']?.toString() ?? '',
+    );
     _noTaController = TextEditingController(
-      text: widget.kunkerData['no_ta'] ?? '',
+      text: widget.kunkerData['no_ta']?.toString() ?? '',
     );
     _nikTaController = TextEditingController(
-      text: widget.kunkerData['nik_ta'] ?? '',
+      text: widget.kunkerData['nik_ta']?.toString() ?? '',
     );
     _hpTaController = TextEditingController(
-      text: widget.kunkerData['hp_ta'] ?? '',
+      text: widget.kunkerData['hp_ta']?.toString() ?? '',
     );
     _emailTaController = TextEditingController(
-      text: widget.kunkerData['email_ta'] ?? '',
+      text: widget.kunkerData['email_ta']?.toString() ?? '',
     );
     _rekTaController = TextEditingController(
-      text: widget.kunkerData['rek_ta'] ?? '',
+      text: widget.kunkerData['rek_ta']?.toString() ?? '',
     );
     _namaRekTaController = TextEditingController(
-      text: widget.kunkerData['nama_rek_ta'] ?? '',
+      text: widget.kunkerData['nama_rek_ta']?.toString() ?? '',
     );
     _kodeBankTaController = TextEditingController(
-      text: widget.kunkerData['kode_bank_ta'] ?? '',
+      text: widget.kunkerData['kode_bank_ta']?.toString() ?? '',
     );
     _namaBankTaController = TextEditingController(
-      text: widget.kunkerData['nama_bank_ta'] ?? '',
+      text: widget.kunkerData['nama_bank_ta']?.toString() ?? '',
     );
 
-    _modaTransportasi = _coerceOption(
-      widget.kunkerData['moda'],
-      _modaOptions,
-      _modaTransportasi,
-    );
+    // Detail Perjalanan
     _negaraController = TextEditingController(
-      text: widget.kunkerData['negara'] ?? 'Indonesia',
+      text: widget.kunkerData['negara']?.toString() ?? 'Indonesia',
     );
     _provinsiController = TextEditingController(
-      text: widget.kunkerData['provinsi'] ?? '',
+      text: widget.kunkerData['provinsi']?.toString() ?? '',
     );
     _kotaController = TextEditingController(
-      text: widget.kunkerData['kota'] ?? '',
-    );
-
-    _statusPengajuan = _coerceOption(
-      widget.kunkerData['status_pengajuan'],
-      _statusPengajuanOptions,
-      _statusPengajuanOptions.first,
-    );
-    _statusPencairan = _coerceOption(
-      widget.kunkerData['status_pencairan'],
-      _statusPencairanOptions,
-      _statusPencairanOptions.first,
+      text: widget.kunkerData['kota']?.toString() ?? '',
     );
   }
 
   @override
   void dispose() {
+    // Informasi Surat
     _noSuratController.dispose();
     _tanggalSuratController.dispose();
     _tanggalAwalController.dispose();
     _tanggalAkhirController.dispose();
     _tahunSidangController.dispose();
+    
+    // Data Anggota
     _anggotaController.dispose();
     _noAnggotaController.dispose();
     _nikAnggotaController.dispose();
@@ -214,6 +193,8 @@ class _EditKunkerPeroranganPageState
     _namaRekAnggotaController.dispose();
     _kodeBankAnggotaController.dispose();
     _namaBankAnggotaController.dispose();
+    
+    // Data TA
     _taController.dispose();
     _noTaController.dispose();
     _nikTaController.dispose();
@@ -223,9 +204,12 @@ class _EditKunkerPeroranganPageState
     _namaRekTaController.dispose();
     _kodeBankTaController.dispose();
     _namaBankTaController.dispose();
+    
+    // Detail Perjalanan
     _negaraController.dispose();
     _provinsiController.dispose();
     _kotaController.dispose();
+    
     super.dispose();
   }
 
@@ -256,7 +240,7 @@ class _EditKunkerPeroranganPageState
               const SizedBox(height: 16),
               _buildCard(
                 theme,
-                title: 'Informasi Surat',
+                title: 'Informasi Dasar',
                 icon: Icons.description,
                 child: Column(
                   children: [
@@ -265,74 +249,15 @@ class _EditKunkerPeroranganPageState
                       _noSuratController,
                       Icons.receipt_long,
                       theme,
-                      enabled: false,
-                      hintText: 'Tidak dapat diubah',
-                      isRequired: true,
-                    ),
-                    _buildDropdownField(
-                      'Jenis Perjadin',
-                      _selectedJenisPerjadin,
-                      _jenisPerjadinOptions,
-                      Icons.category,
-                      theme,
-                      (v) => setState(
-                        () =>
-                            _selectedJenisPerjadin =
-                                v ?? _selectedJenisPerjadin,
-                      ),
-                      isRequired: true,
-                    ),
-                    _buildDateField(
-                      'Tanggal Surat',
-                      _tanggalSuratController,
-                      Icons.event,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildDateField(
-                      'Tanggal Awal',
-                      _tanggalAwalController,
-                      Icons.event,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildDateField(
-                      'Tanggal Akhir',
-                      _tanggalAkhirController,
-                      Icons.event,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildDropdownField(
-                      'Masa Persidangan',
-                      _masaPersidangan,
-                      _masaPersidanganOptions,
-                      Icons.schedule,
-                      theme,
-                      (v) => setState(
-                        () => _masaPersidangan = v ?? _masaPersidangan,
-                      ),
-                      isRequired: true,
+                      hintText: 'Nomor surat',
                     ),
                     _buildTextField(
-                      'Tahun Sidang',
-                      _tahunSidangController,
-                      Icons.calendar_month,
+                      'Jenis Perjadin',
+                      TextEditingController(text: _selectedJenisPerjadin),
+                      Icons.category,
                       theme,
-                      isRequired: true,
+                      enabled: false,
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              _buildCard(
-                theme,
-                title: 'Data Anggota',
-                icon: Icons.group,
-                leadingCheck: true,
-                child: Column(
-                  children: [
                     _buildTextField(
                       'Anggota',
                       _anggotaController,
@@ -341,66 +266,16 @@ class _EditKunkerPeroranganPageState
                       isRequired: true,
                     ),
                     _buildTextField(
-                      'No. Anggota',
-                      _noAnggotaController,
-                      Icons.numbers,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'NIK Anggota',
-                      _nikAnggotaController,
-                      Icons.badge,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Fraksi Anggota',
-                      _fraksiAnggotaController,
-                      Icons.group_work,
+                      'TA',
+                      _taController,
+                      Icons.engineering,
                       theme,
                       isRequired: true,
                     ),
                     _buildTextField(
-                      'Dapil Anggota',
+                      'Dapil',
                       _dapilAnggotaController,
                       Icons.map,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Rekening',
-                      _rekAnggotaController,
-                      Icons.credit_card,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Nama Rekening',
-                      _namaRekAnggotaController,
-                      Icons.person_outline,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Kode Bank',
-                      _kodeBankAnggotaController,
-                      Icons.qr_code,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Nama Bank',
-                      _namaBankAnggotaController,
-                      Icons.account_balance,
                       theme,
                       isRequired: true,
                     ),
@@ -411,85 +286,46 @@ class _EditKunkerPeroranganPageState
               const SizedBox(height: 16),
               _buildCard(
                 theme,
-                title: 'Data Tenaga Ahli (TA)',
-                icon: Icons.engineering,
-                leadingCheck: true,
+                title: 'Lokasi Perjalanan',
+                icon: Icons.map,
                 child: Column(
                   children: [
                     _buildTextField(
-                      'TA',
-                      _taController,
-                      Icons.person,
+                      'Negara',
+                      _negaraController,
+                      Icons.flag,
                       theme,
                       isRequired: true,
                     ),
                     _buildTextField(
-                      'No. TA',
-                      _noTaController,
-                      Icons.numbers,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'NIK TA',
-                      _nikTaController,
-                      Icons.badge,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'No. HP TA',
-                      _hpTaController,
-                      Icons.phone,
-                      theme,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Email TA',
-                      _emailTaController,
-                      Icons.email,
-                      theme,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.isEmpty)
-                          return 'Email TA wajib diisi';
-                        final emailRegex = RegExp(r'^\S+@\S+\.\S+$');
-                        if (!emailRegex.hasMatch(v)) return 'Email tidak valid';
-                        return null;
-                      },
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Rekening',
-                      _rekTaController,
-                      Icons.credit_card,
+                      'Kota',
+                      _kotaController,
+                      Icons.location_city,
                       theme,
                       isRequired: true,
                     ),
-                    _buildTextField(
-                      'Nama Rekening',
-                      _namaRekTaController,
-                      Icons.person_outline,
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              _buildCard(
+                theme,
+                title: 'Tanggal Perjalanan',
+                icon: Icons.date_range,
+                child: Column(
+                  children: [
+                    _buildDateField(
+                      'Tanggal Awal',
+                      _tanggalAwalController,
+                      Icons.flight_takeoff,
                       theme,
                       isRequired: true,
                     ),
-                    _buildTextField(
-                      'Kode Bank',
-                      _kodeBankTaController,
-                      Icons.qr_code,
-                      theme,
-                      isRequired: true,
-                    ),
-                    _buildTextField(
-                      'Nama Bank',
-                      _namaBankTaController,
-                      Icons.account_balance,
+                    _buildDateField(
+                      'Tanggal Akhir',
+                      _tanggalAkhirController,
+                      Icons.flight_land,
                       theme,
                       isRequired: true,
                     ),
@@ -501,20 +337,9 @@ class _EditKunkerPeroranganPageState
               _buildCard(
                 theme,
                 title: 'Detail Perjalanan',
-                icon: Icons.airplanemode_active,
+                icon: Icons.location_on,
                 child: Column(
                   children: [
-                    _buildDropdownField(
-                      'Moda Transportasi',
-                      _modaTransportasi,
-                      _modaOptions,
-                      Icons.directions_car,
-                      theme,
-                      (v) => setState(
-                        () => _modaTransportasi = v ?? _modaTransportasi,
-                      ),
-                      isRequired: true,
-                    ),
                     _buildTextField(
                       'Negara',
                       _negaraController,
@@ -530,52 +355,11 @@ class _EditKunkerPeroranganPageState
                       isRequired: true,
                     ),
                     _buildTextField(
-                      'Kabupaten/Kota',
+                      'Kota',
                       _kotaController,
                       Icons.location_on,
                       theme,
                       isRequired: true,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed:
-                                () => _showSnack(
-                                  'Rincian Perkiraan Biaya (Anggota)',
-                                ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.primarySwatch,
-                              side: BorderSide(color: theme.primarySwatch),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 12,
-                              ),
-                            ),
-                            child: const Text(
-                              'Rincian Perkiraan Biaya (Anggota)',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed:
-                                () =>
-                                    _showSnack('Rincian Perkiraan Biaya (TA)'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.primarySwatch,
-                              side: BorderSide(color: theme.primarySwatch),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 12,
-                              ),
-                            ),
-                            child: const Text('Rincian Perkiraan Biaya (TA)'),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -613,12 +397,8 @@ class _EditKunkerPeroranganPageState
   }
 
   Widget _buildStatusRow(dynamic theme) {
-    Color pengajuanColor =
-        _statusPengajuan == 'Konfirmasi' ? Colors.green : Colors.orange;
-    Color pencairanColor =
-        _statusPencairan == 'Disetujui'
-            ? Colors.green
-            : (_statusPencairan == 'Ditolak' ? Colors.red : Colors.grey);
+    String currentStatus = 'diajukan'; // Default status
+    Color statusColor = _getStatusColor(currentStatus);
 
     Widget chip(String label, Color color, IconData icon) {
       return Container(
@@ -650,17 +430,27 @@ class _EditKunkerPeroranganPageState
       runSpacing: 8,
       children: [
         chip(
-          'Status Pengajuan: $_statusPengajuan',
-          pengajuanColor,
-          Icons.verified_user,
-        ),
-        chip(
-          'Status Pencairan: $_statusPencairan',
-          pencairanColor,
-          Icons.payments,
+          'Status: $currentStatus',
+          statusColor,
+          Icons.flag,
         ),
       ],
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'diajukan':
+        return Colors.orange;
+      case 'disetujui':
+        return Colors.blue;
+      case 'selesai':
+        return Colors.green;
+      case 'ditolak':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   Widget _buildCard(
@@ -668,7 +458,6 @@ class _EditKunkerPeroranganPageState
     required String title,
     required IconData icon,
     required Widget child,
-    bool leadingCheck = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -951,114 +740,7 @@ class _EditKunkerPeroranganPageState
     );
   }
 
-  Widget _buildDropdownField(
-    String label,
-    String value,
-    List<String> items,
-    IconData icon,
-    dynamic theme,
-    Function(String?) onChanged, {
-    bool isRequired = false,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.primarySwatch.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: theme.primarySwatch, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        label,
-                        style: theme.typographyRegular.bodySmall.copyWith(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (isRequired)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red[100],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Wajib diisi',
-                          style: theme.typographyRegular.bodyExtraSmall
-                              .copyWith(
-                                color: Colors.red[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: value,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: theme.primarySwatch),
-                    ),
-                  ),
-                  items:
-                      items
-                          .map(
-                            (String v) => DropdownMenuItem<String>(
-                              value: v,
-                              child: Text(v),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: onChanged,
-                  validator: (v) {
-                    if (isRequired && (v == null || v.isEmpty)) {
-                      return '$label wajib dipilih';
-                    }
-                    if (validator != null) return validator(v);
-                    return null;
-                  },
-                  style: theme.typographyRegular.bodySmall.copyWith(
-                    color: Colors.grey[800],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -1067,43 +749,29 @@ class _EditKunkerPeroranganPageState
   void _saveChanges() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Gunakan format yang sesuai dengan KunkerModel.fromUIMap
     final updated = <String, dynamic>{
-      'no_surat': _noSuratController.text.trim(),
-      'jenis_perjadin': _selectedJenisPerjadin,
-      'tanggal_surat': _tanggalSuratController.text.trim(),
-      'tanggal_awal': _tanggalAwalController.text.trim(),
-      'tanggal_akhir': _tanggalAkhirController.text.trim(),
-      'masa_persidangan': _masaPersidangan,
-      'tahun_sidang': _tahunSidangController.text.trim(),
-      'anggota': _anggotaController.text.trim(),
-      'no_anggota': _noAnggotaController.text.trim(),
-      'nik_anggota': _nikAnggotaController.text.trim(),
-      'fraksi': _fraksiAnggotaController.text.trim(),
-      'dapil': _dapilAnggotaController.text.trim(),
-      'rek_anggota': _rekAnggotaController.text.trim(),
-      'nama_rek_anggota': _namaRekAnggotaController.text.trim(),
-      'kode_bank_anggota': _kodeBankAnggotaController.text.trim(),
-      'nama_bank_anggota': _namaBankAnggotaController.text.trim(),
-      'ta': _taController.text.trim(),
-      'no_ta': _noTaController.text.trim(),
-      'nik_ta': _nikTaController.text.trim(),
-      'hp_ta': _hpTaController.text.trim(),
-      'email_ta': _emailTaController.text.trim(),
-      'rek_ta': _rekTaController.text.trim(),
-      'nama_rek_ta': _namaRekTaController.text.trim(),
-      'kode_bank_ta': _kodeBankTaController.text.trim(),
-      'nama_bank_ta': _namaBankTaController.text.trim(),
-      'moda': _modaTransportasi,
+      'nomor_surat': _noSuratController.text.trim(),
+      'keperluan': _selectedJenisPerjadin,
+      'tanggal_berangkat': _tanggalAwalController.text.trim(),
+      'tanggal_kembali': _tanggalAkhirController.text.trim(),
+      'tujuan': '${_provinsiController.text.trim()}, ${_kotaController.text.trim()}',
       'negara': _negaraController.text.trim(),
-      'provinsi': _provinsiController.text.trim(),
       'kota': _kotaController.text.trim(),
-      'status_pengajuan': _statusPengajuan,
-      'status_pencairan': _statusPencairan,
+      'status': 'diajukan', // Default status
+      'keterangan': 'Anggota: ${_anggotaController.text.trim()}, TA: ${_taController.text.trim()}, Dapil: ${_dapilAnggotaController.text.trim()}',
     };
 
-    final keyNoSurat = widget.kunkerData['no_surat']?.toString() ?? '';
-    if (keyNoSurat.isEmpty) {
-      _showSnack('No. Surat tidak valid');
+    // Get no_surat dengan key yang benar dari toUIMap()
+    final noSurat = widget.kunkerData['no_surat']?.toString();
+    
+    // Debug prints
+    print('DEBUG EditKunkerPage: Saving changes...');
+    print('DEBUG EditKunkerPage: noSurat = $noSurat');
+    print('DEBUG EditKunkerPage: updated data = $updated');
+    
+    if (noSurat == null || noSurat.isEmpty) {
+      _showSnack('No. Surat tidak valid untuk update');
       return;
     }
 
@@ -1117,7 +785,7 @@ class _EditKunkerPeroranganPageState
     );
 
     try {
-      final success = await ref.read(kunkerProvider.notifier).updateKunker(keyNoSurat, updated);
+      final success = await ref.read(kunkerProvider.notifier).updateKunker(noSurat, updated);
       Navigator.pop(context); // Close loading dialog
 
       if (success) {

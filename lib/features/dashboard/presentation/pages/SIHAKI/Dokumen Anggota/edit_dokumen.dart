@@ -659,27 +659,6 @@ class _DataDokumenAnggotaPageState
         title: 'Data Dokumen Anggota',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              print('DEBUG: Manual refresh triggered');
-              await _loadSavedDocuments();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data berhasil di-refresh'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            tooltip: 'Refresh Data',
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _showDebugInfo,
-            tooltip: 'Debug Info',
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
