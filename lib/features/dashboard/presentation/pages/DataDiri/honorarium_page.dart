@@ -6,6 +6,10 @@ import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/profile_data_provider.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
+// Debug imports
+import 'package:ppnpm_dpr/features/profile/pages/honorarium_debug.dart';
 
 class HonorariumPage extends ConsumerStatefulWidget {
   const HonorariumPage({super.key});
@@ -30,6 +34,9 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
   bool _hasUnsavedChanges = false;
   final List<String> _statusPTKPOptions = ['Tidak Kawin (TK)', 'Kawin (K)'];
 
+  // SQLite service
+  final ProfileService _profileService = ProfileService();
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +50,9 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
     _namaPemilikRekController.addListener(_updateUnsavedChanges);
     _jumlahAnakController.addListener(_updateUnsavedChanges);
 
+    // Initialize and load data from SQLite
+    _initializeAndLoadData();
+
     SharedPreferences.getInstance().then((prefs) {
       final hasChanges = prefs.getBool('honorarium_has_changes') ?? false;
       if (hasChanges && mounted) {
@@ -51,6 +61,56 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         });
       }
     });
+  }
+
+  /// Initialize SQLite and load existing data
+  Future<void> _initializeAndLoadData() async {
+    try {
+      print('HonorariumPage: Initializing SQLite and loading data...');
+      
+      // Load data from SQLite first
+      await _loadDataFromSQLite();
+      
+      print('HonorariumPage: Initialization completed');
+    } catch (e) {
+      print('HonorariumPage: Error during initialization: $e');
+    }
+  }
+
+  /// Load honorarium data from SQLite
+  Future<void> _loadDataFromSQLite() async {
+    try {
+      print('HonorariumPage: Loading honorarium data from SQLite...');
+      
+      final honorariumData = await _profileService.getCurrentHonorariumData();
+      
+      if (honorariumData != null && mounted) {
+        print('HonorariumPage: Found existing honorarium data, populating fields...');
+        print('  - Kartu Keluarga: ${honorariumData.kartuKeluarga}');
+        print('  - KTP: ${honorariumData.ktp}');
+        print('  - Nama KTP: ${honorariumData.namaKtp}');
+        print('  - NPWP: ${honorariumData.npwp}');
+        
+        setState(() {
+          _kartuKeluargaController.text = honorariumData.kartuKeluarga;
+          _ktpController.text = honorariumData.ktp;
+          _namaKtpController.text = honorariumData.namaKtp;
+          _bpjsKesehatanController.text = honorariumData.bpjsKesehatan;
+          _npwpController.text = honorariumData.npwp;
+          _namaIbuController.text = honorariumData.namaIbu;
+          _rekeningController.text = honorariumData.rekening;
+          _namaPemilikRekController.text = honorariumData.namaPemilikRek;
+          _jumlahAnakController.text = honorariumData.jumlahAnak;
+          _selectedStatusPTKP = honorariumData.statusPTKP.isNotEmpty ? honorariumData.statusPTKP : 'Kawin (K)';
+        });
+        
+        print('HonorariumPage: ✅ Honorarium data loaded from SQLite successfully');
+      } else {
+        print('HonorariumPage: No existing honorarium data found in SQLite');
+      }
+    } catch (e) {
+      print('HonorariumPage: Error loading honorarium data from SQLite: $e');
+    }
   }
 
   @override
@@ -238,6 +298,20 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         title: 'Data Honorarium',
         onBackPressed: () => Navigator.of(context).pop(),
         backTooltip: 'Kembali',
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HonorariumDebugPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Debug SQLite',
+          ),
+        ],
       ),
         body: Form(
           key: _formKey,
@@ -698,24 +772,21 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
 
   Future<void> _saveData(BuildContext context, dynamic theme) async {
     if (_formKey.currentState!.validate()) {
-      List<String> errors = [];
-      if (_kartuKeluargaController.text.isEmpty) errors.add('No. Kartu Keluarga harus diisi');
-      if (_ktpController.text.isEmpty) errors.add('No. KTP harus diisi');
-      if (_namaKtpController.text.isEmpty) errors.add('Nama Sesuai KTP harus diisi');
-      if (_bpjsKesehatanController.text.isEmpty) errors.add('No. BPJS Kesehatan harus diisi');
-      if (_npwpController.text.isEmpty) errors.add('NPWP harus diisi');
-      if (_namaIbuController.text.isEmpty) errors.add('Nama Ibu Kandung harus diisi');
-      if (_rekeningController.text.isEmpty) errors.add('No. Rekening harus diisi');
-      if (_namaPemilikRekController.text.isEmpty) errors.add('Nama Pemilik Rekening harus diisi');
-      if (_selectedStatusPTKP.isEmpty) errors.add('Status PTKP harus dipilih');
-      if (_jumlahAnakController.text.isEmpty) errors.add('Jumlah Anak harus diisi');
+      // Debug logging
+      print('HonorariumPage: Validating and saving data...');
+      print('Kartu Keluarga: ${_kartuKeluargaController.text}');
+      print('KTP: ${_ktpController.text}');
+      print('Nama KTP: ${_namaKtpController.text}');
+      print('BPJS Kesehatan: ${_bpjsKesehatanController.text}');
+      print('NPWP: ${_npwpController.text}');
+      print('Nama Ibu: ${_namaIbuController.text}');
+      print('Rekening: ${_rekeningController.text}');
+      print('Nama Pemilik Rek: ${_namaPemilikRekController.text}');
+      print('Status PTKP: $_selectedStatusPTKP');
+      print('Jumlah Anak: ${_jumlahAnakController.text}');
 
-      if (errors.isNotEmpty) {
-        _showErrorDialog(context, theme, errors.join('\n'));
-        return;
-      }
-
-      final newData = HonorariumData(
+      // Validate data using ProfileService
+      final errors = _profileService.getHonorariumDataValidationErrors(
         kartuKeluarga: _kartuKeluargaController.text,
         ktp: _ktpController.text,
         namaKtp: _namaKtpController.text,
@@ -724,39 +795,96 @@ class _HonorariumPageState extends ConsumerState<HonorariumPage> {
         namaIbu: _namaIbuController.text,
         rekening: _rekeningController.text,
         namaPemilikRek: _namaPemilikRekController.text,
-        jumlahAnak: _jumlahAnakController.text,
         statusPTKP: _selectedStatusPTKP,
+        jumlahAnak: _jumlahAnakController.text,
       );
 
-      ref.read(honorariumDataProvider.notifier).updateData(newData);
-      ref.read(profileCompletionProvider.notifier).markCompleted('honorarium');
+      if (errors.isNotEmpty) {
+        print('HonorariumPage: Validation errors found (${errors.length}):');
+        for (int i = 0; i < errors.length; i++) {
+          print('  ${i + 1}. ${errors[i]}');
+        }
+        _showErrorDialog(context, theme, errors.join('\n'));
+        return;
+      }
 
-      final prefs = await SharedPreferences.getInstance();
-      await Future.wait([
-        prefs.setBool('honorarium_has_changes', false),
-        prefs.setBool('honorarium_just_saved', true),
-        prefs.setBool('honorarium_user_saved', true),
-      ]);
+      print('HonorariumPage: ✅ All validations passed, proceeding to save...');
 
-      await ProfileCompletionNotifierCard.show(
-        context,
-        title: 'Berhasil Menyimpan Honorarium',
-        message: 'Data honorarium Anda telah diperbarui dan tersimpan dengan sukses.',
-        onConfirm: () {
-          if (context.mounted) {
-            notification.NotificationUtils.showSuccess(
-              context,
-              'Data honorarium telah disimpan',
-            );
-            setState(() {
-              _hasUnsavedChanges = false;
-            });
-            context.pop('saved');
-          }
-        },
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green[600],
-      );
+      try {
+        // Save to SQLite first
+        print('HonorariumPage: 🔄 Calling ProfileService.saveHonorariumData()...');
+        final sqliteSuccess = await _profileService.saveHonorariumData(
+          kartuKeluarga: _kartuKeluargaController.text,
+          ktp: _ktpController.text,
+          namaKtp: _namaKtpController.text,
+          bpjsKesehatan: _bpjsKesehatanController.text,
+          npwp: _npwpController.text,
+          namaIbu: _namaIbuController.text,
+          rekening: _rekeningController.text,
+          namaPemilikRek: _namaPemilikRekController.text,
+          statusPTKP: _selectedStatusPTKP,
+          jumlahAnak: _jumlahAnakController.text,
+        );
+
+        print('HonorariumPage: 📋 SQLite save result: $sqliteSuccess');
+        
+        if (!sqliteSuccess) {
+          print('HonorariumPage: ❌ SQLite save failed - showing error dialog');
+          _showErrorDialog(context, theme, 'Gagal menyimpan data ke database. Silakan coba lagi.');
+          return;
+        }
+
+        print('HonorariumPage: ✅ Data saved to SQLite successfully!');
+
+        // Update SharedPreferences provider for compatibility
+        final newData = HonorariumData(
+          kartuKeluarga: _kartuKeluargaController.text,
+          ktp: _ktpController.text,
+          namaKtp: _namaKtpController.text,
+          bpjsKesehatan: _bpjsKesehatanController.text,
+          npwp: _npwpController.text,
+          namaIbu: _namaIbuController.text,
+          rekening: _rekeningController.text,
+          namaPemilikRek: _namaPemilikRekController.text,
+          jumlahAnak: _jumlahAnakController.text,
+          statusPTKP: _selectedStatusPTKP,
+        );
+
+        ref.read(honorariumDataProvider.notifier).updateData(newData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('honorarium');
+
+        final prefs = await SharedPreferences.getInstance();
+        await Future.wait([
+          prefs.setBool('honorarium_has_changes', false),
+          prefs.setBool('honorarium_just_saved', true),
+          prefs.setBool('honorarium_user_saved', true),
+        ]);
+
+        print('HonorariumPage: ✅ SharedPreferences updated successfully');
+
+        await ProfileCompletionNotifierCard.show(
+          context,
+          title: 'Berhasil Menyimpan Honorarium',
+          message: 'Data honorarium Anda telah diperbarui dan tersimpan dengan sukses.',
+          onConfirm: () {
+            if (context.mounted) {
+              notification.NotificationUtils.showSuccess(
+                context,
+                'Data honorarium telah disimpan',
+              );
+              setState(() {
+                _hasUnsavedChanges = false;
+              });
+              context.pop('saved');
+            }
+          },
+          icon: Icons.check_circle_rounded,
+          iconColor: Colors.green[600],
+        );
+      } catch (e) {
+        print('HonorariumPage: ❌ Error during save process: $e');
+        _showErrorDialog(context, theme, 'Terjadi kesalahan saat menyimpan data honorarium: $e');
+      }
     }
   }
 

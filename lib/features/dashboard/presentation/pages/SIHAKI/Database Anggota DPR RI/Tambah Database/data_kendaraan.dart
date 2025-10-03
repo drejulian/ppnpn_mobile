@@ -374,27 +374,6 @@ class _DataKendaraanPageState extends ConsumerState<DataKendaraanPage> {
         title: 'Data Kendaraan',
         onBackPressed: () => context.go('/dataKomisi'),
         backTooltip: 'Kembali',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              print('DEBUG: Manual refresh triggered');
-              await _loadSavedData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data berhasil di-refresh'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            tooltip: 'Refresh Data',
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _showDebugInfo,
-            tooltip: 'Debug Info',
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,

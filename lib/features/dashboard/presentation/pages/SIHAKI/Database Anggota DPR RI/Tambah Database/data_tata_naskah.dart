@@ -612,7 +612,7 @@ class _DataTataNaskahPageState extends ConsumerState<DataTataNaskahPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
-        title: 'Upload Dokumen Tata Naskah',
+        title: 'Upload Dokumen',
         onBackPressed: () => context.go('/dataKomisi'),
         backTooltip: 'Kembali',
       ),

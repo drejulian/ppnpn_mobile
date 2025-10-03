@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'dart:io';
+import '../../features/dashboard/presentation/pages/DataDiri/providers/profile_data_provider.dart';
 
 // Field types for form card components
 enum FormFieldType {
@@ -4041,4 +4043,186 @@ class AppCustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+// Profile-specific header component with dynamic name and photo
+class ProfileHeaderCardComponent extends ConsumerWidget {
+  final String title;
+  final String subtitle;
+  final String description;
+  final bool isTablet;
+  final bool isLargeTablet;
+  final dynamic theme;
+
+  const ProfileHeaderCardComponent({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    this.isTablet = false,
+    this.isLargeTablet = false,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch providers for reactive data
+    final editProfileData = ref.watch(editProfileDataProvider);
+    final idCardData = ref.watch(idCardDataProvider);
+    
+    // Determine display name - use profile name if available, otherwise use default
+    final displayName = editProfileData.nama.isNotEmpty 
+        ? editProfileData.nama 
+        : 'Profil Saya';
+        
+    // Determine display subtitle
+    final displaySubtitle = editProfileData.nama.isNotEmpty 
+        ? 'Selamat datang, ${editProfileData.nama.split(' ').first}!' 
+        : subtitle;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.primarySwatch,
+            theme.secondarySwatch,
+            theme.primarySwatch.shade300,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primarySwatch.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: EdgeInsets.all(isTablet ? 32 : 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Profile photo or default icon
+                  _buildProfilePhoto(idCardData, isTablet),
+                  SizedBox(width: isTablet ? 24 : 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: theme.typographyRegular.bodyLarge.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: isLargeTablet ? 32.0 : (isTablet ? 28.0 : 24.0),
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          displaySubtitle,
+                          style: theme.typographyRegular.bodyMedium.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: isTablet ? 18.0 : 15.0,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    description,
+                    style: theme.typographyRegular.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: isTablet ? 16.0 : 14.0,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePhoto(IdCardData idCardData, bool isTablet) {
+    final size = isTablet ? 80.0 : 64.0;
+    final iconSize = isTablet ? 40.0 : 32.0;
+    
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: idCardData.fotoPath.isNotEmpty
+            ? Image.file(
+                File(idCardData.fotoPath),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildDefaultIcon(iconSize);
+                },
+              )
+            : _buildDefaultIcon(iconSize),
+      ),
+    );
+  }
+
+  Widget _buildDefaultIcon(double iconSize) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(
+        Icons.person_outline,
+        size: iconSize,
+        color: Colors.white,
+      ),
+    );
+  }
 }

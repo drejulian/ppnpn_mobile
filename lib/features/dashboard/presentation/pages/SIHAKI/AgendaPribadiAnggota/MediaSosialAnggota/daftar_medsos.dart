@@ -103,21 +103,6 @@ class _MediaSosialAnggotaState extends ConsumerState<MediaSosialAnggota> {
         title: 'Media Sosial Anggota',
         onBackPressed: () => context.go('/home'),
         backTooltip: 'Kembali ke Beranda',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active),
-            onPressed: () async {
-              print('DEBUG: 🧪 Testing notification...');
-              await NotificationService.showTestNotification();
-            },
-            tooltip: 'Test Notification',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(mediaSosialAnggotaProvider.notifier).loadMediaSosial(),
-            tooltip: 'Refresh Data',
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

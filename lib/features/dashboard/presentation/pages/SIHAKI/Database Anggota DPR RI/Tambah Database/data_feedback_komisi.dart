@@ -452,34 +452,6 @@ class _DataFeedbackKomisiPageState
         title: 'Data Feedback Komisi',
         onBackPressed: () => context.go('/dataKomisi'),
         backTooltip: 'Kembali',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              print('DEBUG: Manual refresh triggered');
-              await _loadSavedData();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Data berhasil di-refresh dari database'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            tooltip: 'Refresh Data',
-          ),
-          IconButton(
-            icon: const Icon(Icons.star),
-            onPressed: _testRatingKinerjaSpecifically,
-            tooltip: 'Test Rating',
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _showDebugInfo,
-            tooltip: 'Debug Info',
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,

@@ -1,130 +1,254 @@
+import '../../database/kunker_database_helper.dart';
 import '../../models/sihaki/kunker_perorangan_model.dart';
-import '../../database/app_database_helper.dart';
 
-class KunkerPeroranganRepository {
-  final AppDatabaseHelper _databaseHelper;
+class KunkerRepository {
+  final KunkerDatabaseHelper _dbHelper = KunkerDatabaseHelper();
 
-  KunkerPeroranganRepository(this._databaseHelper);
-
-  Future<int> addKunkerPerorangan(KunkerPeroranganModel kunker) async {
+  // Get all kunker data
+  Future<List<KunkerModel>> getAllKunker() async {
     try {
-      final kunkerMap = kunker.toMap();
-      kunkerMap.remove('id');
-      
-      return await _databaseHelper.insertKunkerPerorangan(kunkerMap);
+      return await _dbHelper.getAllKunker();
     } catch (e) {
-      throw Exception('Failed to add kunker perorangan: $e');
+      throw Exception('Failed to get kunker data: $e');
     }
   }
 
-  Future<List<KunkerPeroranganModel>> getAllKunkerPerorangan([int? userId]) async {
+  // Get kunker by ID
+  Future<KunkerModel?> getKunkerById(int id) async {
     try {
-      final kunkerList = await _databaseHelper.getAllKunkerPerorangan(userId);
-      
-      return kunkerList.map((kunker) => KunkerPeroranganModel.fromMap(kunker)).toList();
+      return await _dbHelper.getKunkerById(id);
     } catch (e) {
-      throw Exception('Failed to get kunker perorangan list: $e');
+      throw Exception('Failed to get kunker by ID: $e');
     }
   }
 
-  Future<KunkerPeroranganModel?> getKunkerPeroranganById(int id) async {
+  // Get kunker by No. Surat
+  Future<KunkerModel?> getKunkerByNoSurat(String noSurat) async {
     try {
-      final kunker = await _databaseHelper.getKunkerPeroranganById(id);
-      
-      if (kunker != null) {
-        return KunkerPeroranganModel.fromMap(kunker);
+      return await _dbHelper.getKunkerByNoSurat(noSurat);
+    } catch (e) {
+      throw Exception('Failed to get kunker by No. Surat: $e');
+    }
+  }
+
+  // Search kunker
+  Future<List<KunkerModel>> searchKunker(String query) async {
+    try {
+      if (query.trim().isEmpty) {
+        return await getAllKunker();
       }
-      return null;
+      return await _dbHelper.searchKunker(query.trim());
     } catch (e) {
-      throw Exception('Failed to get kunker perorangan: $e');
+      throw Exception('Failed to search kunker: $e');
     }
   }
 
-  Future<bool> updateKunkerPerorangan(KunkerPeroranganModel kunker) async {
+  // Get kunker by status
+  Future<List<KunkerModel>> getKunkerByStatus(String status) async {
     try {
-      if (kunker.id == null) {
-        throw Exception('Kunker Perorangan ID is required for update');
-      }
-
-      final kunkerMap = kunker.toMap();
-      kunkerMap['updated_at'] = DateTime.now().toIso8601String();
-      
-      final result = await _databaseHelper.updateKunkerPerorangan(kunker.id!, kunkerMap);
-      return result > 0;
-    } catch (e) {
-      throw Exception('Failed to update kunker perorangan: $e');
-    }
-  }
-
-  Future<bool> deleteKunkerPerorangan(int id) async {
-    try {
-      final result = await _databaseHelper.deleteKunkerPerorangan(id);
-      return result > 0;
-    } catch (e) {
-      throw Exception('Failed to delete kunker perorangan: $e');
-    }
-  }
-
-  Future<List<KunkerPeroranganModel>> getKunkerByStatus(String status, [int? userId]) async {
-    try {
-      final allKunker = await getAllKunkerPerorangan(userId);
-      
-      return allKunker.where((kunker) => 
-          kunker.status.toLowerCase() == status.toLowerCase()).toList();
+      return await _dbHelper.getKunkerByStatus(status);
     } catch (e) {
       throw Exception('Failed to get kunker by status: $e');
     }
   }
 
-  Future<List<KunkerPeroranganModel>> getKunkerByNegara(String negara, [int? userId]) async {
+  // Get kunker by anggota
+  Future<List<KunkerModel>> getKunkerByAnggota(String anggota) async {
     try {
-      final allKunker = await getAllKunkerPerorangan(userId);
-      
-      return allKunker.where((kunker) => 
-          kunker.negara.toLowerCase() == negara.toLowerCase()).toList();
+      return await _dbHelper.getKunkerByAnggota(anggota);
     } catch (e) {
-      throw Exception('Failed to get kunker by negara: $e');
+      throw Exception('Failed to get kunker by anggota: $e');
     }
   }
 
-  Future<bool> updateStatusKunker(int id, String statusBaru) async {
+  // Add new kunker
+  Future<int> addKunker(KunkerModel kunker) async {
     try {
-      final kunker = await getKunkerPeroranganById(id);
-      if (kunker == null) {
-        throw Exception('Kunker not found');
+      return await _dbHelper.insertKunker(kunker);
+    } catch (e) {
+      if (e.toString().contains('No. Surat sudah ada')) {
+        throw Exception('No. Surat sudah ada, gunakan nomor yang berbeda');
       }
-
-      final updatedKunker = kunker.copyWith(
-        status: statusBaru,
-        updatedAt: DateTime.now(),
-      );
-
-      return await updateKunkerPerorangan(updatedKunker);
-    } catch (e) {
-      throw Exception('Failed to update status kunker: $e');
+      throw Exception('Failed to add kunker: $e');
     }
   }
 
-  Future<Map<String, dynamic>> getKunkerStatistics([int? userId]) async {
+  // Add kunker from UI map format
+  Future<int> addKunkerFromUIMap(Map<String, dynamic> uiData) async {
     try {
-      final allKunker = await getAllKunkerPerorangan(userId);
-      
-      final diajukan = allKunker.where((item) => item.status == 'diajukan').length;
-      final disetujui = allKunker.where((item) => item.status == 'disetujui').length;
-      final ditolak = allKunker.where((item) => item.status == 'ditolak').length;
-      final selesai = allKunker.where((item) => item.status == 'selesai').length;
-      final totalAnggaran = allKunker.fold<double>(0, (sum, item) => sum + item.anggaran);
-      
-      return {
-        'total_kunker': allKunker.length,
-        'diajukan': diajukan,
-        'disetujui': disetujui,
-        'ditolak': ditolak,
-        'selesai': selesai,
-        'total_anggaran': totalAnggaran,
-      };
+      return await _dbHelper.insertKunkerFromUIMap(uiData);
     } catch (e) {
-      throw Exception('Failed to get kunker statistics: $e');
+      if (e.toString().contains('No. Surat sudah ada')) {
+        throw Exception('No. Surat sudah ada, gunakan nomor yang berbeda');
+      }
+      throw Exception('Failed to add kunker: $e');
+    }
+  }
+
+  // Update kunker
+  Future<int> updateKunker(int id, KunkerModel kunker) async {
+    try {
+      final result = await _dbHelper.updateKunker(id, kunker);
+      if (result == 0) {
+        throw Exception('Kunker tidak ditemukan');
+      }
+      return result;
+    } catch (e) {
+      throw Exception('Failed to update kunker: $e');
+    }
+  }
+
+  // Update kunker by No. Surat
+  Future<int> updateKunkerByNoSurat(String noSurat, KunkerModel kunker) async {
+    try {
+      final result = await _dbHelper.updateKunkerByNoSurat(noSurat, kunker);
+      if (result == 0) {
+        throw Exception('Kunker dengan No. Surat $noSurat tidak ditemukan');
+      }
+      return result;
+    } catch (e) {
+      throw Exception('Failed to update kunker: $e');
+    }
+  }
+
+  // Update kunker from UI map format
+  Future<int> updateKunkerFromUIMap(String noSurat, Map<String, dynamic> uiData) async {
+    try {
+      return await _dbHelper.updateKunkerFromUIMap(noSurat, uiData);
+    } catch (e) {
+      throw Exception('Failed to update kunker: $e');
+    }
+  }
+
+  // Delete kunker
+  Future<int> deleteKunker(int id) async {
+    try {
+      final result = await _dbHelper.deleteKunker(id);
+      if (result == 0) {
+        throw Exception('Kunker tidak ditemukan');
+      }
+      return result;
+    } catch (e) {
+      throw Exception('Failed to delete kunker: $e');
+    }
+  }
+
+  // Delete kunker by No. Surat
+  Future<int> deleteKunkerByNoSurat(String noSurat) async {
+    try {
+      final result = await _dbHelper.deleteKunkerByNoSurat(noSurat);
+      if (result == 0) {
+        throw Exception('Kunker dengan No. Surat $noSurat tidak ditemukan');
+      }
+      return result;
+    } catch (e) {
+      throw Exception('Failed to delete kunker: $e');
+    }
+  }
+
+  // Get total count
+  Future<int> getKunkerCount() async {
+    try {
+      return await _dbHelper.getKunkerCount();
+    } catch (e) {
+      throw Exception('Failed to get kunker count: $e');
+    }
+  }
+
+  // Get statistics
+  Future<List<Map<String, dynamic>>> getKunkerStats() async {
+    try {
+      return await _dbHelper.getKunkerStats();
+    } catch (e) {
+      throw Exception('Failed to get kunker stats: $e');
+    }
+  }
+
+  // Clear all data (for testing purposes)
+  Future<void> clearAllKunker() async {
+    try {
+      await _dbHelper.clearAllKunker();
+    } catch (e) {
+      throw Exception('Failed to clear kunker data: $e');
+    }
+  }
+
+  // Convert database models to UI format
+  List<Map<String, dynamic>> convertToUIFormat(List<KunkerModel> kunkerList) {
+    return kunkerList.map((kunker) => kunker.toUIMap()).toList();
+  }
+
+  // Batch operations
+  Future<List<int>> addMultipleKunker(List<KunkerModel> kunkerList) async {
+    final List<int> results = [];
+    for (final kunker in kunkerList) {
+      try {
+        final id = await addKunker(kunker);
+        results.add(id);
+      } catch (e) {
+        // Log error but continue with other items
+        print('Failed to add kunker ${kunker.noSurat}: $e');
+        results.add(-1); // Indicate failure
+      }
+    }
+    return results;
+  }
+
+  Future<int> updateMultipleKunkerStatus(List<String> noSuratList, String newStatus) async {
+    int updatedCount = 0;
+    for (final noSurat in noSuratList) {
+      try {
+        final existing = await getKunkerByNoSurat(noSurat);
+        if (existing != null) {
+          final updated = existing.copyWith(statusPengajuan: newStatus);
+          await updateKunker(existing.id!, updated);
+          updatedCount++;
+        }
+      } catch (e) {
+        print('Failed to update status for $noSurat: $e');
+      }
+    }
+    return updatedCount;
+  }
+
+  // Analytics methods
+  Future<Map<String, int>> getStatusDistribution() async {
+    try {
+      final stats = await getKunkerStats();
+      final Map<String, int> distribution = {};
+      for (final stat in stats) {
+        distribution[stat['status_pengajuan']] = stat['count'];
+      }
+      return distribution;
+    } catch (e) {
+      throw Exception('Failed to get status distribution: $e');
+    }
+  }
+
+  Future<List<KunkerModel>> getRecentKunker({int limit = 10}) async {
+    try {
+      final allKunker = await getAllKunker();
+      // Already sorted by created_at DESC in database helper
+      return allKunker.take(limit).toList();
+    } catch (e) {
+      throw Exception('Failed to get recent kunker: $e');
+    }
+  }
+
+  Future<List<KunkerModel>> getKunkerByDateRange(DateTime startDate, DateTime endDate) async {
+    try {
+      final allKunker = await getAllKunker();
+      return allKunker.where((kunker) {
+        try {
+          final createdAt = DateTime.parse(kunker.createdAt);
+          return createdAt.isAfter(startDate.subtract(const Duration(days: 1))) &&
+                 createdAt.isBefore(endDate.add(const Duration(days: 1)));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get kunker by date range: $e');
     }
   }
 }

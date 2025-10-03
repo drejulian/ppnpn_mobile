@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:flutter/services.dart';
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
 class EditDataPendidikanPage extends ConsumerStatefulWidget {
   final Map<String, String>? educationToEdit;
@@ -87,22 +88,11 @@ class _EditDataPendidikanPageState
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Edit Data Pendidikan',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppCustomAppBar(
+        title: 'Ubah Data Pendidikan',
+        onBackPressed: () => Navigator.of(context).pop(),
+        backTooltip: 'Kembali',
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

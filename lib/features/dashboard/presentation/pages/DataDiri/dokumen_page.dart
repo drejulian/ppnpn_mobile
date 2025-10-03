@@ -8,6 +8,9 @@ import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/profile_data_provider.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/dokumen_service.dart';
+import 'package:ppnpm_dpr/common/data/models/dokumen_model.dart';
 
 class DokumenPage extends ConsumerStatefulWidget {
   const DokumenPage({super.key});
@@ -22,25 +25,67 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
   bool _hasUnsavedChanges = false;
+  
+  // SQLite service
+  final DokumenService _dokumenService = DokumenService();
+  List<DokumenModel> _dokumenList = [];
+  bool _isLoading = true;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     if (!_dataLoaded) {
-      final savedData = ref.read(dokumenDataProvider);
+      _loadDocumentsFromDatabase();
+      _dataLoaded = true;
+    }
+  }
 
-      if (savedData.ktpUploaded) _uploadedFiles['ktp'] = File('dummy_ktp.pdf');
-      if (savedData.kkUploaded) _uploadedFiles['kk'] = File('dummy_kk.pdf');
-      if (savedData.ijazahUploaded) _uploadedFiles['ijazah'] = File('dummy_ijazah.pdf');
-      if (savedData.transkripUploaded) _uploadedFiles['transkrip'] = File('dummy_transkrip.pdf');
-      if (savedData.cvUploaded) _uploadedFiles['cv'] = File('dummy_cv.pdf');
-      if (savedData.suratLamaranUploaded) _uploadedFiles['surat_lamaran'] = File('dummy_surat_lamaran.pdf');
-      if (savedData.fotoUploaded) _uploadedFiles['foto'] = File('dummy_foto.jpg');
-      if (savedData.sertifikatUploaded) _uploadedFiles['sertifikat'] = File('dummy_sertifikat.pdf');
+  /// Load documents from SQLite database
+  Future<void> _loadDocumentsFromDatabase() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Initialize default documents if needed
+      await _dokumenService.initializeDocuments();
+      
+      // Load all documents for current user
+      _dokumenList = await _dokumenService.getAllDocuments();
+      
+      // Update uploaded files map from database
+      _uploadedFiles.clear();
+      for (final dokumen in _dokumenList) {
+        if (dokumen.isUploaded && dokumen.filePath != null) {
+          final file = File(dokumen.filePath!);
+          if (await file.exists()) {
+            _uploadedFiles[dokumen.documentId] = file;
+          } else {
+            // File doesn't exist anymore, mark as not uploaded
+            await _dokumenService.removeDocumentUpload(dokumen.documentId);
+          }
+        }
+      }
 
       _originalData = _getCurrentData();
-      _dataLoaded = true;
+      
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading documents from database: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'Gagal Memuat Data',
+          message: 'Terjadi kesalahan saat memuat data dokumen: $e',
+          onConfirm: () {},
+        );
+      }
     }
   }
 
@@ -72,11 +117,7 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     return hasChanges;
   }
 
-  void _updateUnsavedChanges() {
-    setState(() {
-      _hasUnsavedChanges = _hasUnsavedChangesInternal();
-    });
-  }
+
 
   void _restoreOriginalData() {
     _uploadedFiles.clear();
@@ -138,31 +179,49 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
       );
 
       if (result != null) {
+        final file = File(result.files.single.path!);
+        
+        // Validate file size (max 5MB)
+        final fileSize = await file.length();
+        if (fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ErrorUploadDialogCard.show(
+              context,
+              title: 'File Terlalu Besar',
+              message: 'Ukuran file maksimal 5MB. File yang dipilih: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB',
+              onConfirm: () {},
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _uploadedFiles[documentId] = File(result.files.single.path!);
+          _uploadedFiles[documentId] = file;
           _hasUnsavedChanges = _hasUnsavedChangesInternal();
         });
       }
     } catch (e) {
-      ErrorUploadDialogCard.show(
-        context,
-        title: 'Gagal Memilih File',
-        message: 'Terjadi kesalahan saat memilih file: $e',
-        onConfirm: () {
-        },
-      );
+      if (mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'Gagal Memilih File',
+          message: 'Terjadi kesalahan saat memilih file: $e',
+          onConfirm: () {},
+        );
+      }
     }
   }
 
   Future<void> _uploadFile(String documentId) async {
     if (_uploadedFiles[documentId] == null) {
-      ErrorUploadDialogCard.show(
-        context,
-        title: 'File Belum Dipilih',
-        message: 'Silakan pilih file terlebih dahulu',
-        onConfirm: () {
-        },
-      );
+      if (mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'File Belum Dipilih',
+          message: 'Silakan pilih file terlebih dahulu',
+          onConfirm: () {},
+        );
+      }
       return;
     }
 
@@ -171,36 +230,106 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      await ProfileCompletionNotifierCard.show(
-        context,
-        title: 'Upload Berhasil',
-        message: 'File berhasil diupload.',
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green[600],
-        onConfirm: () {
-        },
-      );
-      setState(() {
-        _hasUnsavedChanges = _hasUnsavedChangesInternal();
-      });
+      final file = _uploadedFiles[documentId]!;
+      
+      // Upload file and save to database
+      final success = await _dokumenService.uploadDocument(documentId, file);
+      
+      if (success) {
+        // Refresh document list from database
+        await _refreshDocumentList();
+        
+        if (mounted) {
+          await ProfileCompletionNotifierCard.show(
+            context,
+            title: 'Upload Berhasil',
+            message: 'File berhasil diupload dan disimpan.',
+            icon: Icons.check_circle_rounded,
+            iconColor: Colors.green[600],
+            onConfirm: () {},
+          );
+        }
+        
+        setState(() {
+          _hasUnsavedChanges = _hasUnsavedChangesInternal();
+        });
+      } else {
+        throw Exception('Gagal menyimpan data ke database');
+      }
     } catch (e) {
-      ErrorUploadDialogCard.show(
-        context,
-        title: 'Gagal Mengupload File',
-        message: 'Terjadi kesalahan saat mengupload file: $e',
-        onConfirm: () {
-        },
-      );
+      print('Error uploading file: $e');
+      if (mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'Gagal Mengupload File',
+          message: 'Terjadi kesalahan saat mengupload file: $e',
+          onConfirm: () {},
+        );
+      }
     } finally {
-      setState(() {
-        _uploading[documentId] = false;
-      });
+      if (mounted) {
+        setState(() {
+          _uploading[documentId] = false;
+        });
+      }
+    }
+  }
+
+  /// Refresh document list from database
+  Future<void> _refreshDocumentList() async {
+    try {
+      _dokumenList = await _dokumenService.getAllDocuments();
+      
+      // Update uploaded files map
+      _uploadedFiles.clear();
+      for (final dokumen in _dokumenList) {
+        if (dokumen.isUploaded && dokumen.filePath != null) {
+          final file = File(dokumen.filePath!);
+          if (await file.exists()) {
+            _uploadedFiles[dokumen.documentId] = file;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error refreshing document list: $e');
+    }
+  }
+
+  /// Remove uploaded document
+  Future<void> _removeDocument(String documentId) async {
+    try {
+      final success = await _dokumenService.removeDocumentUpload(documentId);
+      
+      if (success) {
+        await _refreshDocumentList();
+        setState(() {
+          _uploadedFiles.remove(documentId);
+          _hasUnsavedChanges = _hasUnsavedChangesInternal();
+        });
+        
+        if (mounted) {
+          notification.NotificationUtils.showSuccess(
+            context,
+            'Dokumen berhasil dihapus dari database',
+          );
+        }
+      } else {
+        throw Exception('Gagal menghapus dokumen dari database');
+      }
+    } catch (e) {
+      print('Error removing document: $e');
+      if (mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'Gagal Menghapus Dokumen',
+          message: 'Terjadi kesalahan saat menghapus dokumen: $e',
+          onConfirm: () {},
+        );
+      }
     }
   }
 
   Future<bool> _showUnsavedChangesDialog() async {
-    final theme = ref.read(themeProvider);
     return await SIHAKIConfirmationDialog.show(
       context,
       title: 'Batalkan Perubahan Dokumen',
@@ -226,6 +355,28 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+
+    // Show loading indicator while data is being loaded
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppCustomAppBar(
+          title: 'Unggah Dokumen',
+          onBackPressed: () => Navigator.of(context).pop(),
+          backTooltip: 'Kembali',
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Memuat data dokumen...'),
+            ],
+          ),
+        ),
+      );
+    }
 
     return PopScope(
       canPop: false,
@@ -493,7 +644,25 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              if (isUploaded && !isUploading)
+                SizedBox(
+                  width: 40,
+                  child: IconButton(
+                    onPressed: () => _removeDocument(document.id),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.red[600],
+                      backgroundColor: Colors.red[50],
+                      padding: const EdgeInsets.all(8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    tooltip: 'Hapus dokumen',
+                  ),
+                ),
+              const SizedBox(width: 8),
               SizedBox(
                 width: 100,
                 child: ElevatedButton(
@@ -532,51 +701,69 @@ class _DokumenPageState extends ConsumerState<DokumenPage> {
   }
 
   Future<void> _saveData(BuildContext context, dynamic theme) async {
-    final currentData = ref.read(dokumenDataProvider);
-    DokumenData newData = currentData.copyWith(
-      cvUploaded: _uploadedFiles.containsKey('cv'),
-      ijazahUploaded: _uploadedFiles.containsKey('ijazah'),
-      transkripUploaded: _uploadedFiles.containsKey('transkrip'),
-      ktpUploaded: _uploadedFiles.containsKey('ktp'),
-      kkUploaded: _uploadedFiles.containsKey('kk'),
-      suratLamaranUploaded: _uploadedFiles.containsKey('surat_lamaran'),
-      fotoUploaded: _uploadedFiles.containsKey('foto'),
-      sertifikatUploaded: _uploadedFiles.containsKey('sertifikat'),
-    );
+    try {
+      // Refresh document list from database to get the latest status
+      await _refreshDocumentList();
+      
+      // Update provider with SQLite data
+      final currentData = ref.read(dokumenDataProvider);
+      DokumenData newData = currentData.copyWith(
+        cvUploaded: await _dokumenService.isDocumentUploaded('cv'),
+        ijazahUploaded: await _dokumenService.isDocumentUploaded('ijazah'),
+        transkripUploaded: await _dokumenService.isDocumentUploaded('transkrip'),
+        ktpUploaded: await _dokumenService.isDocumentUploaded('ktp'),
+        kkUploaded: await _dokumenService.isDocumentUploaded('kk'),
+        suratLamaranUploaded: await _dokumenService.isDocumentUploaded('surat_lamaran'),
+        fotoUploaded: await _dokumenService.isDocumentUploaded('foto'),
+        sertifikatUploaded: await _dokumenService.isDocumentUploaded('sertifikat'),
+      );
 
-    ref.read(dokumenDataProvider.notifier).updateData(newData);
-    ref.read(profileCompletionProvider.notifier).markCompleted('dokumen');
+      ref.read(dokumenDataProvider.notifier).updateData(newData);
+      ref.read(profileCompletionProvider.notifier).markCompleted('dokumen');
 
-    final prefs = await SharedPreferences.getInstance();
-    await Future.wait([
-      prefs.setBool('dokumen_has_changes', false),
-      prefs.setBool('dokumen_just_saved', true),
-      prefs.setBool('dokumen_user_saved', true),
-    ]);
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.setBool('dokumen_has_changes', false),
+        prefs.setBool('dokumen_just_saved', true),
+        prefs.setBool('dokumen_user_saved', true),
+      ]);
 
-    _originalData = _getCurrentData();
+      _originalData = _getCurrentData();
 
-    await ProfileCompletionNotifierCard.show(
-      context,
-      title: 'Berhasil Menyimpan Dokumen',
-      message: 'Data dokumen Anda telah diperbarui dan tersimpan dengan sukses.',
-      onConfirm: () {
-        notification.NotificationUtils.showSuccess(
+      if (context.mounted) {
+        await ProfileCompletionNotifierCard.show(
           context,
-          'Data dokumen telah disimpan',
+          title: 'Berhasil Menyimpan Dokumen',
+          message: 'Data dokumen Anda telah diperbarui dan tersimpan dengan sukses di database.',
+          onConfirm: () {
+            notification.NotificationUtils.showSuccess(
+              context,
+              'Data dokumen telah disimpan ke database',
+            );
+            if (context.mounted) {
+              context.pop('saved');
+            }
+          },
+          icon: Icons.check_circle_rounded,
+          iconColor: Colors.green[600],
         );
-        if (context.mounted) {
-          context.pop('saved');
-        }
-      },
-      icon: Icons.check_circle_rounded,
-      iconColor: Colors.green[600],
-    );
+      }
 
-    if (context.mounted) {
-      setState(() {
-        _hasUnsavedChanges = false;
-      });
+      if (context.mounted) {
+        setState(() {
+          _hasUnsavedChanges = false;
+        });
+      }
+    } catch (e) {
+      print('Error saving dokumen data: $e');
+      if (context.mounted) {
+        ErrorUploadDialogCard.show(
+          context,
+          title: 'Gagal Menyimpan Data',
+          message: 'Terjadi kesalahan saat menyimpan data: $e',
+          onConfirm: () {},
+        );
+      }
     }
   }
 }

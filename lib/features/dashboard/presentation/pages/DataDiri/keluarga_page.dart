@@ -3,60 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
+import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
-import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'providers/profile_data_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
 
+// SQLite-powered dynamic family data provider - starts empty
 final familyDataProvider = StateProvider<List<dto.FamilyMemberDto>>((ref) {
-  return [
-    dto.FamilyMemberDto(
-      id: '1',
-      nama: 'RENI GUMILA DEWI',
-      hubungan: 'ISTRI',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(1982, 9, 4),
-      jenisKelamin: 'Perempuan',
-      pekerjaan: 'IBU RUMAH TANGGA',
-      tanggalMenikah: DateTime(2008, 12, 14),
-    ),
-    dto.FamilyMemberDto(
-      id: '2',
-      nama: 'ARVIE PRAMATYA ALGHANI',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(1998, 9, 25),
-      jenisKelamin: 'Laki-laki',
-      pekerjaan: 'Pelajar',
-    ),
-    dto.FamilyMemberDto(
-      id: '3',
-      nama: 'DYLAN PRADIPTA ALGHANI',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(2011, 7, 7),
-      jenisKelamin: 'Laki-laki',
-      pekerjaan: 'Pelajar',
-    ),
-    dto.FamilyMemberDto(
-      id: '4',
-      nama: 'nadine rafarindya alghani',
-      hubungan: 'AK',
-      tempatLahir: 'Jakarta',
-      tanggalLahir: DateTime(2016, 2, 25),
-      jenisKelamin: 'Perempuan',
-      pekerjaan: 'belum/Tidak bekerja',
-    ),
-  ];
+  return <dto.FamilyMemberDto>[];
 });
 
-final keluargaRemoteProvider = FutureProvider.autoDispose<List<dto.FamilyMemberDto>>((ref) async {
-  final api = ref.read(keluargaApiProvider);
-  return api.fetchMembers();
-});
+// SQLite-only implementation - no more API provider needed
 
 class KeluargaPage extends ConsumerStatefulWidget {
   const KeluargaPage({super.key});
@@ -68,19 +29,170 @@ class KeluargaPage extends ConsumerStatefulWidget {
 class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ProfileService _profileService = ProfileService();
   String _searchQuery = '';
   bool _isSaving = false;
+  bool _isInitialized = false;
 
   late List<dto.FamilyMemberDto> _originalFamilyData;
   bool _hasLoadedInitialData = false;
 
   @override
+  void initState() {
+    super.initState();
+    _initializeAndLoadData();
+  }
+
+  /// Initialize SQLite database and load existing data
+  Future<void> _initializeAndLoadData() async {
+    try {
+      print('KeluargaPage: Initializing SQLite and loading data...');
+      
+      // Check if ProfileService is available (database will be initialized automatically)
+      await _profileService.hasKeluargaData();
+      
+      // Load existing data from SQLite
+      await _refreshDataFromSQLite();
+      
+      setState(() {
+        _isInitialized = true;
+      });
+      
+      print('KeluargaPage: Initialization completed');
+    } catch (e) {
+      print('KeluargaPage: Error during initialization: $e');
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
+
+  /// Load keluarga data from SQLite
+  Future<void> _loadDataFromSQLite() async {
+    try {
+      print('KeluargaPage: Loading keluarga data from SQLite...');
+      
+      final keluargaData = await _profileService.getKeluargaData();
+      
+      if (keluargaData != null) {
+        print('KeluargaPage: Found SQLite data:');
+        print('  - Nama Ayah: "${keluargaData.namaAyah}"');
+        print('  - Nama Ibu: "${keluargaData.namaIbu}"');
+        print('  - Nama Pasangan: "${keluargaData.namaPasangan}"');
+        print('  - Nama Anak: "${keluargaData.namaAnak}"');
+        
+        // Convert SQLite data back to FamilyMemberDto list
+        final familyMembers = <dto.FamilyMemberDto>[];
+        
+        // Add Ayah if exists
+        if (keluargaData.namaAyah.isNotEmpty) {
+          familyMembers.add(dto.FamilyMemberDto(
+            id: 'ayah_1',
+            nama: keluargaData.namaAyah,
+            hubungan: 'AYAH',
+            tempatLahir: '',
+            tanggalLahir: DateTime.now(),
+            jenisKelamin: 'Laki-laki',
+            pekerjaan: keluargaData.pekerjaanAyah,
+          ));
+        }
+        
+        // Add Ibu if exists
+        if (keluargaData.namaIbu.isNotEmpty) {
+          familyMembers.add(dto.FamilyMemberDto(
+            id: 'ibu_1',
+            nama: keluargaData.namaIbu,
+            hubungan: 'IBU',
+            tempatLahir: '',
+            tanggalLahir: DateTime.now(),
+            jenisKelamin: 'Perempuan',
+            pekerjaan: keluargaData.pekerjaanIbu,
+          ));
+        }
+        
+        // Add Pasangan if exists
+        if (keluargaData.namaPasangan.isNotEmpty) {
+          familyMembers.add(dto.FamilyMemberDto(
+            id: 'pasangan_1',
+            nama: keluargaData.namaPasangan,
+            hubungan: 'ISTRI', // or SUAMI based on context
+            tempatLahir: '',
+            tanggalLahir: DateTime.now(),
+            jenisKelamin: 'Perempuan',
+            pekerjaan: keluargaData.pekerjaanPasangan,
+          ));
+        }
+        
+        // Add Anak if exists (multiple names separated by comma)
+        if (keluargaData.namaAnak.isNotEmpty) {
+          final namaAnakList = keluargaData.namaAnak.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          for (int i = 0; i < namaAnakList.length; i++) {
+            familyMembers.add(dto.FamilyMemberDto(
+              id: 'anak_${i + 1}',
+              nama: namaAnakList[i],
+              hubungan: 'AK',
+              tempatLahir: '',
+              tanggalLahir: DateTime.now(),
+              jenisKelamin: 'Laki-laki', // default
+              pekerjaan: 'Pelajar',
+            ));
+          }
+        }
+        
+        // Update provider with SQLite data
+        ref.read(familyDataProvider.notifier).state = familyMembers;
+        _originalFamilyData = List.from(familyMembers);
+        
+        print('KeluargaPage: ✅ Loaded ${familyMembers.length} family members from SQLite');
+      } else {
+        print('KeluargaPage: No SQLite data found, starting with empty list');
+        // Start with empty list - user can add family members manually
+        ref.read(familyDataProvider.notifier).state = <dto.FamilyMemberDto>[];
+        _originalFamilyData = <dto.FamilyMemberDto>[];
+      }
+    } catch (e) {
+      print('KeluargaPage: Error loading SQLite data: $e');
+      // On error, start with empty list
+      ref.read(familyDataProvider.notifier).state = <dto.FamilyMemberDto>[];
+      _originalFamilyData = <dto.FamilyMemberDto>[];
+    }
+  }
+
+  /// Helper method to refresh data from SQLite after operations
+  Future<void> _refreshDataFromSQLite() async {
+    try {
+      await _loadDataFromSQLite();
+      if (mounted) {
+        setState(() {
+          // Trigger UI rebuild
+        });
+      }
+    } catch (e) {
+      print('KeluargaPage: Error refreshing SQLite data: $e');
+    }
+  }
+
+  /// Force refresh data from SQLite (use when needed explicitly)
+  Future<void> forceRefreshFromSQLite() async {
+    if (_isInitialized) {
+      await _refreshDataFromSQLite();
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasLoadedInitialData) {
-      final remote = ref.read(keluargaRemoteProvider);
-      _originalFamilyData = List.from(remote.asData?.value ?? ref.read(familyDataProvider));
+    if (!_hasLoadedInitialData && _isInitialized) {
+      if (_originalFamilyData.isEmpty) {
+        _originalFamilyData = List.from(ref.read(familyDataProvider));
+      }
       _hasLoadedInitialData = true;
+    }
+    
+    // Only refresh from SQLite if we're just initializing, not when returning from add/edit
+    // This prevents overwriting newly added data that might not be saved to SQLite yet
+    if (_isInitialized && _hasLoadedInitialData && _originalFamilyData.isEmpty) {
+      _refreshDataFromSQLite();
     }
   }
 
@@ -91,12 +203,7 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   }
 
   bool _hasUnsavedChanges() {
-    final remote = ref.read(keluargaRemoteProvider);
-    final currentFamilyData = remote.asData?.value ?? ref.read(familyDataProvider);
-
-    if (currentFamilyData == null) {
-      return false;
-    }
+    final currentFamilyData = ref.read(familyDataProvider);
 
     if (_originalFamilyData.length != currentFamilyData.length) {
       return true;
@@ -122,7 +229,6 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
   }
 
   Future<bool> _showUnsavedChangesDialog() async {
-    final theme = ref.read(themeProvider);
     return await SIHAKIConfirmationDialog.show(
           context,
           title: 'Perubahan Belum Disimpan',
@@ -151,8 +257,8 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     final theme = ref.watch(themeProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final remote = ref.watch(keluargaRemoteProvider);
-    List<dto.FamilyMemberDto> allFamilyMembers = remote.asData?.value ?? ref.watch(familyDataProvider);
+    List<dto.FamilyMemberDto> allFamilyMembers = ref.watch(familyDataProvider);
+    print('KeluargaPage: Current family members count: ${allFamilyMembers.length}');
     final currentTime = DateTime.now().toUtc().add(const Duration(hours: 7));
 
     final filteredMembers = allFamilyMembers.where((member) {
@@ -177,9 +283,9 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
-        title: 'Data Keluarga',
-        onBackPressed: () => Navigator.of(context).pop(),
-        backTooltip: 'Kembali',
+        title: 'Detail Data Keluarga',
+        onBackPressed: () => context.go('/profile-sections'),
+        backTooltip: 'Kembali ke Keluarga',
       ),
         body: Form(
           key: _formKey,
@@ -197,39 +303,6 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
                 const SizedBox(height: 20),
                 _buildAddFamilyButton(theme),
                 const SizedBox(height: 20),
-                if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
-                if (remote.hasError)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: const BorderRadius.all(Radius.circular(12.0)),
-                      border: Border.all(
-                        color: Colors.orange.withOpacity(0.4),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_amber, color: Colors.orange),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Gagal memuat data dari server. Menampilkan data lokal.',
-                            style: theme.typographyRegular.bodySmall.copyWith(
-                              color: Colors.orange[900],
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.refresh),
-                          color: Colors.orange,
-                          onPressed: () => ref.invalidate(keluargaRemoteProvider),
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 12),
                 _buildFamilyCards(theme, filteredMembers),
                 const SizedBox(height: 30),
                 SizedBox(
@@ -565,8 +638,8 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Daftar Anggota Keluarga',
-                style: theme.typographyRegular.bodyMedium.copyWith(
+                'Daftar Keluarga',
+                style: theme.typographyRegular.bodySmall.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[800],
                 ),
@@ -775,8 +848,15 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
     }
   }
 
-  void _addFamilyMember() {
-    context.go('/add-data-keluarga');
+  Future<void> _addFamilyMember() async {
+    // Navigate to add page and wait for result
+    final result = await context.pushNamed(Routes.addDataKeluarga.name);
+    
+    // If data was added successfully, refresh from SQLite to ensure consistency
+    if (result == 'saved' && mounted) {
+      print('KeluargaPage: User returned from add page, refreshing data...');
+      await forceRefreshFromSQLite();
+    }
   }
 
   Future<void> _deleteFamilyMember(dto.FamilyMemberDto member) async {
@@ -874,7 +954,14 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         }
       }
 
-      final keluargaData = KeluargaData(
+      print('KeluargaPage: Saving family data to SQLite...');
+      print('  - Nama Ayah: "$namaAyah"');
+      print('  - Nama Ibu: "$namaIbu"');
+      print('  - Nama Pasangan: "$namaPasangan"');
+      print('  - Nama Anak: "$namaAnak"');
+
+      // Save to SQLite using ProfileService
+      final success = await _profileService.saveKeluargaData(
         namaAyah: namaAyah,
         namaIbu: namaIbu,
         namaPasangan: namaPasangan,
@@ -884,34 +971,63 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
         pekerjaanPasangan: pekerjaanPasangan,
       );
 
-      ref.read(keluargaDataProvider.notifier).updateData(keluargaData);
-      await _saveFamilyUserFlag();
-      _originalFamilyData = List.from(familyList);
+      if (success) {
+        print('KeluargaPage: ✅ SQLite save successful');
 
-      if (mounted) {
-        await ProfileCompletionNotifierCard.show(
-          context,
-          title: 'Berhasil Menyimpan Data Keluarga',
-          message: 'Data keluarga Anda telah diperbarui dan tersimpan dengan sukses.',
-          onConfirm: () {
-            if (mounted) {
-              notification.NotificationUtils.showSuccess(
-                context,
-                'Data keluarga telah disimpan',
-              );
-              context.pop('saved');
-            }
-          },
-          icon: Icons.check_circle_rounded,
-          iconColor: Colors.green.shade600,
+        // Also save to existing provider for compatibility
+        final keluargaData = KeluargaData(
+          namaAyah: namaAyah,
+          namaIbu: namaIbu,
+          namaPasangan: namaPasangan,
+          namaAnak: namaAnak,
+          pekerjaanAyah: pekerjaanAyah,
+          pekerjaanIbu: pekerjaanIbu,
+          pekerjaanPasangan: pekerjaanPasangan,
         );
+
+        ref.read(keluargaDataProvider.notifier).updateData(keluargaData);
+        
+        // Update SharedPreferences flags for proper persistence
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('family_user_saved', true);
+        await prefs.setBool('family_just_saved', true);
+        await prefs.setBool('family_has_changes', false);
+        print('KeluargaPage: ✅ SharedPreferences flags updated');
+        
+        _originalFamilyData = List.from(familyList);
+
+        // Refresh data from SQLite to ensure consistency
+        await _refreshDataFromSQLite();
+
+        if (mounted) {
+          await ProfileCompletionNotifierCard.show(
+            context,
+            title: 'Berhasil Menyimpan Data Keluarga',
+            message: 'Data keluarga Anda telah diperbarui dan tersimpan dengan sukses ke SQLite database.',
+            onConfirm: () {
+              if (mounted) {
+                notification.NotificationUtils.showSuccess(
+                  context,
+                  'Data keluarga telah disimpan ke SQLite',
+                );
+                context.pop('saved');
+              }
+            },
+            icon: Icons.check_circle_rounded,
+            iconColor: Colors.green.shade600,
+          );
+        }
+      } else {
+        print('KeluargaPage: ❌ SQLite save failed');
+        throw Exception('Gagal menyimpan data ke SQLite database');
       }
     } catch (e) {
+      print('KeluargaPage: Error saving data: $e');
       if (mounted) {
         await ErrorUploadDialogCard.show(
           context,
           title: 'Gagal Menyimpan Data',
-          message: 'Terjadi kesalahan saat menyimpan data: $e',
+          message: 'Terjadi kesalahan saat menyimpan data keluarga: $e',
           onConfirm: () {},
         );
       }
@@ -926,5 +1042,291 @@ class _KeluargaPageState extends ConsumerState<KeluargaPage> {
 
   void _viewMemberDetail(dto.FamilyMemberDto member) {
     context.go('/detail-data-keluarga/${member.id}');
+  }
+
+
+}
+
+// Debug page for testing Keluarga SQLite operations
+class KeluargaDebugPage extends StatefulWidget {
+  final ProfileService profileService;
+
+  const KeluargaDebugPage({
+    super.key,
+    required this.profileService,
+  });
+
+  @override
+  State<KeluargaDebugPage> createState() => _KeluargaDebugPageState();
+}
+
+class _KeluargaDebugPageState extends State<KeluargaDebugPage> {
+  String _debugOutput = 'Keluarga Debug Console Ready\n';
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Keluarga SQLite Debug'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Keluarga SQLite Debug Tools',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testSaveKeluarga,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Test Save'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testLoadKeluarga,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Test Load'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testHasKeluarga,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Test Has Data'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testDeleteKeluarga,
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Test Delete'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testValidation,
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Test Validation'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _clearDebugOutput,
+                  icon: const Icon(Icons.clear),
+                  label: const Text('Clear Log'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_isLoading)
+              const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    _debugOutput,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addDebugOutput(String message) {
+    setState(() {
+      final timestamp = DateTime.now().toString().substring(11, 19);
+      _debugOutput += '[$timestamp] $message\n';
+    });
+  }
+
+  void _clearDebugOutput() {
+    setState(() {
+      _debugOutput = 'Keluarga Debug Console Cleared\n';
+    });
+  }
+
+  Future<void> _testSaveKeluarga() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing save keluarga data...');
+
+    try {
+      final success = await widget.profileService.saveKeluargaData(
+        namaAyah: 'Bapak Test SQLite',
+        namaIbu: 'Ibu Test SQLite',
+        namaPasangan: 'Istri Test SQLite',
+        namaAnak: 'Anak 1 Test, Anak 2 Test',
+        pekerjaanAyah: 'PNS',
+        pekerjaanIbu: 'Guru',
+        pekerjaanPasangan: 'Dokter',
+      );
+
+      if (success) {
+        _addDebugOutput('✅ Save keluarga test: SUCCESS');
+      } else {
+        _addDebugOutput('❌ Save keluarga test: FAILED');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Save keluarga test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testLoadKeluarga() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing load keluarga data...');
+
+    try {
+      final data = await widget.profileService.getKeluargaData();
+
+      if (data != null) {
+        _addDebugOutput('✅ Load keluarga test: SUCCESS');
+        _addDebugOutput('📄 Data found:');
+        _addDebugOutput('   - ID: ${data.id}');
+        _addDebugOutput('   - User ID: ${data.userId}');
+        _addDebugOutput('   - Nama Ayah: "${data.namaAyah}"');
+        _addDebugOutput('   - Nama Ibu: "${data.namaIbu}"');
+        _addDebugOutput('   - Nama Pasangan: "${data.namaPasangan}"');
+        _addDebugOutput('   - Nama Anak: "${data.namaAnak}"');
+        _addDebugOutput('   - Pekerjaan Ayah: "${data.pekerjaanAyah}"');
+        _addDebugOutput('   - Pekerjaan Ibu: "${data.pekerjaanIbu}"');
+        _addDebugOutput('   - Pekerjaan Pasangan: "${data.pekerjaanPasangan}"');
+        _addDebugOutput('   - Created: ${data.createdAt}');
+        _addDebugOutput('   - Updated: ${data.updatedAt}');
+      } else {
+        _addDebugOutput('ℹ️ Load keluarga test: No data found');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Load keluarga test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testHasKeluarga() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing has keluarga data...');
+
+    try {
+      final hasData = await widget.profileService.hasKeluargaData();
+      _addDebugOutput('✅ Has keluarga test: ${hasData ? "HAS DATA" : "NO DATA"}');
+    } catch (e) {
+      _addDebugOutput('❌ Has keluarga test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testDeleteKeluarga() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing delete keluarga data...');
+
+    try {
+      // First check if data exists
+      final hasDataBefore = await widget.profileService.hasKeluargaData();
+      _addDebugOutput('📋 Data before delete: ${hasDataBefore ? "EXISTS" : "NOT EXISTS"}');
+
+      if (hasDataBefore) {
+        // Note: We don't have a direct delete method in ProfileService, 
+        // but we can test by saving empty data
+        final success = await widget.profileService.saveKeluargaData(
+          namaAyah: '',
+          namaIbu: '',
+          namaPasangan: '',
+          namaAnak: '',
+          pekerjaanAyah: '',
+          pekerjaanIbu: '',
+          pekerjaanPasangan: '',
+        );
+
+        if (success) {
+          _addDebugOutput('✅ Delete keluarga test: SUCCESS (cleared all data)');
+        } else {
+          _addDebugOutput('❌ Delete keluarga test: FAILED');
+        }
+
+        // Check if data still exists
+        final hasDataAfter = await widget.profileService.hasKeluargaData();
+        _addDebugOutput('📋 Data after delete: ${hasDataAfter ? "STILL EXISTS" : "DELETED"}');
+      } else {
+        _addDebugOutput('ℹ️ Delete keluarga test: No data to delete');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Delete keluarga test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testValidation() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing keluarga validation...');
+
+    try {
+      // Test empty data
+      var errors = widget.profileService.getKeluargaDataValidationErrors(
+        namaAyah: '',
+        namaIbu: '',
+        namaPasangan: '',
+        namaAnak: '',
+        pekerjaanAyah: '',
+        pekerjaanIbu: '',
+        pekerjaanPasangan: '',
+      );
+      _addDebugOutput('📝 Empty data validation: ${errors.length} errors');
+      for (var error in errors) {
+        _addDebugOutput('   - $error');
+      }
+
+      // Test valid data
+      errors = widget.profileService.getKeluargaDataValidationErrors(
+        namaAyah: 'Bapak Valid',
+        namaIbu: 'Ibu Valid',
+        namaPasangan: 'Pasangan Valid',
+        namaAnak: 'Anak Valid',
+        pekerjaanAyah: 'PNS',
+        pekerjaanIbu: 'Guru',
+        pekerjaanPasangan: 'Dokter',
+      );
+      _addDebugOutput('📝 Valid data validation: ${errors.length} errors');
+
+      // Test short names
+      errors = widget.profileService.getKeluargaDataValidationErrors(
+        namaAyah: 'A',
+        namaIbu: 'B',
+        namaPasangan: '',
+        namaAnak: '',
+        pekerjaanAyah: '',
+        pekerjaanIbu: '',
+        pekerjaanPasangan: '',
+      );
+      _addDebugOutput('📝 Short names validation: ${errors.length} errors');
+      for (var error in errors) {
+        _addDebugOutput('   - $error');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Validation test error: $e');
+    }
+
+    setState(() => _isLoading = false);
   }
 }

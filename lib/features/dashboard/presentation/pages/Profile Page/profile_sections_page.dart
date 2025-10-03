@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../DataDiri/providers/profile_data_provider.dart';
 import 'dart:io';
 import 'dart:convert';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/dokumen_service.dart';
 
 class _AppLifecycleObserver extends WidgetsBindingObserver {
   final VoidCallback onResume;
@@ -38,6 +40,9 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
   bool _isProcessingImmediateFlagDetection = false;
   final Map<String, Object> _originalData = {};
   late final _AppLifecycleObserver _lifecycleObserver;
+  
+  // SQLite service
+  final DokumenService _dokumenService = DokumenService();
 
   @override
   void initState() {
@@ -48,6 +53,8 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 200));
+      // Load dokumen data from SQLite first
+      await _loadDokumenDataFromSQLite();
       await _loadCompletionStatus();
       _saveOriginalData();
       _validateIdCardData();
@@ -65,6 +72,8 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
     final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
 
     if (!isLoggedOut) {
+      // Reload dokumen data from SQLite when app resumes
+      await _loadDokumenDataFromSQLite();
       await _loadCompletionStatus();
       return;
     }
@@ -154,7 +163,13 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     ref.invalidate(pendidikanDataProvider);
-    _loadCompletionStatus();
+    // Load dokumen data from SQLite first, then load completion status
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        await _loadDokumenDataFromSQLite();
+        await _loadCompletionStatus();
+      }
+    });
   }
 
   void _validateIdCardData() {
@@ -169,6 +184,64 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
         }
       }
     });
+  }
+
+  /// Load dokumen data from SQLite database
+  Future<void> _loadDokumenDataFromSQLite() async {
+    try {
+      // Initialize default documents if needed
+      await _dokumenService.initializeDocuments();
+      
+      // Get current dokumen data from provider
+      final currentDokumenData = ref.read(dokumenDataProvider);
+      
+      // Check each document type in SQLite
+      final updatedDokumenData = currentDokumenData.copyWith(
+        cvUploaded: await _dokumenService.isDocumentUploaded('cv'),
+        ijazahUploaded: await _dokumenService.isDocumentUploaded('ijazah'),
+        transkripUploaded: await _dokumenService.isDocumentUploaded('transkrip'),
+        ktpUploaded: await _dokumenService.isDocumentUploaded('ktp'),
+        kkUploaded: await _dokumenService.isDocumentUploaded('kk'),
+        suratLamaranUploaded: await _dokumenService.isDocumentUploaded('surat_lamaran'),
+        fotoUploaded: await _dokumenService.isDocumentUploaded('foto'),
+        sertifikatUploaded: await _dokumenService.isDocumentUploaded('sertifikat'),
+      );
+      
+      // Update provider with SQLite data
+      if (mounted) {
+        ref.read(dokumenDataProvider.notifier).updateData(updatedDokumenData);
+        
+        // Update completion status based on SQLite data
+        final hasUploadedDocuments = updatedDokumenData.cvUploaded ||
+                                   updatedDokumenData.ktpUploaded ||
+                                   updatedDokumenData.kkUploaded ||
+                                   updatedDokumenData.ijazahUploaded ||
+                                   updatedDokumenData.transkripUploaded ||
+                                   updatedDokumenData.suratLamaranUploaded ||
+                                   updatedDokumenData.fotoUploaded ||
+                                   updatedDokumenData.sertifikatUploaded;
+        
+        if (hasUploadedDocuments) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('dokumen');
+          setState(() {
+            _completedSections.add('Dokumen');
+            _editedSections.remove('Dokumen'); // Remove from edited if it's completed
+          });
+        }
+      }
+      
+      print('ProfileSectionsPage: DokumenData loaded from SQLite');
+      print('  - CV: ${updatedDokumenData.cvUploaded}');
+      print('  - KTP: ${updatedDokumenData.ktpUploaded}');
+      print('  - KK: ${updatedDokumenData.kkUploaded}');
+      print('  - Ijazah: ${updatedDokumenData.ijazahUploaded}');
+      print('  - Transkrip: ${updatedDokumenData.transkripUploaded}');
+      print('  - Surat Lamaran: ${updatedDokumenData.suratLamaranUploaded}');
+      print('  - Foto: ${updatedDokumenData.fotoUploaded}');
+      print('  - Sertifikat: ${updatedDokumenData.sertifikatUploaded}');
+    } catch (e) {
+      print('ProfileSectionsPage: Error loading dokumen data from SQLite: $e');
+    }
   }
 
   void _saveOriginalData() {
@@ -196,6 +269,9 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
       if (isLoggedOut) return;
+
+      // Load dokumen data from SQLite before checking completion status
+      await _loadDokumenDataFromSQLite();
 
       final completionStatus = ref.read(profileCompletionProvider);
       final data = {
@@ -310,7 +386,15 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
       case 'Data Lamaran':
         return data.position?.isNotEmpty == true || data.placement?.isNotEmpty == true;
       case 'Dokumen':
-        return data.cvUploaded == true || data.ktpUploaded == true || data.kkUploaded == true;
+        // Check SQLite data for more accurate document status
+        return data.cvUploaded == true || 
+               data.ktpUploaded == true || 
+               data.kkUploaded == true ||
+               data.ijazahUploaded == true ||
+               data.transkripUploaded == true ||
+               data.suratLamaranUploaded == true ||
+               data.fotoUploaded == true ||
+               data.sertifikatUploaded == true;
       case 'Keluarga':
         return data.namaAyah?.isNotEmpty == true || 
                data.namaIbu?.isNotEmpty == true || 
@@ -438,6 +522,12 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
 
     final result = await context.pushNamed(routeName);
     await Future.delayed(const Duration(milliseconds: 200));
+    
+    // Reload dokumen data from SQLite after returning from dokumen page
+    if (sectionName == 'Dokumen') {
+      await _loadDokumenDataFromSQLite();
+    }
+    
     await _checkFlagsImmediatelyAfterNavigation(sectionName);
 
     if (result == 'saved' || result == true) {
@@ -489,6 +579,8 @@ class _ProfileSectionsPageState extends ConsumerState<ProfileSectionsPage> {
         hasChanges = prefs.getBool('dokumen_has_changes') ?? false;
         justSaved = prefs.getBool('dokumen_just_saved') ?? false;
         userSaved = prefs.getBool('dokumen_user_saved') ?? false;
+        // Also reload dokumen data from SQLite after navigation
+        await _loadDokumenDataFromSQLite();
         break;
       case 'Pendidikan':
         hasChanges = prefs.getBool('pendidikan_has_changes') ?? false;

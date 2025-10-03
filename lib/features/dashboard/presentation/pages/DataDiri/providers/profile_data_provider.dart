@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
+import '../../../../../../common/data/models/profile_models.dart';
+import '../../../../../../common/services/profile_service.dart';
 
 class HonorariumData {
   final String kartuKeluarga;
@@ -827,6 +829,39 @@ final riwayatPekerjaanDataProvider =
 final idCardDataProvider = StateNotifierProvider<IdCardNotifier, IdCardData>(
   (ref) => IdCardNotifier(),
 );
+
+// Provider untuk data SQLite
+final pendidikanSQLiteProvider =
+    StateNotifierProvider<PendidikanSQLiteNotifier, List<PendidikanModel>>(
+      (ref) => PendidikanSQLiteNotifier(),
+    );
+
+class PendidikanSQLiteNotifier extends StateNotifier<List<PendidikanModel>> {
+  PendidikanSQLiteNotifier() : super([]);
+
+  Future<void> loadPendidikanData() async {
+    try {
+      final service = ProfileService();
+      final pendidikanList = await service.getAllPendidikanData();
+      state = pendidikanList;
+    } catch (e) {
+      print('Error loading pendidikan data: $e');
+      state = [];
+    }
+  }
+
+  void updatePendidikanData(List<PendidikanModel> data) {
+    state = data;
+  }
+
+  void addPendidikanData(PendidikanModel pendidikan) {
+    state = [pendidikan, ...state];
+  }
+
+  void clearPendidikanData() {
+    state = [];
+  }
+}
 
 final profileCompletionProvider = StateNotifierProvider<ProfileCompletionNotifier, Map<String, bool>>(
   (ref) => ProfileCompletionNotifier(),

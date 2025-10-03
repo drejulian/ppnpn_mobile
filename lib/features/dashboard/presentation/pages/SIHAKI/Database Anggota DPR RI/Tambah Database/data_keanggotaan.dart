@@ -473,28 +473,6 @@ class _DataKeanggotaanPageState extends ConsumerState<DataKeanggotaanPage> {
         title: 'Database Keanggotaan',
         onBackPressed: () => context.go('/dataKomisi'),
         backTooltip: 'Kembali',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              await _loadSavedData();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Data berhasil di-refresh dari database'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            tooltip: 'Refresh Data dari Database',
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _showDebugInfo,
-            tooltip: 'Debug Info',
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,

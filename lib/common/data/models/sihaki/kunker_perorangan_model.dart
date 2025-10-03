@@ -1,103 +1,339 @@
-class KunkerPeroranganModel {
+class KunkerModel {
   final int? id;
-  final String tujuan;
+  final String noSurat;
+  final String jenisPerjadin;
+  final String tanggalSurat;
+  final String tanggalAwal;
+  final String tanggalAkhir;
+  final String masaPersidangan;
+  final String tahunSidang;
+  final String anggota;
+  final String noAnggota;
+  final String nikAnggota;
+  final String fraksi;
+  final String dapil;
+  final String rekAnggota;
+  final String namaRekAnggota;
+  final String kodeBankAnggota;
+  final String namaBankAnggota;
+  final String ta;
+  final String noTa;
+  final String nikTa;
+  final String hpTa;
+  final String emailTa;
+  final String rekTa;
+  final String namaRekTa;
+  final String kodeBankTa;
+  final String namaBankTa;
+  final String moda;
   final String negara;
+  final String provinsi;
   final String kota;
-  final String tanggalBerangkat;
-  final String tanggalKembali;
-  final String keperluan;
-  final double anggaran;
-  final String status; // 'diajukan', 'disetujui', 'ditolak', 'selesai'
-  final String? nomorSurat;
-  final String? keterangan;
-  final int? userId;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String statusPengajuan;
+  final String statusPencairan;
+  final String createdAt;
+  final String? updatedAt;
 
-  KunkerPeroranganModel({
+  KunkerModel({
     this.id,
-    required this.tujuan,
+    required this.noSurat,
+    required this.jenisPerjadin,
+    required this.tanggalSurat,
+    required this.tanggalAwal,
+    required this.tanggalAkhir,
+    required this.masaPersidangan,
+    required this.tahunSidang,
+    required this.anggota,
+    required this.noAnggota,
+    required this.nikAnggota,
+    required this.fraksi,
+    required this.dapil,
+    required this.rekAnggota,
+    required this.namaRekAnggota,
+    required this.kodeBankAnggota,
+    required this.namaBankAnggota,
+    required this.ta,
+    required this.noTa,
+    required this.nikTa,
+    required this.hpTa,
+    required this.emailTa,
+    required this.rekTa,
+    required this.namaRekTa,
+    required this.kodeBankTa,
+    required this.namaBankTa,
+    required this.moda,
     required this.negara,
+    required this.provinsi,
     required this.kota,
-    required this.tanggalBerangkat,
-    required this.tanggalKembali,
-    required this.keperluan,
-    required this.anggaran,
-    this.status = 'diajukan',
-    this.nomorSurat,
-    this.keterangan,
-    this.userId,
+    required this.statusPengajuan,
+    required this.statusPencairan,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'tujuan': tujuan,
+      'no_surat': noSurat,
+      'jenis_perjadin': jenisPerjadin,
+      'tanggal_surat': tanggalSurat,
+      'tanggal_awal': tanggalAwal,
+      'tanggal_akhir': tanggalAkhir,
+      'masa_persidangan': masaPersidangan,
+      'tahun_sidang': tahunSidang,
+      'anggota': anggota,
+      'no_anggota': noAnggota,
+      'nik_anggota': nikAnggota,
+      'fraksi': fraksi,
+      'dapil': dapil,
+      'rek_anggota': rekAnggota,
+      'nama_rek_anggota': namaRekAnggota,
+      'kode_bank_anggota': kodeBankAnggota,
+      'nama_bank_anggota': namaBankAnggota,
+      'ta': ta,
+      'no_ta': noTa,
+      'nik_ta': nikTa,
+      'hp_ta': hpTa,
+      'email_ta': emailTa,
+      'rek_ta': rekTa,
+      'nama_rek_ta': namaRekTa,
+      'kode_bank_ta': kodeBankTa,
+      'nama_bank_ta': namaBankTa,
+      'moda': moda,
       'negara': negara,
+      'provinsi': provinsi,
       'kota': kota,
-      'tanggal_berangkat': tanggalBerangkat,
-      'tanggal_kembali': tanggalKembali,
-      'keperluan': keperluan,
-      'anggaran': anggaran,
-      'status': status,
-      'nomor_surat': nomorSurat,
-      'keterangan': keterangan,
-      'user_id': userId,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'status_pengajuan': statusPengajuan,
+      'status_pencairan': statusPencairan,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
     };
   }
 
-  factory KunkerPeroranganModel.fromMap(Map<String, dynamic> map) {
-    return KunkerPeroranganModel(
-      id: map['id']?.toInt(),
-      tujuan: map['tujuan'] ?? '',
+  factory KunkerModel.fromMap(Map<String, dynamic> map) {
+    return KunkerModel(
+      id: map['id'],
+      noSurat: map['no_surat'] ?? '',
+      jenisPerjadin: map['jenis_perjadin'] ?? '',
+      tanggalSurat: map['tanggal_surat'] ?? '',
+      tanggalAwal: map['tanggal_awal'] ?? '',
+      tanggalAkhir: map['tanggal_akhir'] ?? '',
+      masaPersidangan: map['masa_persidangan'] ?? '',
+      tahunSidang: map['tahun_sidang'] ?? '',
+      anggota: map['anggota'] ?? '',
+      noAnggota: map['no_anggota'] ?? '',
+      nikAnggota: map['nik_anggota'] ?? '',
+      fraksi: map['fraksi'] ?? '',
+      dapil: map['dapil'] ?? '',
+      rekAnggota: map['rek_anggota'] ?? '',
+      namaRekAnggota: map['nama_rek_anggota'] ?? '',
+      kodeBankAnggota: map['kode_bank_anggota'] ?? '',
+      namaBankAnggota: map['nama_bank_anggota'] ?? '',
+      ta: map['ta'] ?? '',
+      noTa: map['no_ta'] ?? '',
+      nikTa: map['nik_ta'] ?? '',
+      hpTa: map['hp_ta'] ?? '',
+      emailTa: map['email_ta'] ?? '',
+      rekTa: map['rek_ta'] ?? '',
+      namaRekTa: map['nama_rek_ta'] ?? '',
+      kodeBankTa: map['kode_bank_ta'] ?? '',
+      namaBankTa: map['nama_bank_ta'] ?? '',
+      moda: map['moda'] ?? '',
       negara: map['negara'] ?? '',
+      provinsi: map['provinsi'] ?? '',
       kota: map['kota'] ?? '',
-      tanggalBerangkat: map['tanggal_berangkat'] ?? '',
-      tanggalKembali: map['tanggal_kembali'] ?? '',
-      keperluan: map['keperluan'] ?? '',
-      anggaran: map['anggaran']?.toDouble() ?? 0.0,
-      status: map['status'] ?? 'diajukan',
-      nomorSurat: map['nomor_surat'],
-      keterangan: map['keterangan'],
-      userId: map['user_id']?.toInt(),
-      createdAt: DateTime.parse(map['created_at']),
-      updatedAt: DateTime.parse(map['updated_at']),
+      statusPengajuan: map['status_pengajuan'] ?? '',
+      statusPencairan: map['status_pencairan'] ?? '',
+      createdAt: map['created_at'] ?? '',
+      updatedAt: map['updated_at'],
     );
   }
 
-  KunkerPeroranganModel copyWith({
+  // Convenience method to convert to the format used by existing UI
+  Map<String, dynamic> toUIMap() {
+    return {
+      'no_surat': noSurat,
+      'jenis_perjadin': jenisPerjadin,
+      'tanggal_surat': tanggalSurat,
+      'tanggal_awal': tanggalAwal,
+      'tanggal_akhir': tanggalAkhir,
+      'anggota': anggota,
+      'tenaga_ahli': ta,
+      'dapil': dapil,
+      'status_pengajuan': statusPengajuan,
+      'status_pencairan': statusPencairan,
+      'anggaran': 0.0, // Default anggaran untuk edit page
+      // Include all other fields for complete data
+      'masa_persidangan': masaPersidangan,
+      'tahun_sidang': tahunSidang,
+      'no_anggota': noAnggota,
+      'nik_anggota': nikAnggota,
+      'fraksi': fraksi,
+      'rek_anggota': rekAnggota,
+      'nama_rek_anggota': namaRekAnggota,
+      'kode_bank_anggota': kodeBankAnggota,
+      'nama_bank_anggota': namaBankAnggota,
+      'no_ta': noTa,
+      'nik_ta': nikTa,
+      'hp_ta': hpTa,
+      'email_ta': emailTa,
+      'rek_ta': rekTa,
+      'nama_rek_ta': namaRekTa,
+      'kode_bank_ta': kodeBankTa,
+      'nama_bank_ta': namaBankTa,
+      'moda': moda,
+      'negara': negara,
+      'provinsi': provinsi,
+      'kota': kota,
+    };
+  }
+
+  // Create from UI map format - Updated to handle form data correctly
+  factory KunkerModel.fromUIMap(Map<String, dynamic> map) {
+    final now = DateTime.now().toIso8601String();
+    final currentDate = now.split('T')[0]; // Format: YYYY-MM-DD untuk tanggal
+    
+    return KunkerModel(
+      // Map data dari form ke field yang benar
+      noSurat: map['nomor_surat'] ?? map['no_surat'] ?? '',
+      jenisPerjadin: map['keperluan'] ?? map['jenis_perjadin'] ?? 'Dapil 8x setahun',
+      tanggalSurat: currentDate, // Default tanggal surat hari ini
+      tanggalAwal: map['tanggal_berangkat'] ?? map['tanggal_awal'] ?? '',
+      tanggalAkhir: map['tanggal_kembali'] ?? map['tanggal_akhir'] ?? '',
+      masaPersidangan: 'II', // Default
+      tahunSidang: '2024-2025', // Default
+      
+      // Extract data dari keterangan jika ada
+      anggota: _extractFromKeterangan(map['keterangan'], 'Anggota') ?? 'User DPR',
+      noAnggota: 'A-001', // Default
+      nikAnggota: '1234567890123456', // Default  
+      fraksi: 'Fraksi Default', // Default
+      dapil: _extractFromKeterangan(map['keterangan'], 'Dapil') ?? 'Dapil Default',
+      rekAnggota: '1234567890', // Default
+      namaRekAnggota: _extractFromKeterangan(map['keterangan'], 'Anggota') ?? 'User DPR',
+      kodeBankAnggota: '002', // Default BRI
+      namaBankAnggota: 'Bank BRI', // Default
+      
+      ta: _extractFromKeterangan(map['keterangan'], 'TA') ?? 'TA Default',
+      noTa: '00-0000', // Default
+      nikTa: '6543210987654321', // Default
+      hpTa: '081234567890', // Default
+      emailTa: 'ta.default@dpr.go.id', // Default
+      rekTa: '0987654321', // Default
+      namaRekTa: _extractFromKeterangan(map['keterangan'], 'TA') ?? 'TA Default',
+      kodeBankTa: '002', // Default BRI
+      namaBankTa: 'Bank BRI', // Default
+      
+      moda: 'Pesawat', // Default
+      negara: map['negara'] ?? 'Indonesia',
+      provinsi: _extractProvinsi(map['tujuan']) ?? 'Provinsi',
+      kota: map['kota'] ?? _extractKota(map['tujuan']) ?? 'Kota',
+      statusPengajuan: map['status'] == 'diajukan' ? 'Menunggu Konfirmasi' : (map['status_pengajuan'] ?? 'Menunggu Konfirmasi'),
+      statusPencairan: '-',
+      createdAt: now,
+      updatedAt: map['updated_at'],
+    );
+  }
+
+  // Helper method untuk extract data dari keterangan
+  static String? _extractFromKeterangan(String? keterangan, String key) {
+    if (keterangan == null || !keterangan.contains('$key:')) return null;
+    try {
+      return keterangan.split('$key: ')[1].split(',')[0].trim();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Helper method untuk extract provinsi dari tujuan
+  static String? _extractProvinsi(String? tujuan) {
+    if (tujuan == null || !tujuan.contains(',')) return null;
+    try {
+      return tujuan.split(',')[0].trim();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Helper method untuk extract kota dari tujuan
+  static String? _extractKota(String? tujuan) {
+    if (tujuan == null || !tujuan.contains(',')) return tujuan?.trim();
+    try {
+      return tujuan.split(',').last.trim();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  KunkerModel copyWith({
     int? id,
-    String? tujuan,
+    String? noSurat,
+    String? jenisPerjadin,
+    String? tanggalSurat,
+    String? tanggalAwal,
+    String? tanggalAkhir,
+    String? masaPersidangan,
+    String? tahunSidang,
+    String? anggota,
+    String? noAnggota,
+    String? nikAnggota,
+    String? fraksi,
+    String? dapil,
+    String? rekAnggota,
+    String? namaRekAnggota,
+    String? kodeBankAnggota,
+    String? namaBankAnggota,
+    String? ta,
+    String? noTa,
+    String? nikTa,
+    String? hpTa,
+    String? emailTa,
+    String? rekTa,
+    String? namaRekTa,
+    String? kodeBankTa,
+    String? namaBankTa,
+    String? moda,
     String? negara,
+    String? provinsi,
     String? kota,
-    String? tanggalBerangkat,
-    String? tanggalKembali,
-    String? keperluan,
-    double? anggaran,
-    String? status,
-    String? nomorSurat,
-    String? keterangan,
-    int? userId,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    String? statusPengajuan,
+    String? statusPencairan,
+    String? createdAt,
+    String? updatedAt,
   }) {
-    return KunkerPeroranganModel(
+    return KunkerModel(
       id: id ?? this.id,
-      tujuan: tujuan ?? this.tujuan,
+      noSurat: noSurat ?? this.noSurat,
+      jenisPerjadin: jenisPerjadin ?? this.jenisPerjadin,
+      tanggalSurat: tanggalSurat ?? this.tanggalSurat,
+      tanggalAwal: tanggalAwal ?? this.tanggalAwal,
+      tanggalAkhir: tanggalAkhir ?? this.tanggalAkhir,
+      masaPersidangan: masaPersidangan ?? this.masaPersidangan,
+      tahunSidang: tahunSidang ?? this.tahunSidang,
+      anggota: anggota ?? this.anggota,
+      noAnggota: noAnggota ?? this.noAnggota,
+      nikAnggota: nikAnggota ?? this.nikAnggota,
+      fraksi: fraksi ?? this.fraksi,
+      dapil: dapil ?? this.dapil,
+      rekAnggota: rekAnggota ?? this.rekAnggota,
+      namaRekAnggota: namaRekAnggota ?? this.namaRekAnggota,
+      kodeBankAnggota: kodeBankAnggota ?? this.kodeBankAnggota,
+      namaBankAnggota: namaBankAnggota ?? this.namaBankAnggota,
+      ta: ta ?? this.ta,
+      noTa: noTa ?? this.noTa,
+      nikTa: nikTa ?? this.nikTa,
+      hpTa: hpTa ?? this.hpTa,
+      emailTa: emailTa ?? this.emailTa,
+      rekTa: rekTa ?? this.rekTa,
+      namaRekTa: namaRekTa ?? this.namaRekTa,
+      kodeBankTa: kodeBankTa ?? this.kodeBankTa,
+      namaBankTa: namaBankTa ?? this.namaBankTa,
+      moda: moda ?? this.moda,
       negara: negara ?? this.negara,
+      provinsi: provinsi ?? this.provinsi,
       kota: kota ?? this.kota,
-      tanggalBerangkat: tanggalBerangkat ?? this.tanggalBerangkat,
-      tanggalKembali: tanggalKembali ?? this.tanggalKembali,
-      keperluan: keperluan ?? this.keperluan,
-      anggaran: anggaran ?? this.anggaran,
-      status: status ?? this.status,
-      nomorSurat: nomorSurat ?? this.nomorSurat,
-      keterangan: keterangan ?? this.keterangan,
-      userId: userId ?? this.userId,
+      statusPengajuan: statusPengajuan ?? this.statusPengajuan,
+      statusPencairan: statusPencairan ?? this.statusPencairan,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -105,44 +341,17 @@ class KunkerPeroranganModel {
 
   @override
   String toString() {
-    return 'KunkerPeroranganModel(id: $id, tujuan: $tujuan, negara: $negara, kota: $kota, tanggalBerangkat: $tanggalBerangkat, tanggalKembali: $tanggalKembali, keperluan: $keperluan, anggaran: $anggaran, status: $status, nomorSurat: $nomorSurat, keterangan: $keterangan, userId: $userId, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'KunkerModel{id: $id, noSurat: $noSurat, anggota: $anggota, ta: $ta, statusPengajuan: $statusPengajuan}';
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is KunkerPeroranganModel &&
-        other.id == id &&
-        other.tujuan == tujuan &&
-        other.negara == negara &&
-        other.kota == kota &&
-        other.tanggalBerangkat == tanggalBerangkat &&
-        other.tanggalKembali == tanggalKembali &&
-        other.keperluan == keperluan &&
-        other.anggaran == anggaran &&
-        other.status == status &&
-        other.nomorSurat == nomorSurat &&
-        other.keterangan == keterangan &&
-        other.userId == userId &&
-        other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KunkerModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          noSurat == other.noSurat;
 
   @override
-  int get hashCode {
-    return id.hashCode ^
-        tujuan.hashCode ^
-        negara.hashCode ^
-        kota.hashCode ^
-        tanggalBerangkat.hashCode ^
-        tanggalKembali.hashCode ^
-        keperluan.hashCode ^
-        anggaran.hashCode ^
-        status.hashCode ^
-        nomorSurat.hashCode ^
-        keterangan.hashCode ^
-        userId.hashCode ^
-        createdAt.hashCode ^
-        updatedAt.hashCode;
-  }
+  int get hashCode => id.hashCode ^ noSurat.hashCode;
 }

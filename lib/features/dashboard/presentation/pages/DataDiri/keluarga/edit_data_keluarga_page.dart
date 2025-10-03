@@ -4,15 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/features/dashboard/presentation/pages/DataDiri/keluarga_page.dart';
-import 'package:ppnpm_dpr/features/dashboard/data/services/keluarga_api.dart';
 import 'package:ppnpm_dpr/common/data/models/sihaki/family_member.dart'
     as dto;
+import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 
-// Local provider for fetching a member by ID
-final editMemberProvider = FutureProvider.autoDispose
-    .family<dto.FamilyMemberDto?, String>(
-      (ref, id) => ref.read(keluargaApiProvider).getMember(id),
-    );
+// SQLite-only implementation - no more API provider needed
 
 class EditDataKeluargaPage extends ConsumerStatefulWidget {
   final String? memberId;
@@ -96,18 +92,19 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
     final isEditingWithId = _isEditing && widget.memberId != null;
-    final remote =
-        isEditingWithId
-            ? ref.watch(editMemberProvider(widget.memberId!))
-            : AsyncValue<dto.FamilyMemberDto?>.data(null);
-
-    if (isEditingWithId && !_loadedRemote && remote.hasValue) {
-      // Populate once from remote data
-      final m = remote.value;
-      if (m != null) {
-        _editingMember = m;
+    // Get member data from SQLite via familyDataProvider
+    if (isEditingWithId && !_loadedRemote) {
+      final familyData = ref.watch(familyDataProvider);
+      try {
+        final member = familyData.firstWhere(
+          (m) => m.id == widget.memberId,
+        );
+        _editingMember = member;
         _populateFormWithExistingData();
         _loadedRemote = true;
+      } catch (e) {
+        // Member not found, handle error or navigate back
+        print('Edit: Member with id ${widget.memberId} not found');
       }
     }
     final screenWidth = MediaQuery.of(context).size.width;
@@ -115,27 +112,19 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          _isEditing ? 'Edit Data Keluarga' : 'Tambah Data Keluarga',
-          style: theme.typographyRegular.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: theme.primarySwatch,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/keluarga');
-            }
-          },
-        ),
+      appBar: AppCustomAppBar(
+        title: _isEditing ? 'Edit Data Keluarga' : 'Tambah Data Keluarga',
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/keluarga');
+          }
+        },
+        backTooltip: 'Kembali ke halaman keluarga',
+        backgroundColor: Colors.white,
+        titleColor: theme.primarySwatch,
+        iconColor: theme.primarySwatch,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
@@ -147,7 +136,6 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (remote.isLoading) const LinearProgressIndicator(minHeight: 2),
               // Header Info
               _buildHeaderInfo(theme),
               const SizedBox(height: 20),
@@ -633,27 +621,40 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
 
     setState(() => _saving = true);
     try {
-      final payload = <String, dynamic>{
-        'nama': _namaController.text.trim(),
-        'hubungan': _selectedHubungan!,
-        'tempat_lahir': _tempatLahirController.text.trim(),
-        'tanggal_lahir': _tanggalLahir!.toIso8601String(),
-        'jenis_kelamin': _selectedJenisKelamin!,
-        'pekerjaan': _pekerjaanController.text.trim(),
-        if (_tanggalMenikah != null)
-          'tanggal_menikah': _tanggalMenikah!.toIso8601String(),
-      };
-
       if (_isEditing && widget.memberId != null) {
-        await ref
-            .read(keluargaApiProvider)
-            .updateMember(widget.memberId!, payload);
-        // refresh list and detail providers
-        ref.invalidate(keluargaRemoteProvider);
-        ref.invalidate(editMemberProvider(widget.memberId!));
+        // Update existing member in SQLite provider
+        final updatedMember = dto.FamilyMemberDto(
+          id: widget.memberId!,
+          nama: _namaController.text.trim(),
+          hubungan: _selectedHubungan!,
+          tempatLahir: _tempatLahirController.text.trim(),
+          tanggalLahir: _tanggalLahir!,
+          jenisKelamin: _selectedJenisKelamin!,
+          pekerjaan: _pekerjaanController.text.trim(),
+          tanggalMenikah: _tanggalMenikah,
+        );
+        
+        final currentData = ref.read(familyDataProvider);
+        final updatedData = currentData.map((member) {
+          return member.id == widget.memberId ? updatedMember : member;
+        }).toList();
+        ref.read(familyDataProvider.notifier).state = updatedData;
       } else {
-        await ref.read(keluargaApiProvider).createMember(payload);
-        ref.invalidate(keluargaRemoteProvider);
+        // Create new member and add to SQLite provider
+        final newMember = dto.FamilyMemberDto(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          nama: _namaController.text.trim(),
+          hubungan: _selectedHubungan!,
+          tempatLahir: _tempatLahirController.text.trim(),
+          tanggalLahir: _tanggalLahir!,
+          jenisKelamin: _selectedJenisKelamin!,
+          pekerjaan: _pekerjaanController.text.trim(),
+          tanggalMenikah: _tanggalMenikah,
+        );
+        
+        final currentData = ref.read(familyDataProvider);
+        final updatedData = [...currentData, newMember];
+        ref.read(familyDataProvider.notifier).state = updatedData;
       }
 
       if (mounted) {

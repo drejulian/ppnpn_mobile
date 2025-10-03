@@ -5,7 +5,8 @@ import 'package:ppnpm_dpr/app/routes.dart';
 import 'package:ppnpm_dpr/app/theme.dart';
 import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import '../../../providers/sihaki/kunker_provider.dart';
-import '../../../../../../common/data/models/sihaki/kunker_model.dart';
+import '../../../../../../common/data/models/sihaki/kunker_perorangan_model.dart';
+import 'edit_kunker_page.dart';
 import 'dart:async';
 
 class DaftarPengajuanKunkerPage extends ConsumerStatefulWidget {
@@ -28,6 +29,11 @@ class _DaftarPengajuanKunkerPageState
     super.initState();
     _searchController.text = ref.read(searchQueryProvider);
     _searchController.addListener(_onSearchChanged);
+    
+    // Load data dari database saat halaman dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(kunkerProvider.notifier).loadKunkerData();
+    });
   }
 
   void _onSearchChanged() {
@@ -63,39 +69,7 @@ class _DaftarPengajuanKunkerPageState
     final kunkerState = ref.watch(kunkerProvider);
     final filteredList = ref.watch(filteredKunkerProvider);
 
-    // Show loading indicator
-    if (kunkerState.isLoading && kunkerState.kunkerList.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: Text(
-            'Data Kunker Perorangan',
-            style: theme.typographyBold.bodyMedium.copyWith(
-              color: Colors.white,
-              fontSize: 18,
-            ),
-          ),
-          backgroundColor: theme.primarySwatch,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.go("/home"),
-          ),
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Memuat data kunker...'),
-            ],
-          ),
-        ),
-      );
-    }
+
 
     // Show error if exists
     if (kunkerState.error != null) {
@@ -117,7 +91,7 @@ class _DaftarPengajuanKunkerPageState
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppCustomAppBar(
         title: 'Data Kunker Perorangan',
         onBackPressed: () => context.go('/home'),
@@ -127,15 +101,17 @@ class _DaftarPengajuanKunkerPageState
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Modern Search Bar
             AppSearchBar(
               controller: _searchController,
-              hintText: 'Cari Pengajuan Kunker',
+              hintText: 'No. surat, anggota, TA, dapil, tanggal, status...',
               onChanged: (_) {},
               onClear: () => ref.read(searchQueryProvider.notifier).state = '',
               margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),
 
+            // Add Button with modern styling
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -179,6 +155,7 @@ class _DaftarPengajuanKunkerPageState
             ),
             const SizedBox(height: 20),
 
+            // Header with data count
             Row(
               children: [
                 Expanded(
@@ -237,71 +214,69 @@ class _DaftarPengajuanKunkerPageState
 
             // Kunker List
             Expanded(
-              child:
-                  filteredList.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.search_off_rounded,
-                                size: 48,
-                                color: Colors.grey[400],
-                              ),
+              child: filteredList.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              shape: BoxShape.circle,
                             ),
+                            child: Icon(
+                              Icons.search_off_rounded,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'Belum ada data pengajuan kunker'
+                                : 'Data tidak ditemukan',
+                            style: theme.typographyRegular.bodyLarge.copyWith(
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'Mulai dengan menambah pengajuan kunker baru'
+                                : 'Coba kata kunci yang berbeda',
+                            style: theme.typographyRegular.bodyMedium
+                                .copyWith(color: Colors.grey[500]),
+                          ),
+                          if (_searchController.text.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            Text(
-                              _searchController.text.isEmpty
-                                  ? 'Belum ada data pengajuan kunker'
-                                  : 'Data tidak ditemukan',
-                              style: theme.typographyRegular.bodyLarge.copyWith(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _searchController.text.isEmpty
-                                  ? 'Mulai dengan menambah pengajuan kunker baru'
-                                  : 'Coba kata kunci yang berbeda',
-                              style: theme.typographyRegular.bodyMedium
-                                  .copyWith(color: Colors.grey[500]),
-                            ),
-                            if (_searchController.text.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  ref.read(searchQueryProvider.notifier).state =
-                                      '';
-                                },
-                                icon: const Icon(Icons.refresh_rounded),
-                                label: const Text('Reset Pencarian'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.primarySwatch,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(searchQueryProvider.notifier).state = '';
+                              },
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Reset Pencarian'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.primarySwatch,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
-                            ],
+                            ),
                           ],
-                        ),
-                      )
-                      : ListView.builder(
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final kunker = filteredList[index];
-                          return _buildKunkerCard(kunker, theme);
-                        },
+                        ],
                       ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final kunker = filteredList[index];
+                        return _buildKunkerCard(kunker, theme);
+                      },
+                    ),
             ),
           ],
         ),
@@ -311,13 +286,10 @@ class _DaftarPengajuanKunkerPageState
 
   Widget _buildKunkerCard(KunkerModel kunker, dynamic theme) {
     final isSuccess = kunker.statusPencairan == 'Disetujui';
-    final statusPengajuanColor = _getStatusPengajuanColor(
-      kunker.statusPengajuan,
-    );
-    final statusPencairanColor =
-        kunker.statusPencairan != '-'
-            ? _getStatusPencairanColor(kunker.statusPencairan)
-            : Colors.transparent;
+    final statusPengajuanColor = _getStatusPengajuanColor(kunker.statusPengajuan);
+    final statusPencairanColor = kunker.statusPencairan != '-'
+        ? _getStatusPencairanColor(kunker.statusPencairan)
+        : Colors.transparent;
 
     return AppListCard(
       onTap: () => _showDetailDialog(context, kunker, theme),
@@ -359,20 +331,18 @@ class _DaftarPengajuanKunkerPageState
           AppStatusChip(
             label: kunker.statusPengajuan,
             color: statusPengajuanColor,
-            icon:
-                kunker.statusPengajuan == 'Menunggu Konfirmasi'
-                    ? Icons.hourglass_bottom_rounded
-                    : Icons.check_circle_rounded,
+            icon: kunker.statusPengajuan == 'Menunggu Konfirmasi'
+                ? Icons.hourglass_bottom_rounded
+                : Icons.check_circle_rounded,
           ),
           if (kunker.statusPencairan != '-') ...[
             const SizedBox(height: 8),
             AppStatusChip(
               label: kunker.statusPencairan,
               color: statusPencairanColor,
-              icon:
-                  kunker.statusPencairan == 'Disetujui'
-                      ? Icons.verified_rounded
-                      : Icons.cancel_rounded,
+              icon: kunker.statusPencairan == 'Disetujui'
+                  ? Icons.verified_rounded
+                  : Icons.cancel_rounded,
             ),
           ],
         ],
@@ -390,18 +360,16 @@ class _DaftarPengajuanKunkerPageState
         ),
         AppPillChip(
           icon: Icons.person_rounded,
-          label:
-              kunker.anggota.length > 25
-                  ? '${kunker.anggota.substring(0, 25)}...'
-                  : kunker.anggota,
+          label: kunker.anggota.length > 25
+              ? '${kunker.anggota.substring(0, 25)}...'
+              : kunker.anggota,
           color: Colors.green[600],
         ),
         AppPillChip(
           icon: Icons.engineering_rounded,
-          label:
-              kunker.ta.length > 20
-                  ? '${kunker.ta.substring(0, 20)}...'
-                  : kunker.ta,
+          label: kunker.ta.length > 20
+              ? '${kunker.ta.substring(0, 20)}...'
+              : kunker.ta,
           color: Colors.orange[600],
         ),
       ],
@@ -415,9 +383,9 @@ class _DaftarPengajuanKunkerPageState
           ),
           _buildActionButton(
             icon: Icons.download_rounded,
-            label: 'Transfer TA',
+            label: 'Transfer TA',  
             color: Colors.green[600]!,
-            onPressed: () => _downloadBuktiTransferTA(kunker),
+            onPressed: () => _downloadBuktiTransfer(kunker),
           ),
         ],
       ],
@@ -425,7 +393,14 @@ class _DaftarPengajuanKunkerPageState
   }
 
   void _navigateToEditPage(KunkerModel kunker) {
-    context.pushNamed(Routes.editKunkerPerorangan.name, extra: kunker.toUIMap());
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditKunkerPeroranganPage(
+          kunkerData: kunker.toUIMap(),
+        ),
+      ),
+    );
   }
 
   Widget _buildActionButton({
@@ -485,9 +460,8 @@ class _DaftarPengajuanKunkerPageState
       actions: [
         if (!isSuccess)
           SIHAKIDialogAction(
-            label: 'Edit Pengajuan',
+            label: 'Ubah Pengajuan',
             icon: Icons.edit_rounded,
-            backgroundColor: Colors.orange[600],
             textColor: Colors.white,
             onTap: () {
               Navigator.pop(context);
@@ -523,7 +497,7 @@ class _DaftarPengajuanKunkerPageState
             textColor: Colors.white,
             onTap: () {
               Navigator.pop(context);
-              _downloadBuktiTransferTA(kunker);
+              _downloadBuktiTransfer(kunker);
             },
           ),
         ],
@@ -539,19 +513,6 @@ class _DaftarPengajuanKunkerPageState
       SnackBar(
         content: Text(
           'Mengunduh Bukti Transfer Anggota untuk ${kunker.noSurat}',
-        ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _downloadBuktiTransferTA(KunkerModel kunker) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Mengunduh Bukti Transfer TA untuk ${kunker.noSurat}',
         ),
         backgroundColor: Colors.green[600],
         behavior: SnackBarBehavior.floating,

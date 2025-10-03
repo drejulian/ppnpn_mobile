@@ -7,6 +7,8 @@ import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'package:ppnpm_dpr/common/widgets/notifikasi.dart' as notification;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/profile_data_provider.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
 
 class PribadiPage extends ConsumerStatefulWidget {
   const PribadiPage({super.key});
@@ -32,6 +34,9 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
   final TextEditingController _emailController = TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // SQLite service
+  final ProfileService _profileService = ProfileService();
 
   String _selectedStatusPerkawinan = 'Kawin';
   String _selectedAgama = 'Islam';
@@ -83,13 +88,18 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     _handphoneController.addListener(_updateUnsavedChanges);
     _emailController.addListener(_updateUnsavedChanges);
 
-    SharedPreferences.getInstance().then((prefs) {
-      final hasChanges = prefs.getBool('pribadi_has_changes') ?? false;
-      if (hasChanges && mounted) {
-        setState(() {
-          _hasUnsavedChanges = true;
-        });
-      }
+    // Initialize SQLite and load data
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initializeAndLoadData();
+      
+      SharedPreferences.getInstance().then((prefs) {
+        final hasChanges = prefs.getBool('pribadi_has_changes') ?? false;
+        if (hasChanges && mounted) {
+          setState(() {
+            _hasUnsavedChanges = true;
+          });
+        }
+      });
     });
   }
 
@@ -117,6 +127,122 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
       _selectedGolonganDarah = savedData.golonganDarah.isNotEmpty ? savedData.golonganDarah : 'O';
       _selectedJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
       _selectedStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+    }
+  }
+
+  /// Initialize SQLite service and load data
+  Future<void> _initializeAndLoadData() async {
+    try {
+      print('PribadiPage: Initializing SQLite...');
+      
+      // Initialize ProfileService
+      await _profileService.initialize();
+      
+      // Load data from SQLite first
+      await _loadDataFromSQLite();
+      
+      print('PribadiPage: SQLite initialization completed');
+    } catch (e) {
+      print('PribadiPage: Error initializing SQLite: $e');
+    }
+  }
+
+  /// Load data from SQLite database
+  Future<void> _loadDataFromSQLite() async {
+    try {
+      print('PribadiPage: Loading data from SQLite...');
+      
+      // Get pribadi data from SQLite
+      final pribadiData = await _profileService.getCurrentPribadiData();
+      
+      if (pribadiData != null && mounted) {
+        // Update controllers with SQLite data
+        setState(() {
+          _tempatLahirController.text = pribadiData.tempatLahir;
+          _tanggalLahirController.text = pribadiData.tanggalLahir;
+          _addressController.text = pribadiData.address;
+          _propinsiController.text = pribadiData.propinsi;
+          _kotaController.text = pribadiData.kota;
+          _kecamatanController.text = pribadiData.kecamatan;
+          _kelurahanController.text = pribadiData.kelurahan;
+          _rtController.text = pribadiData.rt;
+          _rwController.text = pribadiData.rw;
+          _kodePosController.text = pribadiData.kodePos;
+          _teleponRumahController.text = pribadiData.teleponRumah;
+          _teleponKantorController.text = pribadiData.teleponKantor;
+          _handphoneController.text = pribadiData.handphone;
+          _emailController.text = pribadiData.email;
+          _selectedStatusPerkawinan = pribadiData.statusPerkawinan;
+          _selectedAgama = pribadiData.agama;
+          _selectedGolonganDarah = pribadiData.golonganDarah;
+          _selectedJenisKelamin = pribadiData.jenisKelamin;
+          _selectedStatusDomisili = pribadiData.statusDomisili;
+        });
+
+        // Update Riverpod provider with SQLite data
+        final updatedPribadiData = PribadiData(
+          tempatLahir: pribadiData.tempatLahir,
+          tanggalLahir: pribadiData.tanggalLahir,
+          address: pribadiData.address,
+          propinsi: pribadiData.propinsi,
+          kota: pribadiData.kota,
+          kecamatan: pribadiData.kecamatan,
+          kelurahan: pribadiData.kelurahan,
+          rt: pribadiData.rt,
+          rw: pribadiData.rw,
+          kodePos: pribadiData.kodePos,
+          teleponRumah: pribadiData.teleponRumah,
+          teleponKantor: pribadiData.teleponKantor,
+          handphone: pribadiData.handphone,
+          email: pribadiData.email,
+          statusPerkawinan: pribadiData.statusPerkawinan,
+          agama: pribadiData.agama,
+          golonganDarah: pribadiData.golonganDarah,
+          jenisKelamin: pribadiData.jenisKelamin,
+          statusDomisili: pribadiData.statusDomisili,
+        );
+        
+        ref.read(pribadiDataProvider.notifier).updateData(updatedPribadiData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+
+        // Update SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('pribadi_user_saved', true);
+
+        print('PribadiPage: Data loaded from SQLite successfully');
+        print('  - Tempat Lahir: ${pribadiData.tempatLahir}');
+        print('  - Email: ${pribadiData.email}');
+        print('  - Handphone: ${pribadiData.handphone}');
+        print('  - Address: ${pribadiData.address.length > 50 ? pribadiData.address.substring(0, 50) + "..." : pribadiData.address}');
+      } else {
+        print('PribadiPage: No data found in SQLite, using defaults from provider');
+        
+        // Use existing provider data if no SQLite data
+        final savedData = ref.read(pribadiDataProvider);
+        if (_tempatLahirController.text.isEmpty) {
+          _tempatLahirController.text = savedData.tempatLahir;
+          _tanggalLahirController.text = savedData.tanggalLahir;
+          _addressController.text = savedData.address;
+          _propinsiController.text = savedData.propinsi;
+          _kotaController.text = savedData.kota;
+          _kecamatanController.text = savedData.kecamatan;
+          _kelurahanController.text = savedData.kelurahan;
+          _rtController.text = savedData.rt.isNotEmpty ? savedData.rt : '000';
+          _rwController.text = savedData.rw.isNotEmpty ? savedData.rw : '000';
+          _kodePosController.text = savedData.kodePos;
+          _teleponRumahController.text = savedData.teleponRumah;
+          _teleponKantorController.text = savedData.teleponKantor;
+          _handphoneController.text = savedData.handphone;
+          _emailController.text = savedData.email;
+          _selectedStatusPerkawinan = savedData.statusPerkawinan.isNotEmpty ? savedData.statusPerkawinan : 'Kawin';
+          _selectedAgama = savedData.agama.isNotEmpty ? savedData.agama : 'Islam';
+          _selectedGolonganDarah = savedData.golonganDarah.isNotEmpty ? savedData.golonganDarah : 'O';
+          _selectedJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
+          _selectedStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+        }
+      }
+    } catch (e) {
+      print('PribadiPage: Error loading data from SQLite: $e');
     }
   }
 
@@ -221,25 +347,33 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
       isDestructive: true,
       onConfirm: () async {
         if (context.mounted) {
-          _tempatLahirController.text = savedData.tempatLahir.isNotEmpty ? savedData.tempatLahir : '';
-          _tanggalLahirController.text = savedData.tanggalLahir.isNotEmpty ? savedData.tanggalLahir : '';
-          _addressController.text = savedData.address.isNotEmpty ? savedData.address : '';
-          _propinsiController.text = savedData.propinsi.isNotEmpty ? savedData.propinsi : '';
-          _kotaController.text = savedData.kota.isNotEmpty ? savedData.kota : '';
-          _kecamatanController.text = savedData.kecamatan.isNotEmpty ? savedData.kecamatan : '';
-          _kelurahanController.text = savedData.kelurahan.isNotEmpty ? savedData.kelurahan : '';
-          _rtController.text = savedData.rt.isNotEmpty ? savedData.rt : '000';
-          _rwController.text = savedData.rw.isNotEmpty ? savedData.rw : '000';
-          _kodePosController.text = savedData.kodePos.isNotEmpty ? savedData.kodePos : '';
-          _teleponRumahController.text = savedData.teleponRumah.isNotEmpty ? savedData.teleponRumah : '';
-          _teleponKantorController.text = savedData.teleponKantor.isNotEmpty ? savedData.teleponKantor : '';
-          _handphoneController.text = savedData.handphone.isNotEmpty ? savedData.handphone : '';
-          _emailController.text = savedData.email.isNotEmpty ? savedData.email : '';
-          _selectedStatusPerkawinan = savedData.statusPerkawinan.isNotEmpty ? savedData.statusPerkawinan : 'Kawin';
-          _selectedAgama = savedData.agama.isNotEmpty ? savedData.agama : 'Islam';
-          _selectedGolonganDarah = savedData.golonganDarah.isNotEmpty ? savedData.golonganDarah : 'O';
-          _selectedJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
-          _selectedStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+          try {
+            // Reload data from SQLite to restore last saved state
+            await _loadDataFromSQLite();
+          } catch (e) {
+            print('PribadiPage: Error reloading data from SQLite: $e');
+            
+            // Fallback to provider data
+            _tempatLahirController.text = savedData.tempatLahir.isNotEmpty ? savedData.tempatLahir : '';
+            _tanggalLahirController.text = savedData.tanggalLahir.isNotEmpty ? savedData.tanggalLahir : '';
+            _addressController.text = savedData.address.isNotEmpty ? savedData.address : '';
+            _propinsiController.text = savedData.propinsi.isNotEmpty ? savedData.propinsi : '';
+            _kotaController.text = savedData.kota.isNotEmpty ? savedData.kota : '';
+            _kecamatanController.text = savedData.kecamatan.isNotEmpty ? savedData.kecamatan : '';
+            _kelurahanController.text = savedData.kelurahan.isNotEmpty ? savedData.kelurahan : '';
+            _rtController.text = savedData.rt.isNotEmpty ? savedData.rt : '000';
+            _rwController.text = savedData.rw.isNotEmpty ? savedData.rw : '000';
+            _kodePosController.text = savedData.kodePos.isNotEmpty ? savedData.kodePos : '';
+            _teleponRumahController.text = savedData.teleponRumah.isNotEmpty ? savedData.teleponRumah : '';
+            _teleponKantorController.text = savedData.teleponKantor.isNotEmpty ? savedData.teleponKantor : '';
+            _handphoneController.text = savedData.handphone.isNotEmpty ? savedData.handphone : '';
+            _emailController.text = savedData.email.isNotEmpty ? savedData.email : '';
+            _selectedStatusPerkawinan = savedData.statusPerkawinan.isNotEmpty ? savedData.statusPerkawinan : 'Kawin';
+            _selectedAgama = savedData.agama.isNotEmpty ? savedData.agama : 'Islam';
+            _selectedGolonganDarah = savedData.golonganDarah.isNotEmpty ? savedData.golonganDarah : 'O';
+            _selectedJenisKelamin = savedData.jenisKelamin.isNotEmpty ? savedData.jenisKelamin : 'Laki-Laki';
+            _selectedStatusDomisili = savedData.statusDomisili.isNotEmpty ? savedData.statusDomisili : 'Alamat Rumah dan Alamat Sesuai KTP';
+          }
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('pribadi_has_changes', false);
@@ -288,6 +422,13 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
         title: 'Data Pribadi',
         onBackPressed: () => Navigator.of(context).pop(),
         backTooltip: 'Kembali',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Debug SQLite',
+            onPressed: () => _showPribadiDebug(context),
+          ),
+        ],
       ),
         body: Form(
           key: _formKey,
@@ -1109,93 +1250,530 @@ class _PribadiPageState extends ConsumerState<PribadiPage> {
     );
   }
 
-  void _saveData(BuildContext context, dynamic theme) {
+  Future<void> _saveData(BuildContext context, dynamic theme) async {
     if (_formKey.currentState!.validate()) {
-      List<String> errors = [];
-      if (_selectedStatusPerkawinan.isEmpty) errors.add('Status Perkawinan harus dipilih');
-      if (_selectedAgama.isEmpty) errors.add('Agama harus dipilih');
-      if (_tempatLahirController.text.isEmpty) errors.add('Tempat Lahir harus diisi');
-      if (_tanggalLahirController.text.isEmpty) errors.add('Tanggal Lahir harus diisi');
-      if (_selectedJenisKelamin.isEmpty) errors.add('Jenis Kelamin harus dipilih');
-      if (_selectedGolonganDarah.isEmpty) errors.add('Golongan Darah harus dipilih');
-      if (_selectedStatusDomisili.isEmpty) errors.add('Status Domisili harus dipilih');
-      if (_addressController.text.isEmpty) errors.add('Alamat harus diisi');
-      if (_propinsiController.text.isEmpty) errors.add('Propinsi harus diisi');
-      if (_kotaController.text.isEmpty) errors.add('Kota harus diisi');
-      if (_kecamatanController.text.isEmpty) errors.add('Kecamatan harus diisi');
-      if (_kelurahanController.text.isEmpty) errors.add('Kelurahan harus diisi');
-      if (_rtController.text.isEmpty) errors.add('RT harus diisi');
-      if (_rwController.text.isEmpty) errors.add('RW harus diisi');
-      if (_kodePosController.text.isEmpty) errors.add('Kode Pos harus diisi');
-      if (_teleponRumahController.text.isEmpty) errors.add('Telepon Rumah harus diisi');
-      if (_teleponKantorController.text.isEmpty) errors.add('Telepon Kantor harus diisi');
-      if (_handphoneController.text.isEmpty) errors.add('Handphone harus diisi');
-      if (_emailController.text.isEmpty) errors.add('Email harus diisi');
-      else if (!_emailController.text.contains('@') || !_emailController.text.contains('.')) {
-        errors.add('Format email tidak valid');
-      }
+      // Prepare data with default values
+      final rtValue = _rtController.text.trim().isEmpty ? '000' : _rtController.text.trim();
+      final rwValue = _rwController.text.trim().isEmpty ? '000' : _rwController.text.trim();
+      
+      // Debug logging
+      print('PribadiPage: Validating data...');
+      print('Tempat Lahir: ${_tempatLahirController.text}');
+      print('Tanggal Lahir: ${_tanggalLahirController.text}');
+      print('Jenis Kelamin: $_selectedJenisKelamin');
+      print('Agama: $_selectedAgama');
+      print('Status Perkawinan: $_selectedStatusPerkawinan');
+      print('Golongan Darah: $_selectedGolonganDarah');
+      print('Status Domisili: $_selectedStatusDomisili');
+      print('Address: ${_addressController.text}');
+      print('Propinsi: ${_propinsiController.text}');
+      print('Kota: ${_kotaController.text}');
+      print('Kecamatan: ${_kecamatanController.text}');
+      print('Kelurahan: ${_kelurahanController.text}');
+      print('RT: $rtValue');
+      print('RW: $rwValue');
+      print('Kode Pos: ${_kodePosController.text}');
+      print('Telepon Rumah: ${_teleponRumahController.text}');
+      print('Telepon Kantor: ${_teleponKantorController.text}');
+      print('Handphone: ${_handphoneController.text}');
+      print('Email: ${_emailController.text}');
+      
+      // Validate data using ProfileService
+      final errors = _profileService.getPribadiDataValidationErrors(
+        tempatLahir: _tempatLahirController.text,
+        tanggalLahir: _tanggalLahirController.text,
+        jenisKelamin: _selectedJenisKelamin,
+        agama: _selectedAgama,
+        statusPerkawinan: _selectedStatusPerkawinan,
+        golonganDarah: _selectedGolonganDarah,
+        statusDomisili: _selectedStatusDomisili,
+        address: _addressController.text,
+        propinsi: _propinsiController.text,
+        kota: _kotaController.text,
+        kecamatan: _kecamatanController.text,
+        kelurahan: _kelurahanController.text,
+        rt: rtValue,
+        rw: rwValue,
+        kodePos: _kodePosController.text,
+        teleponRumah: _teleponRumahController.text,
+        teleponKantor: _teleponKantorController.text,
+        handphone: _handphoneController.text,
+        email: _emailController.text,
+      );
 
       if (errors.isNotEmpty) {
-        notification.NotificationUtils.showErrorDialog(
-          context,
-          title: 'Gagal Menyimpan',
-          message: 'Terjadi kesalahan saat menyimpan data pribadi:\n${errors.join('\n')}',
-        );
+        print('PribadiPage: Validation errors found (${errors.length}):');
+        for (int i = 0; i < errors.length; i++) {
+          print('  ${i + 1}. ${errors[i]}');
+        }
+        _showErrorDialog(context, theme, errors.join('\n'));
         return;
       }
 
-      final pribadiData = PribadiData(
-        tempatLahir: _tempatLahirController.text.trim(),
-        tanggalLahir: _tanggalLahirController.text.trim(),
-        address: _addressController.text.trim(),
-        propinsi: _propinsiController.text.trim(),
-        kota: _kotaController.text.trim(),
-        kecamatan: _kecamatanController.text.trim(),
-        kelurahan: _kelurahanController.text.trim(),
-        rt: _rtController.text.trim(),
-        rw: _rwController.text.trim(),
-        kodePos: _kodePosController.text.trim(),
-        teleponRumah: _teleponRumahController.text.trim(),
-        teleponKantor: _teleponKantorController.text.trim(),
-        handphone: _handphoneController.text.trim(),
-        email: _emailController.text.trim(),
-        statusPerkawinan: _selectedStatusPerkawinan,
-        agama: _selectedAgama,
-        golonganDarah: _selectedGolonganDarah,
-        jenisKelamin: _selectedJenisKelamin,
-        statusDomisili: _selectedStatusDomisili,
-      );
+      print('PribadiPage: ✅ All validations passed, proceeding to save...');
 
-      ref.read(pribadiDataProvider.notifier).updateData(pribadiData);
-      ref.read(profileCompletionProvider.notifier).markCompleted('pribadi');
+      try {
+        // Initialize ProfileService first
+        print('PribadiPage: 🔄 Initializing ProfileService...');
+        await _profileService.initialize();
+        print('PribadiPage: ✅ ProfileService initialized successfully');
 
-      SharedPreferences.getInstance().then((prefs) {
-        Future.wait([
+        // Save to SQLite first
+        print('PribadiPage: 🔄 Calling ProfileService.savePribadiData()...');
+        print('PribadiPage: 📋 Data to save:');
+        print('  - Tempat Lahir: "${_tempatLahirController.text}"');
+        print('  - Tanggal Lahir: "${_tanggalLahirController.text}"');
+        print('  - Jenis Kelamin: "$_selectedJenisKelamin"');
+        print('  - Email: "${_emailController.text}"');
+        print('  - Handphone: "${_handphoneController.text}"');
+
+        final sqliteSuccess = await _profileService.savePribadiData(
+          tempatLahir: _tempatLahirController.text.trim(),
+          tanggalLahir: _tanggalLahirController.text.trim(),
+          jenisKelamin: _selectedJenisKelamin,
+          agama: _selectedAgama,
+          statusPerkawinan: _selectedStatusPerkawinan,
+          golonganDarah: _selectedGolonganDarah,
+          statusDomisili: _selectedStatusDomisili,
+          address: _addressController.text.trim(),
+          propinsi: _propinsiController.text.trim(),
+          kota: _kotaController.text.trim(),
+          kecamatan: _kecamatanController.text.trim(),
+          kelurahan: _kelurahanController.text.trim(),
+          rt: rtValue,
+          rw: rwValue,
+          kodePos: _kodePosController.text.trim(),
+          teleponRumah: _teleponRumahController.text.trim(),
+          teleponKantor: _teleponKantorController.text.trim(),
+          handphone: _handphoneController.text.trim(),
+          email: _emailController.text.trim(),
+        );
+
+        print('PribadiPage: 📋 SQLite save result: $sqliteSuccess');
+        
+        if (!sqliteSuccess) {
+          print('PribadiPage: ❌ SQLite save failed - showing error dialog');
+          
+          // Try to get more detailed error information
+          final hasDataBefore = await _profileService.hasPribadiData();
+          print('PribadiPage: 📊 Has data before save: $hasDataBefore');
+          
+          _showErrorDialog(context, theme, 'Gagal menyimpan data ke database SQLite. Silakan coba lagi atau gunakan tombol Debug untuk detail error.');
+          return;
+        }
+
+        print('PribadiPage: ✅ Data saved to SQLite successfully!');
+
+        // Update Riverpod provider
+        final pribadiData = PribadiData(
+          tempatLahir: _tempatLahirController.text.trim(),
+          tanggalLahir: _tanggalLahirController.text.trim(),
+          address: _addressController.text.trim(),
+          propinsi: _propinsiController.text.trim(),
+          kota: _kotaController.text.trim(),
+          kecamatan: _kecamatanController.text.trim(),
+          kelurahan: _kelurahanController.text.trim(),
+          rt: rtValue,
+          rw: rwValue,
+          kodePos: _kodePosController.text.trim(),
+          teleponRumah: _teleponRumahController.text.trim(),
+          teleponKantor: _teleponKantorController.text.trim(),
+          handphone: _handphoneController.text.trim(),
+          email: _emailController.text.trim(),
+          statusPerkawinan: _selectedStatusPerkawinan,
+          agama: _selectedAgama,
+          golonganDarah: _selectedGolonganDarah,
+          jenisKelamin: _selectedJenisKelamin,
+          statusDomisili: _selectedStatusDomisili,
+        );
+
+        ref.read(pribadiDataProvider.notifier).updateData(pribadiData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+
+        // Update SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await Future.wait([
           prefs.setBool('pribadi_has_changes', false),
           prefs.setBool('pribadi_just_saved', true),
           prefs.setBool('pribadi_user_saved', true),
         ]);
-      });
 
-      ProfileCompletionNotifierCard.show(
-        context,
-        title: 'Berhasil Menyimpan Data Pribadi',
-        message: 'Data pribadi Anda telah diperbarui dan tersimpan dengan sukses.',
-        onConfirm: () {
-          if (context.mounted) {
+        print('PribadiPage: All data saved successfully');
+
+        // Show success dialog
+        await ProfileCompletionNotifierCard.show(
+          context,
+          title: 'Berhasil Menyimpan Data Pribadi',
+          message: 'Data pribadi Anda telah diperbarui dan tersimpan dengan sukses di database.',
+          onConfirm: () {
             notification.NotificationUtils.showSuccess(
               context,
-              'Data pribadi telah disimpan',
+              'Data pribadi telah disimpan ke database',
             );
-            setState(() {
-              _hasUnsavedChanges = false;
-            });
-            context.pop('saved');
-          }
-        },
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.green[600],
-      );
+            if (context.mounted) {
+              context.pop('saved');
+            }
+          },
+          icon: Icons.check_circle_rounded,
+          iconColor: Colors.green[600],
+        );
+
+        if (context.mounted) {
+          setState(() {
+            _hasUnsavedChanges = false;
+          });
+        }
+      } catch (e, stackTrace) {
+        print('PribadiPage: ❌ Critical error saving pribadi data: $e');
+        print('PribadiPage: 📚 Stack trace: $stackTrace');
+        
+        // Try to diagnose the error
+        try {
+          print('PribadiPage: 🔍 Attempting to diagnose error...');
+          final hasDataAfter = await _profileService.hasPribadiData();
+          print('PribadiPage: 📊 Has data after error: $hasDataAfter');
+        } catch (diagError) {
+          print('PribadiPage: 🚫 Error during diagnosis: $diagError');
+        }
+        
+        _showErrorDialog(context, theme, 'Terjadi kesalahan saat menyimpan data: $e\n\nGunakan tombol Debug (🐛) untuk informasi detail.');
+      }
     }
+  }
+
+  void _showErrorDialog(BuildContext context, dynamic theme, String message) {
+    notification.NotificationUtils.showErrorDialog(
+      context,
+      title: 'Gagal Menyimpan',
+      message: 'Terjadi kesalahan saat menyimpan data pribadi: $message',
+    );
+  }
+
+  /// Show debug page for testing SQLite operations
+  void _showPribadiDebug(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PribadiDebugPage(profileService: _profileService),
+      ),
+    );
+  }
+}
+
+// Debug page for testing Pribadi SQLite operations
+class PribadiDebugPage extends StatefulWidget {
+  final ProfileService profileService;
+
+  const PribadiDebugPage({
+    super.key,
+    required this.profileService,
+  });
+
+  @override
+  State<PribadiDebugPage> createState() => _PribadiDebugPageState();
+}
+
+class _PribadiDebugPageState extends State<PribadiDebugPage> {
+  String _debugOutput = 'Pribadi Debug Console Ready\n';
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pribadi SQLite Debug'),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pribadi SQLite Debug Tools',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testSavePribadi,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Test Save'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testLoadPribadi,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Test Load'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testHasPribadi,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Test Has Data'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testValidation,
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Test Validation'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _testInitialize,
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Test Initialize'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _clearDebugOutput,
+                  icon: const Icon(Icons.clear),
+                  label: const Text('Clear Log'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_isLoading)
+              const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    _debugOutput,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addDebugOutput(String message) {
+    setState(() {
+      final timestamp = DateTime.now().toString().substring(11, 19);
+      _debugOutput += '[$timestamp] $message\n';
+    });
+  }
+
+  void _clearDebugOutput() {
+    setState(() {
+      _debugOutput = 'Pribadi Debug Console Cleared\n';
+    });
+  }
+
+  Future<void> _testInitialize() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing ProfileService initialize...');
+
+    try {
+      await widget.profileService.initialize();
+      _addDebugOutput('✅ Initialize test: SUCCESS');
+    } catch (e) {
+      _addDebugOutput('❌ Initialize test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testSavePribadi() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing save pribadi data...');
+
+    try {
+      final success = await widget.profileService.savePribadiData(
+        tempatLahir: 'Jakarta Test SQLite',
+        tanggalLahir: '15/08/1990',
+        jenisKelamin: 'Laki-Laki',
+        agama: 'Islam',
+        statusPerkawinan: 'Kawin',
+        golonganDarah: 'O',
+        statusDomisili: 'Alamat Rumah dan Alamat Sesuai KTP',
+        address: 'Jl. Test SQLite No. 123, Jakarta',
+        propinsi: 'DKI Jakarta',
+        kota: 'Jakarta Selatan',
+        kecamatan: 'Kebayoran Baru',
+        kelurahan: 'Senayan',
+        rt: '001',
+        rw: '002',
+        kodePos: '12190',
+        teleponRumah: '021-1234567',
+        teleponKantor: '021-7654321',
+        handphone: '08123456789',
+        email: 'test@sqlite.com',
+      );
+
+      if (success) {
+        _addDebugOutput('✅ Save pribadi test: SUCCESS');
+      } else {
+        _addDebugOutput('❌ Save pribadi test: FAILED');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Save pribadi test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testLoadPribadi() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing load pribadi data...');
+
+    try {
+      final data = await widget.profileService.getCurrentPribadiData();
+
+      if (data != null) {
+        _addDebugOutput('✅ Load pribadi test: SUCCESS');
+        _addDebugOutput('📄 Data found:');
+        _addDebugOutput('   - ID: ${data.id}');
+        _addDebugOutput('   - User ID: ${data.userId}');
+        _addDebugOutput('   - Tempat Lahir: "${data.tempatLahir}"');
+        _addDebugOutput('   - Tanggal Lahir: "${data.tanggalLahir}"');
+        _addDebugOutput('   - Jenis Kelamin: "${data.jenisKelamin}"');
+        _addDebugOutput('   - Agama: "${data.agama}"');
+        _addDebugOutput('   - Status Perkawinan: "${data.statusPerkawinan}"');
+        _addDebugOutput('   - Golongan Darah: "${data.golonganDarah}"');
+        _addDebugOutput('   - Address: "${data.address}"');
+        _addDebugOutput('   - Propinsi: "${data.propinsi}"');
+        _addDebugOutput('   - Kota: "${data.kota}"');
+        _addDebugOutput('   - Kecamatan: "${data.kecamatan}"');
+        _addDebugOutput('   - Kelurahan: "${data.kelurahan}"');
+        _addDebugOutput('   - RT: "${data.rt}"');
+        _addDebugOutput('   - RW: "${data.rw}"');
+        _addDebugOutput('   - Kode Pos: "${data.kodePos}"');
+        _addDebugOutput('   - Handphone: "${data.handphone}"');
+        _addDebugOutput('   - Email: "${data.email}"');
+        _addDebugOutput('   - Created: ${data.createdAt}');
+        _addDebugOutput('   - Updated: ${data.updatedAt}');
+      } else {
+        _addDebugOutput('ℹ️ Load pribadi test: No data found');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Load pribadi test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testHasPribadi() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing has pribadi data...');
+
+    try {
+      final hasData = await widget.profileService.hasPribadiData();
+      _addDebugOutput('✅ Has pribadi test: ${hasData ? "HAS DATA" : "NO DATA"}');
+    } catch (e) {
+      _addDebugOutput('❌ Has pribadi test error: $e');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _testValidation() async {
+    setState(() => _isLoading = true);
+    _addDebugOutput('🔄 Testing pribadi validation...');
+
+    try {
+      // Test empty data validation
+      var errors = widget.profileService.getPribadiDataValidationErrors(
+        tempatLahir: '',
+        tanggalLahir: '',
+        jenisKelamin: '',
+        agama: '',
+        statusPerkawinan: '',
+        golonganDarah: '',
+        statusDomisili: '',
+        address: '',
+        propinsi: '',
+        kota: '',
+        kecamatan: '',
+        kelurahan: '',
+        rt: '',
+        rw: '',
+        kodePos: '',
+        teleponRumah: '',
+        teleponKantor: '',
+        handphone: '',
+        email: '',
+      );
+      _addDebugOutput('📝 Empty data validation: ${errors.length} errors');
+      for (var error in errors) {
+        _addDebugOutput('   - $error');
+      }
+
+      // Test valid data validation
+      errors = widget.profileService.getPribadiDataValidationErrors(
+        tempatLahir: 'Jakarta',
+        tanggalLahir: '15/08/1990',
+        jenisKelamin: 'Laki-Laki',
+        agama: 'Islam',
+        statusPerkawinan: 'Kawin',
+        golonganDarah: 'O',
+        statusDomisili: 'Alamat Rumah dan Alamat Sesuai KTP',
+        address: 'Jl. Test No. 123',
+        propinsi: 'DKI Jakarta',
+        kota: 'Jakarta',
+        kecamatan: 'Kebayoran',
+        kelurahan: 'Senayan',
+        rt: '001',
+        rw: '002',
+        kodePos: '12190',
+        teleponRumah: '021-1234567',
+        teleponKantor: '021-7654321',
+        handphone: '08123456789',
+        email: 'test@example.com',
+      );
+      _addDebugOutput('📝 Valid data validation: ${errors.length} errors');
+      if (errors.isNotEmpty) {
+        for (var error in errors) {
+          _addDebugOutput('   - $error');
+        }
+      }
+
+      // Test invalid email
+      errors = widget.profileService.getPribadiDataValidationErrors(
+        tempatLahir: 'Jakarta',
+        tanggalLahir: '15/08/1990',
+        jenisKelamin: 'Laki-Laki',
+        agama: 'Islam',
+        statusPerkawinan: 'Kawin',
+        golonganDarah: 'O',
+        statusDomisili: 'Alamat Rumah dan Alamat Sesuai KTP',
+        address: 'Jl. Test No. 123',
+        propinsi: 'DKI Jakarta',
+        kota: 'Jakarta',
+        kecamatan: 'Kebayoran',
+        kelurahan: 'Senayan',
+        rt: '001',
+        rw: '002',
+        kodePos: '12190',
+        teleponRumah: '021-1234567',
+        teleponKantor: '021-7654321',
+        handphone: '08123456789',
+        email: 'invalid-email',
+      );
+      _addDebugOutput('📝 Invalid email validation: ${errors.length} errors');
+      for (var error in errors) {
+        _addDebugOutput('   - $error');
+      }
+    } catch (e) {
+      _addDebugOutput('❌ Validation test error: $e');
+    }
+
+    setState(() => _isLoading = false);
   }
 }

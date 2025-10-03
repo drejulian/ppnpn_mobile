@@ -71,48 +71,6 @@ class _DaftarPengajuanBPJSState extends ConsumerState<DaftarPengajuanBPJS> {
               margin: EdgeInsets.zero,
             ),
             const SizedBox(height: 12),
-            
-            // Status Filter
-            Row(
-              children: [
-                Text(
-                  'Filter Status: ',
-                  style: theme.typographyRegular.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedStatus,
-                        isExpanded: true,
-                        items: ['Semua', 'aktif', 'non-aktif', 'pending']
-                            .map((status) => DropdownMenuItem(
-                                  value: status,
-                                  child: Text(
-                                    status == 'Semua' ? status : status.toUpperCase(),
-                                    style: theme.typographyRegular.bodySmall,
-                                  ),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedStatus = value!;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
 
             Container(
               width: double.infinity,

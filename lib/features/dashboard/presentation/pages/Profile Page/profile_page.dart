@@ -9,8 +9,10 @@ import 'package:ppnpm_dpr/common/widgets/app_card_components.dart';
 import 'dart:convert';
 import '../DataDiri/providers/profile_data_provider.dart';
 import '../DataDiri/keluarga_page.dart';
-import 'dart:io';
 import '../../../../auth/presentation/providers/auth_provider.dart';
+// SQLite imports
+import 'package:ppnpm_dpr/common/services/dokumen_service.dart';
+import 'package:ppnpm_dpr/common/services/profile_service.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -30,12 +32,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   bool _isProcessingImmediateFlagDetection = false;
   Set<String> _recentlyEditedViNavigation = <String>{};
+  
+  // SQLite services
+  final DokumenService _dokumenService = DokumenService();
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 100), () async {
       await _checkFreshLoginAndReset();
+      // Load data from SQLite first, then load other data
+      await _loadDataFromSQLite();
+      // Load all profile data from SharedPreferences
+      await _loadAllProfileData();
       _loadEducationData();
       _loadUserSavedFlags().then((_) {
         _reloadWorkHistoryData();
@@ -43,24 +53,615 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     });
   }
 
-  Future<void> _debugAllData() async {
+  /// Load data from SQLite database to sync with providers
+  Future<void> _loadDataFromSQLite() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      debugPrint('ProfilePage: Debugging all SharedPreferences data');
+      print('ProfilePage: Loading data from SQLite...');
+      
+      // Initialize services
+      await _dokumenService.initializeDocuments();
+      await _profileService.initialize();
+      
+      // 1. Load EditProfile data from SQLite
+      final editProfileData = await _profileService.getCurrentEditProfile();
+      if (editProfileData != null && mounted) {
+        print('ProfilePage: Loading EditProfile data from SQLite...');
+        
+        final updatedEditProfileData = EditProfileData(
+          nik: editProfileData.nik,
+          nama: editProfileData.nama,
+          bidangKeahlian: editProfileData.bidangKeahlian,
+          toefl: editProfileData.toefl,
+          pendidikan: editProfileData.pendidikan,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(editProfileDataProvider.notifier).updateData(updatedEditProfileData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('editProfile');
+        
+        // Update SharedPreferences flag
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('edit_profile_user_saved', true);
+        
+        print('ProfilePage: EditProfile data loaded from SQLite successfully');
+        print('  - NIK: ${editProfileData.nik}');
+        print('  - Nama: ${editProfileData.nama}');
+        print('  - Pendidikan: ${editProfileData.pendidikan}');
+        print('  - Bidang Keahlian: ${editProfileData.bidangKeahlian}');
+        print('  - TOEFL: ${editProfileData.toefl}');
+      } else {
+        print('ProfilePage: No EditProfile data found in SQLite');
+      }
+
+      // 2. Load Pribadi data from SQLite
+      final pribadiData = await _profileService.getCurrentPribadiData();
+      if (pribadiData != null && mounted) {
+        print('ProfilePage: Loading Pribadi data from SQLite...');
+        
+        final updatedPribadiData = PribadiData(
+          tempatLahir: pribadiData.tempatLahir,
+          tanggalLahir: pribadiData.tanggalLahir,
+          address: pribadiData.address,
+          propinsi: pribadiData.propinsi,
+          kota: pribadiData.kota,
+          kecamatan: pribadiData.kecamatan,
+          kelurahan: pribadiData.kelurahan,
+          rt: pribadiData.rt,
+          rw: pribadiData.rw,
+          kodePos: pribadiData.kodePos,
+          teleponRumah: pribadiData.teleponRumah,
+          teleponKantor: pribadiData.teleponKantor,
+          handphone: pribadiData.handphone,
+          email: pribadiData.email,
+          statusPerkawinan: pribadiData.statusPerkawinan,
+          agama: pribadiData.agama,
+          golonganDarah: pribadiData.golonganDarah,
+          jenisKelamin: pribadiData.jenisKelamin,
+          statusDomisili: pribadiData.statusDomisili,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(pribadiDataProvider.notifier).updateData(updatedPribadiData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+        
+        // Update SharedPreferences flag
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('pribadi_user_saved', true);
+        
+        print('ProfilePage: Pribadi data loaded from SQLite successfully');
+        print('  - Tempat Lahir: ${pribadiData.tempatLahir}');
+        print('  - Email: ${pribadiData.email}');
+        print('  - Handphone: ${pribadiData.handphone}');
+        print('  - Address: ${pribadiData.address.length > 50 ? pribadiData.address.substring(0, 50) + "..." : pribadiData.address}');
+      } else {
+        print('ProfilePage: No Pribadi data found in SQLite');
+      }
+      
+      // 3. Load Honorarium data from SQLite
+      final honorariumData = await _profileService.getCurrentHonorariumData();
+      if (honorariumData != null && mounted) {
+        print('ProfilePage: Loading Honorarium data from SQLite...');
+        
+        final updatedHonorariumData = HonorariumData(
+          kartuKeluarga: honorariumData.kartuKeluarga,
+          ktp: honorariumData.ktp,
+          namaKtp: honorariumData.namaKtp,
+          bpjsKesehatan: honorariumData.bpjsKesehatan,
+          npwp: honorariumData.npwp,
+          namaIbu: honorariumData.namaIbu,
+          rekening: honorariumData.rekening,
+          namaPemilikRek: honorariumData.namaPemilikRek,
+          statusPTKP: honorariumData.statusPTKP,
+          jumlahAnak: honorariumData.jumlahAnak,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(honorariumDataProvider.notifier).updateData(updatedHonorariumData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('honorarium');
+        
+        print('ProfilePage: Honorarium data loaded from SQLite successfully');
+        print('  - Kartu Keluarga: ${honorariumData.kartuKeluarga}');
+        print('  - KTP: ${honorariumData.ktp}');
+        print('  - Nama KTP: ${honorariumData.namaKtp}');
+        print('  - NPWP: ${honorariumData.npwp}');
+        print('  - Rekening: ${honorariumData.rekening}');
+      } else {
+        print('ProfilePage: No Honorarium data found in SQLite');
+      }
+      
+      // 4. Load dokumen data from SQLite
+      final currentDokumenData = ref.read(dokumenDataProvider);
+      
+      // Load dokumen data from SQLite
+      final updatedDokumenData = currentDokumenData.copyWith(
+        cvUploaded: await _dokumenService.isDocumentUploaded('cv'),
+        ijazahUploaded: await _dokumenService.isDocumentUploaded('ijazah'),
+        transkripUploaded: await _dokumenService.isDocumentUploaded('transkrip'),
+        ktpUploaded: await _dokumenService.isDocumentUploaded('ktp'),
+        kkUploaded: await _dokumenService.isDocumentUploaded('kk'),
+        suratLamaranUploaded: await _dokumenService.isDocumentUploaded('surat_lamaran'),
+        fotoUploaded: await _dokumenService.isDocumentUploaded('foto'),
+        sertifikatUploaded: await _dokumenService.isDocumentUploaded('sertifikat'),
+      );
+      
+      // Update provider with SQLite data
+      if (mounted) {
+        ref.read(dokumenDataProvider.notifier).updateData(updatedDokumenData);
+        
+        // Also update SharedPreferences flags based on SQLite data
+        final prefs = await SharedPreferences.getInstance();
+        final hasUploadedDocuments = updatedDokumenData.cvUploaded ||
+                                   updatedDokumenData.ktpUploaded ||
+                                   updatedDokumenData.kkUploaded ||
+                                   updatedDokumenData.ijazahUploaded ||
+                                   updatedDokumenData.transkripUploaded ||
+                                   updatedDokumenData.suratLamaranUploaded ||
+                                   updatedDokumenData.fotoUploaded ||
+                                   updatedDokumenData.sertifikatUploaded;
+        
+        if (hasUploadedDocuments) {
+          await prefs.setBool('dokumen_user_saved', true);
+          ref.read(profileCompletionProvider.notifier).markCompleted('dokumen');
+        }
+      }
+      
+      print('ProfilePage: Dokumen SQLite data loaded successfully');
+      print('  - CV: ${updatedDokumenData.cvUploaded}');
+      print('  - KTP: ${updatedDokumenData.ktpUploaded}');
+      print('  - KK: ${updatedDokumenData.kkUploaded}');
+      print('  - Ijazah: ${updatedDokumenData.ijazahUploaded}');
+      print('  - Transkrip: ${updatedDokumenData.transkripUploaded}');
+      
+      // 5. Load Keluarga data from SQLite
+      final keluargaData = await _profileService.getKeluargaData();
+      if (keluargaData != null && mounted) {
+        print('ProfilePage: Loading Keluarga data from SQLite...');
+        
+        final updatedKeluargaData = KeluargaData(
+          namaAyah: keluargaData.namaAyah,
+          namaIbu: keluargaData.namaIbu,
+          namaPasangan: keluargaData.namaPasangan,
+          namaAnak: keluargaData.namaAnak,
+          pekerjaanAyah: keluargaData.pekerjaanAyah,
+          pekerjaanIbu: keluargaData.pekerjaanIbu,
+          pekerjaanPasangan: keluargaData.pekerjaanPasangan,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(keluargaDataProvider.notifier).updateData(updatedKeluargaData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('keluarga');
+        
+        // Update SharedPreferences flag
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('family_user_saved', true);
+        
+        print('ProfilePage: Keluarga data loaded from SQLite successfully');
+        print('  - Nama Ayah: ${keluargaData.namaAyah}');
+        print('  - Nama Ibu: ${keluargaData.namaIbu}');
+        print('  - Nama Pasangan: ${keluargaData.namaPasangan}');
+        print('  - Nama Anak: ${keluargaData.namaAnak}');
+      } else {
+        print('ProfilePage: No Keluarga data found in SQLite');
+      }
+      
+      // 6. Load ID Card data from SQLite
+      final idCardData = await _profileService.getCurrentIdCardData();
+      if (idCardData != null && mounted) {
+        print('ProfilePage: Loading ID Card data from SQLite...');
+        
+        final updatedIdCardData = IdCardData(
+          fotoPath: idCardData.fotoPath,
+          isUploaded: idCardData.isUploaded,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(idCardDataProvider.notifier).updateData(updatedIdCardData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('pasFoto');
+        
+        // Update SharedPreferences flag
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('pas_foto_user_saved', true);
+        
+        print('ProfilePage: ID Card data loaded from SQLite successfully');
+        print('  - Foto Path: ${idCardData.fotoPath}');
+        print('  - Is Uploaded: ${idCardData.isUploaded}');
+      } else {
+        print('ProfilePage: No ID Card data found in SQLite');
+      }
+      
+      // 7. Load Pendidikan data from SQLite
+      final pendidikanModels = await _profileService.getAllPendidikanData();
+      if (pendidikanModels.isNotEmpty && mounted) {
+        print('ProfilePage: Loading Pendidikan data from SQLite...');
+        
+        // Get latest education for profile display
+        final latestPendidikan = pendidikanModels.first; // Already sorted by tahun_selesai DESC
+        
+        final updatedPendidikanData = PendidikanData(
+          tingkatPendidikan: latestPendidikan.jenjang,
+          namaInstitusi: latestPendidikan.institusi,
+          jurusan: latestPendidikan.jurusan,
+          tahunLulus: latestPendidikan.tahunSelesai,
+          ipk: latestPendidikan.ipk,
+        );
+        
+        // Update provider with SQLite data
+        ref.read(pendidikanDataProvider.notifier).updateData(updatedPendidikanData);
+        ref.read(profileCompletionProvider.notifier).markCompleted('pendidikan');
+        
+        // Update SharedPreferences flag
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('pendidikan_user_saved', true);
+        
+        // Update education data list for profile display
+        _educationData.clear();
+        _educationData.addAll(pendidikanModels.map((model) => {
+          'id': model.id?.toString() ?? '',
+          'jenjang': model.jenjang,
+          'jurusan': model.jurusan,
+          'institusi': model.institusi,
+          'kota': model.kota,
+          'tahun_mulai': model.tahunMulai,
+          'tahun_selesai': model.tahunSelesai,
+          'ipk': model.ipk,
+        }).toList());
+        
+        setState(() {
+          _educationDataLoaded = true;
+          _educationUserSaved = true;
+        });
+        
+        // Update SQLite provider with loaded data
+        ref.read(pendidikanSQLiteProvider.notifier).updatePendidikanData(pendidikanModels);
+        
+        print('ProfilePage: Pendidikan data loaded from SQLite successfully');
+        print('  - Latest Jenjang: ${latestPendidikan.jenjang}');
+        print('  - Latest Jurusan: ${latestPendidikan.jurusan}');
+        print('  - Latest Institusi: ${latestPendidikan.institusi}');
+        print('  - Total Records: ${pendidikanModels.length}');
+      } else {
+        print('ProfilePage: No Pendidikan data found in SQLite');
+        // Clear SQLite provider if no data
+        ref.read(pendidikanSQLiteProvider.notifier).clearPendidikanData();
+      }
+      
     } catch (e) {
-      // Tangani error tanpa print
+      print('ProfilePage: Error loading data from SQLite: $e');
     }
   }
+
+  /// Load all profile data from SharedPreferences
+  Future<void> _loadAllProfileData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load Edit Profile data - Check both SharedPreferences flag and SQLite data
+      final editProfileUserSaved = prefs.getBool('edit_profile_user_saved') ?? false;
+      final editProfileJustSaved = prefs.getBool('edit_profile_just_saved') ?? false;
+      print('ProfilePage: EditProfile user saved flag: $editProfileUserSaved, just saved: $editProfileJustSaved');
+      
+      // If just saved, force reload from SQLite to get latest data
+      if (editProfileJustSaved) {
+        print('ProfilePage: Detected recent EditProfile save, reloading from SQLite...');
+        await _profileService.initialize();
+        final latestEditProfileData = await _profileService.getCurrentEditProfile();
+        
+        if (latestEditProfileData != null && mounted) {
+          final updatedEditProfileData = EditProfileData(
+            nik: latestEditProfileData.nik,
+            nama: latestEditProfileData.nama,
+            bidangKeahlian: latestEditProfileData.bidangKeahlian,
+            toefl: latestEditProfileData.toefl,
+            pendidikan: latestEditProfileData.pendidikan,
+          );
+          
+          ref.read(editProfileDataProvider.notifier).updateData(updatedEditProfileData);
+          ref.read(profileCompletionProvider.notifier).markCompleted('editProfile');
+          
+          print('ProfilePage: EditProfile data reloaded from SQLite after recent save');
+        }
+        
+        // Clear the just saved flag
+        await prefs.setBool('edit_profile_just_saved', false);
+      }
+      
+      if (editProfileUserSaved) {
+        final editProfileData = ref.read(editProfileDataProvider);
+        print('ProfilePage: Current EditProfile provider data - Nama: ${editProfileData.nama}, NIK: ${editProfileData.nik}');
+        
+        if (editProfileData.nama.isNotEmpty || 
+            editProfileData.nik.isNotEmpty || 
+            editProfileData.bidangKeahlian.isNotEmpty ||
+            editProfileData.toefl.isNotEmpty ||
+            editProfileData.pendidikan.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('editProfile');
+          print('ProfilePage: EditProfile marked as completed');
+        }
+      } else {
+        // Check if we have data from SQLite but flag is not set
+        final editProfileData = ref.read(editProfileDataProvider);
+        if (editProfileData.nama.isNotEmpty || 
+            editProfileData.nik.isNotEmpty || 
+            editProfileData.bidangKeahlian.isNotEmpty) {
+          // Update flag and completion status
+          await prefs.setBool('edit_profile_user_saved', true);
+          ref.read(profileCompletionProvider.notifier).markCompleted('editProfile');
+          print('ProfilePage: EditProfile flag updated and marked as completed from SQLite data');
+        }
+      }
+      
+      // Load Identitas Diri (Pribadi) data - Check both SharedPreferences flag and SQLite data
+      final pribadiUserSaved = prefs.getBool('pribadi_user_saved') ?? false;
+      final pribadiJustSaved = prefs.getBool('pribadi_just_saved') ?? false;
+      print('ProfilePage: Pribadi user saved flag: $pribadiUserSaved, just saved: $pribadiJustSaved');
+      
+      // If just saved, force reload from SQLite to get latest data
+      if (pribadiJustSaved) {
+        print('ProfilePage: Detected recent Pribadi save, reloading from SQLite...');
+        await _profileService.initialize();
+        final latestPribadiData = await _profileService.getCurrentPribadiData();
+        
+        if (latestPribadiData != null && mounted) {
+          final updatedPribadiData = PribadiData(
+            tempatLahir: latestPribadiData.tempatLahir,
+            tanggalLahir: latestPribadiData.tanggalLahir,
+            address: latestPribadiData.address,
+            propinsi: latestPribadiData.propinsi,
+            kota: latestPribadiData.kota,
+            kecamatan: latestPribadiData.kecamatan,
+            kelurahan: latestPribadiData.kelurahan,
+            rt: latestPribadiData.rt,
+            rw: latestPribadiData.rw,
+            kodePos: latestPribadiData.kodePos,
+            teleponRumah: latestPribadiData.teleponRumah,
+            teleponKantor: latestPribadiData.teleponKantor,
+            handphone: latestPribadiData.handphone,
+            email: latestPribadiData.email,
+            statusPerkawinan: latestPribadiData.statusPerkawinan,
+            agama: latestPribadiData.agama,
+            golonganDarah: latestPribadiData.golonganDarah,
+            jenisKelamin: latestPribadiData.jenisKelamin,
+            statusDomisili: latestPribadiData.statusDomisili,
+          );
+          
+          ref.read(pribadiDataProvider.notifier).updateData(updatedPribadiData);
+          ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+          
+          print('ProfilePage: Pribadi data reloaded from SQLite after recent save');
+        }
+        
+        // Clear the just saved flag
+        await prefs.setBool('pribadi_just_saved', false);
+      }
+      
+      if (pribadiUserSaved) {
+        final pribadiData = ref.read(pribadiDataProvider);
+        print('ProfilePage: Current Pribadi provider data - Tempat Lahir: ${pribadiData.tempatLahir}, Email: ${pribadiData.email}');
+        
+        if (pribadiData.tempatLahir.isNotEmpty || 
+            pribadiData.email.isNotEmpty || 
+            pribadiData.handphone.isNotEmpty ||
+            pribadiData.address.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+          print('ProfilePage: Pribadi data marked as completed');
+        }
+      } else {
+        // Check if we have data from SQLite but flag is not set
+        final pribadiData = ref.read(pribadiDataProvider);
+        if (pribadiData.tempatLahir.isNotEmpty || 
+            pribadiData.email.isNotEmpty || 
+            pribadiData.handphone.isNotEmpty ||
+            pribadiData.address.isNotEmpty) {
+          // Update flag and completion status
+          await prefs.setBool('pribadi_user_saved', true);
+          ref.read(profileCompletionProvider.notifier).markCompleted('identitasDiri');
+          print('ProfilePage: Pribadi flag updated and marked as completed from SQLite data');
+        }
+      }
+      
+      // Load Honorarium data
+      final honorariumUserSaved = prefs.getBool('honorarium_user_saved') ?? false;
+      if (honorariumUserSaved) {
+        final honorariumData = ref.read(honorariumDataProvider);
+        if (honorariumData.kartuKeluarga.isNotEmpty || 
+            honorariumData.ktp.isNotEmpty || 
+            honorariumData.rekening.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('honorarium');
+        }
+      }
+      
+      // Load Keluarga data - Check both SharedPreferences flag and SQLite data
+      final familyUserSaved = prefs.getBool('family_user_saved') ?? false;
+      final familyJustSaved = prefs.getBool('family_just_saved') ?? false;
+      print('ProfilePage: Family user saved flag: $familyUserSaved, just saved: $familyJustSaved');
+      
+      // If just saved, force reload from SQLite to get latest data
+      if (familyJustSaved) {
+        print('ProfilePage: Detected recent Family save, reloading from SQLite...');
+        await _profileService.initialize();
+        final latestKeluargaData = await _profileService.getKeluargaData();
+        
+        if (latestKeluargaData != null && mounted) {
+          final updatedKeluargaData = KeluargaData(
+            namaAyah: latestKeluargaData.namaAyah,
+            namaIbu: latestKeluargaData.namaIbu,
+            namaPasangan: latestKeluargaData.namaPasangan,
+            namaAnak: latestKeluargaData.namaAnak,
+            pekerjaanAyah: latestKeluargaData.pekerjaanAyah,
+            pekerjaanIbu: latestKeluargaData.pekerjaanIbu,
+            pekerjaanPasangan: latestKeluargaData.pekerjaanPasangan,
+          );
+          
+          ref.read(keluargaDataProvider.notifier).updateData(updatedKeluargaData);
+          ref.read(profileCompletionProvider.notifier).markCompleted('keluarga');
+          
+          print('ProfilePage: Keluarga data reloaded from SQLite after recent save');
+        }
+        
+        // Clear the just saved flag
+        await prefs.setBool('family_just_saved', false);
+      }
+      
+      if (familyUserSaved) {
+        final keluargaData = ref.read(keluargaDataProvider);
+        print('ProfilePage: Current Keluarga provider data - Nama Ayah: ${keluargaData.namaAyah}, Nama Ibu: ${keluargaData.namaIbu}');
+        
+        if (keluargaData.namaAyah.isNotEmpty || 
+            keluargaData.namaIbu.isNotEmpty || 
+            keluargaData.namaPasangan.isNotEmpty ||
+            keluargaData.namaAnak.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('keluarga');
+          print('ProfilePage: Keluarga marked as completed');
+        }
+      } else {
+        // Check if we have data from SQLite but flag is not set
+        final keluargaData = ref.read(keluargaDataProvider);
+        if (keluargaData.namaAyah.isNotEmpty || 
+            keluargaData.namaIbu.isNotEmpty || 
+            keluargaData.namaPasangan.isNotEmpty ||
+            keluargaData.namaAnak.isNotEmpty) {
+          // Update flag and completion status
+          await prefs.setBool('family_user_saved', true);
+          ref.read(profileCompletionProvider.notifier).markCompleted('keluarga');
+          print('ProfilePage: Family flag updated and marked as completed from SQLite data');
+        }
+      }
+      
+      // Load Pendidikan data - Check both SharedPreferences flag and SQLite data
+      final pendidikanUserSaved = prefs.getBool('pendidikan_user_saved') ?? false;
+      final pendidikanJustSaved = prefs.getBool('pendidikan_just_saved') ?? false;
+      print('ProfilePage: Pendidikan user saved flag: $pendidikanUserSaved, just saved: $pendidikanJustSaved');
+      
+      // If just saved, force reload from SQLite to get latest data
+      if (pendidikanJustSaved) {
+        print('ProfilePage: Detected recent Pendidikan save, reloading from SQLite...');
+        await _profileService.initialize();
+        final latestPendidikanModels = await _profileService.getAllPendidikanData();
+        
+        if (latestPendidikanModels.isNotEmpty && mounted) {
+          // Get latest education for profile display
+          final latestPendidikan = latestPendidikanModels.first;
+          
+          final updatedPendidikanData = PendidikanData(
+            tingkatPendidikan: latestPendidikan.jenjang,
+            namaInstitusi: latestPendidikan.institusi,
+            jurusan: latestPendidikan.jurusan,
+            tahunLulus: latestPendidikan.tahunSelesai,
+            ipk: latestPendidikan.ipk,
+          );
+          
+          // Update provider with SQLite data
+          ref.read(pendidikanDataProvider.notifier).updateData(updatedPendidikanData);
+          ref.read(profileCompletionProvider.notifier).markCompleted('pendidikan');
+          
+          // Update education data list for profile display
+          _educationData.clear();
+          _educationData.addAll(latestPendidikanModels.map((model) => {
+            'id': model.id?.toString() ?? '',
+            'jenjang': model.jenjang,
+            'jurusan': model.jurusan,
+            'institusi': model.institusi,
+            'kota': model.kota,
+            'tahun_mulai': model.tahunMulai,
+            'tahun_selesai': model.tahunSelesai,
+            'ipk': model.ipk,
+          }).toList());
+          
+          setState(() {
+            _educationDataLoaded = true;
+            _educationUserSaved = true;
+          });
+          
+          print('ProfilePage: Pendidikan data reloaded from SQLite after recent save');
+        }
+        
+        // Clear the just saved flag
+        await prefs.setBool('pendidikan_just_saved', false);
+      }
+      
+      if (pendidikanUserSaved) {
+        final pendidikanData = ref.read(pendidikanDataProvider);
+        print('ProfilePage: Current Pendidikan provider data - Jenjang: ${pendidikanData.tingkatPendidikan}, Institusi: ${pendidikanData.namaInstitusi}');
+        
+        if (pendidikanData.tingkatPendidikan.isNotEmpty || 
+            pendidikanData.namaInstitusi.isNotEmpty || 
+            pendidikanData.jurusan.isNotEmpty ||
+            pendidikanData.tahunLulus.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('pendidikan');
+          setState(() {
+            _educationUserSaved = true;
+          });
+          print('ProfilePage: Pendidikan marked as completed');
+        }
+      } else {
+        // Check if we have data from SQLite but flag is not set
+        final pendidikanData = ref.read(pendidikanDataProvider);
+        if (pendidikanData.tingkatPendidikan.isNotEmpty || 
+            pendidikanData.namaInstitusi.isNotEmpty || 
+            pendidikanData.jurusan.isNotEmpty ||
+            pendidikanData.tahunLulus.isNotEmpty) {
+          // Update flag and completion status
+          await prefs.setBool('pendidikan_user_saved', true);
+          ref.read(profileCompletionProvider.notifier).markCompleted('pendidikan');
+          setState(() {
+            _educationUserSaved = true;
+          });
+          print('ProfilePage: Pendidikan flag updated and marked as completed from SQLite data');
+        }
+      }
+      
+      // Load PAS Foto data
+      final pasFotoUserSaved = prefs.getBool('pas_foto_user_saved') ?? false;
+      if (pasFotoUserSaved) {
+        final idCardData = ref.read(idCardDataProvider);
+        if (idCardData.fotoPath.isNotEmpty || idCardData.isUploaded) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('pasFoto');
+        }
+      }
+      
+      // Load Data Lamaran data
+      final dataLamaranUserSaved = prefs.getBool('data_lamaran_user_saved') ?? false;
+      if (dataLamaranUserSaved) {
+        final dataLamaranData = ref.read(dataLamaranDataProvider);
+        if (dataLamaranData.position.isNotEmpty || dataLamaranData.placement.isNotEmpty) {
+          ref.read(profileCompletionProvider.notifier).markCompleted('dataLamaran');
+        }
+      }
+      
+      print('ProfilePage: All profile data loaded from SharedPreferences');
+      
+    } catch (e) {
+      print('ProfilePage: Error loading profile data from SharedPreferences: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh data when page becomes visible again
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        print('ProfilePage: Refreshing data due to page focus/navigation...');
+        await _loadDataFromSQLite();
+        await _loadAllProfileData();
+        
+        // Force UI refresh to show updated data
+        if (mounted) {
+          setState(() {
+            // Trigger rebuild to show updated data
+          });
+        }
+      }
+    });
+  }
+
+
 
   Future<void> _checkFreshLoginAndReset() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedOut = prefs.getBool('is_logged_out') ?? false;
       debugPrint('ProfilePage: isLoggedOut=$isLoggedOut');
-
-      final hasWorkHistoryUserSaved = prefs.getBool('work_history_user_saved') ?? false;
-      final workHistoryDataList = prefs.getStringList('work_history_data') ?? [];
-      final hasActualWorkData = workHistoryDataList.isNotEmpty;
 
       final educationDataList = prefs.getStringList('education_data') ?? [];
       final hasEducationUserSaved = prefs.getBool('education_user_saved') ?? false;
@@ -183,28 +784,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Future<void> _checkForWorkHistoryChanges() async {
-    if (_isProcessingImmediateFlagDetection) {
-      return;
-    }
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final hasChanges = prefs.getBool('work_history_has_changes') ?? false;
-      final justSaved = prefs.getBool('work_history_just_saved') ?? false;
-
-      if (hasChanges || justSaved) {
-        _isProcessingImmediateFlagDetection = true;
-        await Future.delayed(const Duration(milliseconds: 200));
-        await prefs.remove('work_history_has_changes');
-        await _reloadWorkHistoryData();
-        await Future.delayed(const Duration(milliseconds: 100));
-        _isProcessingImmediateFlagDetection = false;
-      }
-    } catch (e) {
-      _isProcessingImmediateFlagDetection = false;
-    }
-  }
 
   Future<void> _loadUserSavedFlags() async {
     if (_isProcessingImmediateFlagDetection) {
@@ -465,61 +1045,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  bool _isValidLocalFile(String path) {
-    if (path.isEmpty) return false;
-    try {
-      final file = File(path);
-      return file.existsSync();
-    } catch (e) {
-      return false;
-    }
-  }
 
-  ImageProvider<Object>? _getImageProvider(String imagePath) {
-    if (imagePath.isEmpty) return null;
 
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return NetworkImage(imagePath);
-    }
 
-    if (_isValidLocalFile(imagePath)) {
-      return FileImage(File(imagePath));
-    }
-
-    return null;
-  }
-
-  Widget _buildInfoChip(IconData icon, String text, dynamic theme) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: theme.primarySwatch,
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
@@ -536,12 +1064,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final editProfileData = ref.watch(editProfileDataProvider);
     final pribadiData = ref.watch(pribadiDataProvider);
     final honorariumData = ref.watch(honorariumDataProvider);
-    final keluargaData = ref.watch(keluargaDataProvider);
-    final pendidikanData = ref.watch(pendidikanDataProvider);
-    final riwayatPekerjaanData = ref.watch(riwayatPekerjaanDataProvider);
-    final dokumenData = ref.watch(dokumenDataProvider);
     final dataLamaranData = ref.watch(dataLamaranDataProvider);
-    final idCardData = ref.watch(idCardDataProvider);
 
     final now = DateTime.now();
     final dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -565,11 +1088,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 horizontal: isTablet ? 24.0 : 16.0, 
                 vertical: 16.0
               ),
-              child: HeaderCardComponent(
+              child: ProfileHeaderCardComponent(
                 title: 'Profil Saya',
                 subtitle: 'Data Pribadi & Profesional',
                 description: 'Kelola dan pantau kelengkapan data profil pribadi, pendidikan, riwayat pekerjaan, dan dokumen penting Anda',
-                icon: Icons.person_outline,
                 isTablet: isTablet,
                 isLargeTablet: MediaQuery.of(context).size.width > 900,
                 theme: theme,
@@ -595,9 +1117,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ], theme, isTablet),
             
             _buildSectionCard('4. Keluarga', _buildFamilyItems(theme), theme, isTablet),
-            _buildSectionCard('5. PAS Foto', [
-              _buildInfoItem(Icons.camera_alt, 'Status Upload', idCardData.isUploaded ? 'Sudah diupload' : 'Belum diupload', theme, isMissing: !idCardData.isUploaded),
-            ], theme, isTablet),
+            _buildSectionCard('5. PAS Foto', _buildPasFotoItems(theme, isTablet), theme, isTablet),
             
             _buildSectionCard('6. Dokumen', _buildDokumenItems(theme), theme, isTablet),
             _buildSectionCard('7. Pendidikan', _buildEducationItems(theme), theme, isTablet),
@@ -1125,12 +1645,39 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   List<Widget> _buildEducationItems(dynamic theme) {
+    // Check pendidikan data from SQLite provider
+    final pendidikanSQLiteList = ref.watch(pendidikanSQLiteProvider);
+    final hasSQLiteData = pendidikanSQLiteList.isNotEmpty;
+
+    print('ProfilePage: Building Education Items - hasSQLiteData: $hasSQLiteData, _educationUserSaved: $_educationUserSaved');
+    print('ProfilePage: SQLite pendidikan count: ${pendidikanSQLiteList.length}');
+    print('ProfilePage: SharedPreferences pendidikan count: ${_educationData.length}');
+    
+    if (hasSQLiteData) {
+      final latestEducation = pendidikanSQLiteList.first;
+      print('ProfilePage: Using SQLite data - Jenjang: ${latestEducation.jenjang}, Institusi: ${latestEducation.institusi}');
+    }
+
     if (!_educationDataLoaded) {
       return [
         _buildInfoItem(Icons.hourglass_empty, 'Status', 'Memuat...', theme),
       ];
     }
 
+    // Prioritas 1: Data dari SQLite provider
+    if (hasSQLiteData) {
+      final latestEducation = pendidikanSQLiteList.first;
+      return [
+        _buildInfoItem(
+          Icons.school,
+          'Pendidikan Terakhir',
+          '${latestEducation.jenjang} - ${latestEducation.jurusan} (${latestEducation.institusi}, ${latestEducation.tahunSelesai})',
+          theme,
+        ),
+      ];
+    }
+
+    // Prioritas 2: Data dari SharedPreferences (fallback)
     if (_educationUserSaved && (_educationData.isNotEmpty)) {
       List<Widget> educationWidgets = [];
 
@@ -1411,6 +1958,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     } else {
       return [
         _buildInfoItem(Icons.work, 'Status', 'Belum diisi', theme, isMissing: true),
+      ];
+    }
+  }
+
+  List<Widget> _buildPasFotoItems(dynamic theme, bool isTablet) {
+    final idCardData = ref.watch(idCardDataProvider);
+    
+    if (idCardData.fotoPath.isNotEmpty || idCardData.isUploaded) {
+      return [
+        _buildInfoItem(
+          Icons.check_circle, 
+          'Status Upload', 
+          'Sudah diupload', 
+          theme, 
+          isMissing: false
+        ),
+      ];
+    } else {
+      return [
+        _buildInfoItem(
+          Icons.camera_alt, 
+          'Status Upload', 
+          'Belum diupload', 
+          theme, 
+          isMissing: true
+        ),
       ];
     }
   }
