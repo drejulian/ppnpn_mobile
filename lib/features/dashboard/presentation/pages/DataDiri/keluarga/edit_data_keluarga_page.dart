@@ -256,7 +256,7 @@ class _EditDataKeluargaPageState extends ConsumerState<EditDataKeluargaPage> {
               const SizedBox(width: 12),
               Text(
                 'Informasi Anggota Keluarga',
-                style: theme.typographyRegular.bodyLarge.copyWith(
+                style: theme.typographyRegular.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[800],
                 ),

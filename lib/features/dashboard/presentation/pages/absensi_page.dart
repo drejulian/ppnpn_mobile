@@ -327,7 +327,7 @@ class AbsensiPage extends ConsumerWidget {
           data: (attendanceData) {
             final checkinData = attendanceData['checkin'];
             final checkoutData = attendanceData['checkout'];
-            
+
             return Row(
               children: [
                 Expanded(
@@ -358,56 +358,58 @@ class AbsensiPage extends ConsumerWidget {
               ],
             );
           },
-          loading: () => Row(
-            children: [
-              Expanded(
-                child: _buildStatusItem(
-                  'Check In',
-                  '--:--',
-                  'Loading...',
-                  Icons.login,
-                  Colors.grey,
-                  theme,
-                ),
+          loading:
+              () => Row(
+                children: [
+                  Expanded(
+                    child: _buildStatusItem(
+                      'Check In',
+                      '--:--',
+                      'Loading...',
+                      Icons.login,
+                      Colors.grey,
+                      theme,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: _buildStatusItem(
+                      'Check Out',
+                      '--:--',
+                      'Loading...',
+                      Icons.logout,
+                      Colors.grey,
+                      theme,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildStatusItem(
-                  'Check Out',
-                  '--:--',
-                  'Loading...',
-                  Icons.logout,
-                  Colors.grey,
-                  theme,
-                ),
+          error:
+              (error, _) => Row(
+                children: [
+                  Expanded(
+                    child: _buildStatusItem(
+                      'Check In',
+                      '--:--',
+                      'Error',
+                      Icons.login,
+                      Colors.red,
+                      theme,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: _buildStatusItem(
+                      'Check Out',
+                      '--:--',
+                      'Error',
+                      Icons.logout,
+                      Colors.red,
+                      theme,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          error: (error, _) => Row(
-            children: [
-              Expanded(
-                child: _buildStatusItem(
-                  'Check In',
-                  '--:--',
-                  'Error',
-                  Icons.login,
-                  Colors.red,
-                  theme,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildStatusItem(
-                  'Check Out',
-                  '--:--',
-                  'Error',
-                  Icons.logout,
-                  Colors.red,
-                  theme,
-                ),
-              ),
-            ],
-          ),
         ),
         if (currentLocation != null) ...[
           const SizedBox(height: 24),
@@ -551,10 +553,10 @@ class AbsensiPage extends ConsumerWidget {
     final currentLocation = ref.watch(currentLocationProvider);
     final absensiType = ref.watch(absensiTypeProvider);
 
-    // Watch database providers for current state  
+    // Watch database providers for current state
     final canCheckInAsync = ref.watch(canCheckInProvider);
     final canCheckOutAsync = ref.watch(canCheckOutProvider);
-    
+
     // Pure API validation using Consumer
     return Consumer(
       builder: (context, ref, child) {
@@ -563,46 +565,54 @@ class AbsensiPage extends ConsumerWidget {
         );
 
         return canCheckInAsync.when(
-          data: (canCheckIn) => canCheckOutAsync.when(
-            data: (canCheckOut) {
-              final hasImage = (kIsWeb && selectedImageBytes != null) ||
-                  (!kIsWeb && selectedImage != null);
-              
-              bool canSubmit = false;
-              
-              locationValidationAsync.when(
-                data: (result) {
-                  final typeAllowed = (absensiType == 'checkin' && canCheckIn) ||
-                      (absensiType == 'checkout' && canCheckOut);
-                  
-                  canSubmit = typeAllowed &&
-                      hasImage &&
-                      currentLocation != null &&
-                      result.isValid;
-                },
-                loading: () {
-                  canSubmit = false;
-                },
-                error: (error, _) {
-                  canSubmit = false;
-                },
-              );
+          data:
+              (canCheckIn) => canCheckOutAsync.when(
+                data: (canCheckOut) {
+                  final hasImage =
+                      (kIsWeb && selectedImageBytes != null) ||
+                      (!kIsWeb && selectedImage != null);
 
-              return _buildAbsensiFormContent(
-                theme,
-                ref,
-                context,
-                canSubmit,
-                locationValidationAsync,
-                canCheckIn,
-                canCheckOut,
-              );
-            },
-            loading: () => _buildLoadingForm(theme, ref, context),
-            error: (error, _) => _buildErrorForm(theme, ref, context, error.toString()),
-          ),
+                  bool canSubmit = false;
+
+                  locationValidationAsync.when(
+                    data: (result) {
+                      final typeAllowed =
+                          (absensiType == 'checkin' && canCheckIn) ||
+                          (absensiType == 'checkout' && canCheckOut);
+
+                      canSubmit =
+                          typeAllowed &&
+                          hasImage &&
+                          currentLocation != null &&
+                          result.isValid;
+                    },
+                    loading: () {
+                      canSubmit = false;
+                    },
+                    error: (error, _) {
+                      canSubmit = false;
+                    },
+                  );
+
+                  return _buildAbsensiFormContent(
+                    theme,
+                    ref,
+                    context,
+                    canSubmit,
+                    locationValidationAsync,
+                    canCheckIn,
+                    canCheckOut,
+                  );
+                },
+                loading: () => _buildLoadingForm(theme, ref, context),
+                error:
+                    (error, _) =>
+                        _buildErrorForm(theme, ref, context, error.toString()),
+              ),
           loading: () => _buildLoadingForm(theme, ref, context),
-          error: (error, _) => _buildErrorForm(theme, ref, context, error.toString()),
+          error:
+              (error, _) =>
+                  _buildErrorForm(theme, ref, context, error.toString()),
         );
       },
     );
@@ -735,15 +745,13 @@ class AbsensiPage extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    absensiType == 'checkout' && !canCheckOut
-                        ? 'Silakan check in terlebih dahulu'
-                        : (absensiType == 'checkin' && !canCheckIn) ||
-                            (absensiType == 'checkout' && !canCheckOut)
-                        ? 'Anda sudah melakukan $absensiType hari ini'
-                        : currentLocation != null &&
-                            !isWithinOfficeBoundary(currentLocation, ref)
-                        ? 'Anda harus berada di area kantor untuk melakukan absensi'
-                        : 'Lengkapi foto dan lokasi untuk melanjutkan',
+                    _getAbsensiMessage(
+                      absensiType,
+                      canCheckIn,
+                      canCheckOut,
+                      currentLocation,
+                      ref,
+                    ),
                     style: theme.typographyRegular.bodySmall.copyWith(
                       color: Colors.orange.shade700,
                       fontWeight: FontWeight.w600,
@@ -808,11 +816,11 @@ class AbsensiPage extends ConsumerWidget {
   ]) {
     final selectedType = ref.watch(absensiTypeProvider);
     final isSelected = selectedType == type;
-    
+
     // Check completion status from database
     final todayAttendanceAsync = ref.watch(todayAttendanceProvider);
     bool isCompleted = false;
-    
+
     todayAttendanceAsync.whenData((data) {
       isCompleted = data[type] != null;
     });
@@ -1303,7 +1311,11 @@ class AbsensiPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildRiwayatAbsensi(dynamic theme, BuildContext context, WidgetRef ref) {
+  Widget _buildRiwayatAbsensi(
+    dynamic theme,
+    BuildContext context,
+    WidgetRef ref,
+  ) {
     final monthlyStatsAsync = ref.watch(monthlyStatsProvider);
 
     return Column(
@@ -1319,34 +1331,43 @@ class AbsensiPage extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         monthlyStatsAsync.when(
-          data: (stats) => Column(
-            children: stats.map((stat) => _buildRiwayatItem(stat, theme)).toList(),
-          ),
-          loading: () => Column(
-            children: List.generate(3, (index) => _buildRiwayatItemSkeleton(theme)),
-          ),
-          error: (error, _) => Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.error, color: Colors.red),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Gagal memuat riwayat absensi',
-                    style: theme.typographyRegular.bodyMedium.copyWith(
-                      color: Colors.red.shade700,
-                    ),
-                  ),
+          data:
+              (stats) => Column(
+                children:
+                    stats
+                        .map((stat) => _buildRiwayatItem(stat, theme))
+                        .toList(),
+              ),
+          loading:
+              () => Column(
+                children: List.generate(
+                  3,
+                  (index) => _buildRiwayatItemSkeleton(theme),
                 ),
-              ],
-            ),
-          ),
+              ),
+          error:
+              (error, _) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Gagal memuat riwayat absensi',
+                        style: theme.typographyRegular.bodyMedium.copyWith(
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
         ),
       ],
     );
@@ -1442,7 +1463,42 @@ class AbsensiPage extends ConsumerWidget {
     );
   }
 
+  String _getAbsensiMessage(
+    String absensiType,
+    bool canCheckIn,
+    bool canCheckOut,
+    Position? currentLocation,
+    WidgetRef ref,
+  ) {
+    // Jika sudah check in dan check out (keduanya sudah selesai)
+    if (!canCheckIn && !canCheckOut) {
+      return 'Absensi hari ini sudah lengkap (check in dan check out)';
+    }
 
+    // Jika pilih check in tapi sudah check in
+    if (absensiType == 'checkin' && !canCheckIn) {
+      return 'Anda sudah melakukan check in hari ini';
+    }
+
+    // Jika pilih check out tapi belum check in
+    if (absensiType == 'checkout' && canCheckIn) {
+      return 'Silakan check in terlebih dahulu sebelum check out';
+    }
+
+    // Jika pilih check out tapi sudah check out
+    if (absensiType == 'checkout' && !canCheckOut) {
+      return 'Anda sudah melakukan check out hari ini';
+    }
+
+    // Jika lokasi tidak valid
+    if (currentLocation != null &&
+        !isWithinOfficeBoundary(currentLocation, ref)) {
+      return 'Anda harus berada di area kantor untuk melakukan absensi';
+    }
+
+    // Default message
+    return 'Lengkapi foto dan lokasi untuk melanjutkan';
+  }
 
   Future<void> _getCurrentLocation(WidgetRef ref) async {
     try {
@@ -1502,7 +1558,8 @@ class AbsensiPage extends ConsumerWidget {
 
     try {
       // Check notification permission before submit
-      final hasPermission = await NotificationService.hasNotificationPermissions();
+      final hasPermission =
+          await NotificationService.hasNotificationPermissions();
       if (!hasPermission) {
         await NotificationService.requestPermissionsWithDialog(context);
       }
@@ -1537,13 +1594,15 @@ class AbsensiPage extends ConsumerWidget {
       }
 
       // Submit using provider
-      await ref.read(absensiNotifierProvider.notifier).submitAbsensi(
-        type: absensiType,
-        location: currentLocation,
-        imagePath: !kIsWeb ? selectedImage?.path : null,
-        imageBytes: kIsWeb ? selectedImageBytes : null,
-        status: status,
-      );
+      await ref
+          .read(absensiNotifierProvider.notifier)
+          .submitAbsensi(
+            type: absensiType,
+            location: currentLocation,
+            imagePath: !kIsWeb ? selectedImage?.path : null,
+            imageBytes: kIsWeb ? selectedImageBytes : null,
+            status: status,
+          );
 
       showDialog(
         context: context,
@@ -1790,16 +1849,17 @@ class AbsensiPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorForm(dynamic theme, WidgetRef ref, BuildContext context, String error) {
+  Widget _buildErrorForm(
+    dynamic theme,
+    WidgetRef ref,
+    BuildContext context,
+    String error,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          Icon(
-            Icons.error,
-            color: Colors.red,
-            size: 48,
-          ),
+          Icon(Icons.error, color: Colors.red, size: 48),
           const SizedBox(height: 16),
           Text(
             'Terjadi kesalahan',

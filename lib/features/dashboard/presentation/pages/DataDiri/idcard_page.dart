@@ -22,7 +22,7 @@ class IdCardPage extends ConsumerStatefulWidget {
 class _IdCardPageState extends ConsumerState<IdCardPage> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  
+
   Map<String, dynamic> _originalData = {};
   bool _dataLoaded = false;
 
@@ -44,18 +44,18 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   Future<void> _initializeAndLoadData() async {
     try {
       print('IdCardPage: Initializing SQLite and loading data...');
-      
+
       // Load data from SQLite first
       await _loadDataFromSQLite();
-      
+
       // If no SQLite data, try loading from provider for backward compatibility
       if (_selectedImage == null) {
         await _loadDataFromProvider();
       }
-      
+
       // Backup original data for change detection
       _originalData = _getCurrentData();
-      
+
       print('IdCardPage: Initialization completed');
     } catch (e) {
       print('IdCardPage: Error during initialization: $e');
@@ -66,14 +66,14 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   Future<void> _loadDataFromSQLite() async {
     try {
       print('IdCardPage: Loading ID card data from SQLite...');
-      
+
       final idCardData = await _profileService.getCurrentIdCardData();
-      
+
       if (idCardData != null && mounted) {
         print('IdCardPage: Found existing ID card data, populating fields...');
         print('  - Foto Path: ${idCardData.fotoPath}');
         print('  - Is Uploaded: ${idCardData.isUploaded}');
-        
+
         if (idCardData.fotoPath.isNotEmpty) {
           final File savedFile = File(idCardData.fotoPath);
           if (_isValidImageFile(savedFile)) {
@@ -82,7 +82,9 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
             });
             print('IdCardPage: ✅ Photo loaded from SQLite successfully');
           } else {
-            print('IdCardPage: ⚠️ Invalid photo file at path: ${idCardData.fotoPath}');
+            print(
+              'IdCardPage: ⚠️ Invalid photo file at path: ${idCardData.fotoPath}',
+            );
           }
         }
       } else {
@@ -97,7 +99,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   Future<void> _loadDataFromProvider() async {
     try {
       print('IdCardPage: Loading data from provider as fallback...');
-      
+
       final savedData = ref.read(idCardDataProvider);
 
       // Only set data if not already set and data exists
@@ -153,7 +155,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
   bool _hasUnsavedChanges() {
     final currentData = _getCurrentData();
     return _originalData['fotoPath'] != currentData['fotoPath'] ||
-           _originalData['isUploaded'] != currentData['isUploaded'];
+        _originalData['isUploaded'] != currentData['isUploaded'];
   }
 
   void _restoreOriginalData() {
@@ -170,7 +172,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     setState(() {});
   }
 
- Future<void> _pickImage() async {
+  Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -179,14 +181,14 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
 
       if (image != null) {
         final File imageFile = File(image.path);
-        
+
         if (!_isValidImageFile(imageFile)) {
           ErrorUploadDialogCard.show(
             context,
             title: 'File Tidak Valid',
-            message: 'File yang dipilih tidak valid atau rusak. Silakan pilih file gambar lain.',
-            onConfirm: () {
-            },
+            message:
+                'File yang dipilih tidak valid atau rusak. Silakan pilih file gambar lain.',
+            onConfirm: () {},
           );
           return;
         }
@@ -198,9 +200,9 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           ErrorUploadDialogCard.show(
             context,
             title: 'Ukuran File Tidak Memenuhi Syarat',
-            message: 'Ukuran file harus di atas 500 KB.\nUkuran file saat ini: ${fileSizeInKB.toStringAsFixed(2)} KB',
-            onConfirm: () {
-            },
+            message:
+                'Ukuran file harus di atas 500 KB.\nUkuran file saat ini: ${fileSizeInKB.toStringAsFixed(2)} KB',
+            onConfirm: () {},
           );
           return;
         }
@@ -214,8 +216,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
         context,
         title: 'Gagal Memilih Gambar',
         message: 'Terjadi kesalahan saat memilih gambar: $e',
-        onConfirm: () {
-        },
+        onConfirm: () {},
       );
     }
   }
@@ -244,25 +245,11 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppCustomAppBar(
-        title: 'ID Card',
-        onBackPressed: () => Navigator.of(context).pop(),
-        backTooltip: 'Kembali',
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const IdCardDebugPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.bug_report),
-            tooltip: 'Debug SQLite',
-          ),
-        ],
-      ),
+        appBar: AppCustomAppBar(
+          title: 'ID Card',
+          onBackPressed: () => Navigator.of(context).pop(),
+          backTooltip: 'Kembali',
+        ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isTablet ? 24.0 : 16.0,
@@ -276,17 +263,21 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       ),
     );
   }
-  
-  Future<bool> _showUnsavedChangesDialog(BuildContext context, dynamic theme) async {
+
+  Future<bool> _showUnsavedChangesDialog(
+    BuildContext context,
+    dynamic theme,
+  ) async {
     final result = await SIHAKIConfirmationDialog.show(
       context,
-      title: 'Batalkan Perubahan ID Card', 
-      message: 'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
+      title: 'Batalkan Perubahan ID Card',
+      message:
+          'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan perubahan?',
       confirmText: 'Batalkan',
       cancelText: 'Batal',
       icon: Icons.warning_amber_rounded,
-      iconColor: Colors.red[600], 
-      isDestructive: true, 
+      iconColor: Colors.red[600],
+      isDestructive: true,
       onConfirm: () {
         _restoreOriginalData();
         if (context.mounted) {
@@ -656,7 +647,9 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
     // Debug logging
     print('IdCardPage: Validating and saving data...');
     print('Selected image path: ${_selectedImage?.path ?? "None"}');
-    print('Is valid image: ${_selectedImage != null ? _isValidImageFile(_selectedImage!) : false}');
+    print(
+      'Is valid image: ${_selectedImage != null ? _isValidImageFile(_selectedImage!) : false}',
+    );
 
     // Validate image before saving
     String validatedPath = '';
@@ -686,7 +679,7 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
       );
 
       print('IdCardPage: 📋 SQLite save result: $sqliteSuccess');
-      
+
       if (!sqliteSuccess) {
         print('IdCardPage: ❌ SQLite save failed - showing error dialog');
         notification.NotificationUtils.showError(
@@ -720,7 +713,8 @@ class _IdCardPageState extends ConsumerState<IdCardPage> {
           ProfileCompletionNotifierCard.show(
             context,
             title: 'Berhasil Menyimpan ID Card',
-            message: 'Data ID Card Anda telah diperbarui dan tersimpan dengan sukses.',
+            message:
+                'Data ID Card Anda telah diperbarui dan tersimpan dengan sukses.',
             onConfirm: () {
               // Update original data to clear unsaved changes flag
               _originalData = _getCurrentData();
